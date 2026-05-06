@@ -1,0 +1,104 @@
+import { getGun } from "./guns.js";
+
+/**
+ * @typedef {Object} Opponent
+ * @property {string} id
+ * @property {string} name
+ * @property {string} title
+ * @property {string} backstory
+ * @property {number} maxHp
+ * @property {string} gunId
+ * @property {number} stamina
+ * @property {number} prepAggression — 0-1, chance to play another card
+ * @property {string} bgKey — render palette
+ * @property {string[]} deckTemplate — card ids for prep draws (weighted pool)
+ */
+
+/** @type {Opponent[]} */
+export const OPPONENTS = [
+  {
+    id: "blackjack_riley",
+    name: "Blackjack Riley",
+    title: "The Rolling Bankroll",
+    backstory:
+      "A fat bearded outlaw who robbed three counties. Slow draw, but he soaks lead like a rain barrel.",
+    maxHp: 140,
+    gunId: "mare_leg",
+    stamina: 8,
+    prepAggression: 0.35,
+    bgKey: "saloon",
+    deckTemplate: [
+      "gun_heavy_slugger",
+      "gun_heavy_slugger",
+      "atk_fan_hammer",
+      "atk_devils_due",
+      "feat_whiskey",
+      "atk_sand_chamber",
+      "gun_quick_draw",
+      "atk_rust_bullet",
+    ],
+  },
+  {
+    id: "silent_rose",
+    name: "Silent Rose",
+    title: "The Widow's Kiss",
+    backstory:
+      "Black leather, colder eyes. She does not talk in duels — her Schofield does the speaking.",
+    maxHp: 95,
+    gunId: "schofield",
+    stamina: 12,
+    prepAggression: 0.55,
+    bgKey: "night",
+    deckTemplate: [
+      "gun_oiled_chamber",
+      "atk_trick_shot",
+      "atk_rattlesnake",
+      "feat_steady_hand",
+      "gun_quick_draw",
+      "atk_rust_bullet",
+      "feat_tumbleweed",
+      "atk_dead_mans_volley",
+    ],
+  },
+  {
+    id: "mad_dog_mcclane",
+    name: "Mad Dog McClane",
+    title: "Bandolier Lunatic",
+    backstory:
+      "Skinny, twitchy, too many teeth. Charges the noon sun like it owes him money.",
+    maxHp: 105,
+    gunId: "peacemaker",
+    stamina: 10,
+    prepAggression: 0.72,
+    bgKey: "mine",
+    deckTemplate: [
+      "gun_bandit_gambit",
+      "atk_fan_hammer",
+      "feat_adrenaline",
+      "gun_quick_draw",
+      "atk_trick_shot",
+      "gun_heavy_slugger",
+      "atk_devils_due",
+      "feat_adrenaline",
+    ],
+  },
+];
+
+export function getOpponent(id) {
+  return OPPONENTS.find((o) => o.id === id) ?? OPPONENTS[0];
+}
+
+export function makeEnemyRuntime(opp) {
+  const gun = getGun(opp.gunId);
+  return {
+    def: opp,
+    hp: opp.maxHp,
+    maxHp: opp.maxHp,
+    stamina: opp.stamina,
+    maxStamina: opp.stamina,
+    gun: { ...gun },
+    drawPile: [],
+    discardPile: [],
+    hand: [],
+  };
+}

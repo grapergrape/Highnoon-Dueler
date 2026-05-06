@@ -1,0 +1,35 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]: "Bounty: $40"
+    - generic [ref=e5]: 100 / 100 HP
+  - generic [ref=e8]:
+    - heading "Preparation — round 1 of 3. Play your hand, then Lock In." [level=3] [ref=e34]
+    - paragraph [ref=e35]:
+      - text: Round
+      - strong [ref=e36]: "1"
+      - text: /3 · Stamina
+      - strong [ref=e37]: "10"
+      - text: /10
+    - button "Lock In (Space)" [ref=e38] [cursor=pointer]
+    - generic [ref=e39]:
+      - generic [ref=e41] [cursor=pointer]:
+        - generic [ref=e42]: Iron
+        - generic [ref=e43]: "2"
+        - generic [ref=e44]: Heavy Slugger
+        - generic [ref=e45]: Chamber these modifiers for High Noon.
+      - generic [ref=e47] [cursor=pointer]:
+        - generic [ref=e48]: Grit
+        - generic [ref=e49]: "2"
+        - generic [ref=e50]: Whiskey Courage
+        - generic [ref=e51]: One duel only — burns bright.
+      - generic [ref=e53] [cursor=pointer]:
+        - generic [ref=e54]: Trick
+        - generic [ref=e55]: "2"
+        - generic [ref=e56]: Devil's Due
+        - generic [ref=e57]: Honey the outlaw before the bells ring.
+      - generic [ref=e59] [cursor=pointer]:
+        - generic [ref=e60]: Legend
+        - generic [ref=e61]: "0"
+        - generic [ref=e62]: Thick Hide
+        - generic [ref=e63]: Keeps across the trail.
+  - paragraph [ref=e33]: Click cards to play · Stamina limits plays · Lock In ends your prep for the round

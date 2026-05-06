@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "High Noon Duelist (server)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/server.py",
+      "args": ["--host", "127.0.0.1", "--port", "8088"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    }
+  ]
+}
