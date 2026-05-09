@@ -1,10 +1,12 @@
 import { OPPONENTS } from "./opponents.js";
 import { getCardDef } from "./cards.js";
 import { CARD_DEFINITIONS } from "./cards.js";
+import { getClass } from "./classes.js";
 
 const panel = () => document.getElementById("panel");
 const hudRun = () => document.getElementById("hud-run");
 const hudHealth = () => document.getElementById("hud-health");
+const hudClass = () => document.getElementById("hud-class");
 
 /** @type {Record<string,string>} */
 const RIBBON_LABEL = {
@@ -77,12 +79,30 @@ function buildEffectsHtml(def) {
 export function updateHud(game) {
   if (hudRun()) hudRun().textContent = `Bounty: $${game.run.money | 0}`;
   if (hudHealth()) hudHealth().textContent = `${game.run.hp | 0} / ${game.run.maxHp} HP`;
+  const chip = hudClass();
+  if (chip) {
+    const cls = getClass(game.run.classId);
+    if (!cls || !game.run.classId) {
+      chip.textContent = "";
+      chip.style.borderColor = "";
+      return;
+    }
+    chip.textContent = `${cls.name} — ${cls.abilityName}`;
+    chip.title = cls.abilityBlurb;
+    chip.style.setProperty("--tint", cls.portraitTint);
+  }
 }
 
 export function renderWanted(game, onPick) {
   const el = panel();
   el.className = "panel";
-  el.innerHTML = `<h2>Wanted Board</h2><p>Pick a soul to send to judgment.</p><div class="wanted-grid"></div>`;
+  const cls = getClass(game.run.classId);
+  const head = cls
+    ? `<div class="wanted-class-summary" style="--tint:${cls.portraitTint}">
+        <strong>${cls.name}</strong> · <em>${cls.title}</em>
+        <span>${cls.abilityBlurb}</span>
+      </div>` : "";
+  el.innerHTML = `${head}<h2>Wanted Board</h2><p>Pick a soul to send to judgment.</p><div class="wanted-grid"></div>`;
   const g = el.querySelector(".wanted-grid");
   for (const o of OPPONENTS) {
     const d = document.createElement("div");

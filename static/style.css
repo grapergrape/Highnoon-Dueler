@@ -579,3 +579,54 @@ button.shop-card:active {
   transform: translateY(-4px) scale(1.03);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
 }
+
+/* ── HUD CLASS CHIP ──────────────────────────────────────────────────────── */
+.hud-class {
+  font-size: 0.85rem;
+  color: var(--parchment);
+  border: 1px solid var(--tint, var(--sand));
+  border-radius: 2px;
+  padding: 0.05rem 0.45rem;
+  background: rgba(0, 0, 0, 0.35);
+  letter-spacing: 0.02em;
+}
+
+/* ── WANTED BOARD CLASS SUMMARY ──────────────────────────────────────────── */
+.wanted-class-summary {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 0.55rem 0.8rem;
+  margin-bottom: 0.55rem;
+  border-left: 4px solid var(--tint, var(--sand));
+  background: rgba(0, 0, 0, 0.35);
+  font-size: 0.85rem;
+}
+
+.wanted-class-summary span {
+  color: var(--brass);
+}
+
+/* ── CLASS SELECT GRID ───────────────────────────────────────────────────── */
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.class-grid .poster {
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.class-grid .poster:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.class-grid .poster h3 {
+  border-bottom: 2px solid var(--tint, var(--sand));
+  padding-bottom: 0.3rem;
+}
