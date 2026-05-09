@@ -260,6 +260,7 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown) {
   } else if (d.phase === "prep") {
     const markStr = d.enemyMarked > 0 ? `<span class="status-tag status-mark">◆ Marked ×${d.enemyMarked}</span>` : "";
     const focStr = d.playerFocused ? `<span class="status-tag status-focused">✦ Focused</span>` : "";
+    const freeStr = d.freeCardAvailable ? `<span class="status-tag status-free">★ Free Card</span>` : "";
     const focPips = Array.from({ length: d.playerMaxFocus }, (_, i) =>
       `<span class="focus-pip${i < d.playerFocus ? ' filled' : ''}"></span>`
     ).join('');
@@ -267,7 +268,7 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown) {
       <span class="prep-round">Round ${d.prepRound}/3</span>
       <span class="focus-bar" title="Focus: ${d.playerFocus}/${d.playerMaxFocus}">${focPips}</span>
       <span class="focus-label">${d.playerFocus}/${d.playerMaxFocus} focus</span>
-      ${markStr}${focStr}
+      ${markStr}${focStr}${freeStr}
       <button class="btn btn-lockin" id="lock" ${d.playerLocked ? "disabled" : ""}>Lock In</button>
     </div>`;
     html += `<div class="card-row" id="hand"></div>`;
@@ -299,9 +300,11 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown) {
       const def = getCardDef(c.id);
       if (!def) continue;
       const card = document.createElement("div");
-      const affordable = def.cost <= d.playerFocus;
+      const isFreeEligible = d.freeCardAvailable && def.type !== "gun" && def.type !== "character";
+      const affordable = def.cost <= d.playerFocus || isFreeEligible;
+      const costLabel = isFreeEligible && def.cost > d.playerFocus ? "★ free" : def.cost;
       card.className = `hand-card hand-card-${def.type}${affordable ? "" : " disabled"}`;
-      card.innerHTML = buildCardHtml(def, def.cost);
+      card.innerHTML = buildCardHtml(def, costLabel);
       if (affordable) {
         card.onclick = () => onPlayCard(c.uid);
       }
@@ -319,4 +322,41 @@ export function renderGameOver(game, onRestart) {
     <p class="game-over-wait">Back to Wanted Board shortly… Press below to ride now.</p>
     <button class="btn" id="rs">Return now</button>`;
   el.querySelector("#rs").onclick = onRestart;
+}
+
+export function renderClassSelect(game, onPickClass) {
+  const el = panel();
+  el.className = "panel";
+  el.innerHTML = `<h2>Choose Your Path</h2><p>Who are you riding as?</p><div class="wanted-grid" id="class-grid"></div>`;
+  const g = el.querySelector("#class-grid");
+
+  const classes = [
+    {
+      id: "outlaw",
+      name: "Outlaw",
+      subtitle: "Wanted Dead or Alive",
+      description: "A hardened criminal with a price on their head. Balanced deck and no quarter given.",
+      traits: "Standard loadout · No special perk",
+    },
+    {
+      id: "apache_tracker",
+      name: "Apache Tracker",
+      subtitle: "Ghost of the High Desert",
+      description: "A master tracker schooled in patience and precision. Accuracy-first deck built around the free-first-card perk each round.",
+      traits: "+5% accuracy · First card free each prep round",
+    },
+  ];
+
+  for (const cls of classes) {
+    const d = document.createElement("div");
+    d.className = "poster";
+    d.innerHTML = `
+      <h3>${cls.name}</h3>
+      <p><em>${cls.subtitle}</em></p>
+      <p>${cls.description}</p>
+      <p><strong>${cls.traits}</strong></p>
+    `;
+    d.onclick = () => onPickClass(cls.id);
+    g.appendChild(d);
+  }
 }

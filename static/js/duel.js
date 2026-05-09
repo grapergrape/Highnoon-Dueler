@@ -218,6 +218,7 @@ function applyEnemyPlayedCard(duel, def) {
 
 export function startPrepRound(duel, run) {
   duel.playerLocked = false;
+  duel.freeCardAvailable = !!run.permanent?.freeFirstCardPerRound;
   duel.message = `Preparation — round ${duel.prepRound} of 3. Play your hand, then Lock In.`;
   pushPlayLogBulletin(duel, `Preparation round ${duel.prepRound}/3 — draw and play.`);
   refillFocus(duel, run);
