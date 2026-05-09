@@ -61,6 +61,7 @@ export function createDuel(oppDef, run) {
     playerDebuffs: emptyDebuffs(),
     enemyDebuffs: emptyDebuffs(),
     // Synergy state (persists across prep rounds, cleared after shootout)
+    extraMarkPerApply: run.permanent?.extraMarkPerApply ?? 0,
     enemyMarked: 0,
     playerFocused: false,
     shootoutLog: [],
@@ -178,7 +179,7 @@ function applyPlayerCardEffects(duel, def) {
     } else if (e.kind === "enemyBullets") {
       duel.enemyDebuffs.bulletNext += e.value || 0;
     } else if (e.kind === "markEnemy") {
-      duel.enemyMarked += e.value || 0;
+      duel.enemyMarked += (e.value || 0) + (duel.extraMarkPerApply || 0);
     } else {
       mergeGunIntoMods(duel.playerMods, [raw], 1);
     }
@@ -305,6 +306,7 @@ function applyPermanentFromCharacter(run, def) {
     if (e.kind === "staminaPerRound") run.permanent.focusPerRound = (run.permanent.focusPerRound || 0) + (e.value || 0); // legacy compat
     if (e.kind === "deadeye") run.permanent.deadeye = true;
     if (e.kind === "damageTaken") run.permanent.damageReduce = (run.permanent.damageReduce || 0) + Math.abs(e.value ?? 1);
+    if (e.kind === "extraMarkPerApply") run.permanent.extraMarkPerApply = (run.permanent.extraMarkPerApply || 0) + (e.value || 0);
   }
 }
 

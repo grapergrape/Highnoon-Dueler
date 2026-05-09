@@ -493,6 +493,14 @@ export const CARD_DEFINITIONS = [
     cost: 0,
     effects: ["accGlobal+0.1", "focusPerRound+3", "healPerDuel+10"],
   },
+  {
+    id: "char_us_marshal",
+    name: "Federal Warrant",
+    type: "character",
+    rarity: "rare",
+    cost: 0,
+    effects: ["accGlobal+0.05", "focusPerRound+1", "extraMarkPerApply+1"],
+  },
 
   // ── FEAT CARDS ─────────────────────────────────────────────────────────────
   {
