@@ -321,6 +321,7 @@ function applyPermanentFromCharacter(run, def) {
     if (e.kind === "deadeye") run.permanent.deadeye = true;
     if (e.kind === "damageTaken") run.permanent.damageReduce = (run.permanent.damageReduce || 0) + Math.abs(e.value ?? 1);
     if (e.kind === "firstCycleAccPenalty") run.permanent.firstCycleAccPenalty = (run.permanent.firstCycleAccPenalty || 0) + (e.value || 0);
+    if (e.kind === "bountyMult") run.permanent.bountyMult = (run.permanent.bountyMult ?? 1) + (e.value || 0);
   }
 }
 

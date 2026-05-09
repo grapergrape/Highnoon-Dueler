@@ -267,6 +267,7 @@ function endDuelFlow() {
       game.run.permanent.bountyMult = Math.min(3.0, mult + growth);
     }
 
+
     saveRun(game.run);
     updateHud(game);
     openShop();
