@@ -1,4 +1,4 @@
-import { STARTER_DECK_IDS, shuffle } from "./deck.js";
+import { STARTER_DECK_IDS, BOUNTY_HUNTER_DECK_IDS, shuffle } from "./deck.js";
 import { DEFAULT_GUN_ID } from "./guns.js";
 import { getOpponent } from "./opponents.js";
 import { getClass } from "./classes.js";
@@ -21,16 +21,34 @@ import {
   renderShop,
   renderDuelPanel,
   renderGameOver,
+  renderClassSelect,
 } from "./ui.js";
 import { CLASSES, getClass, applyClassToRun } from "./classes.js";
 
 const LS_KEY = "highnoon_duelist_v1";
 
-/** Time on win/loss art + duel panel before shop / game-over */
-const DUEL_END_LINGER_MS = 2800;
-
-/** After game-over, idle before returning to Wanted Board (click skips) */
-const GAMEOVER_AUTO_RETURN_MS = 4200;
+const CLASS_CONFIGS = [
+  {
+    id: "default",
+    name: "Drifter",
+    desc: "A lone gun with nothing to lose. Balanced starting hand.",
+    perks: ["Standard 12-card deck", "No special passives"],
+    deckIds: STARTER_DECK_IDS,
+    permanent: {},
+  },
+  {
+    id: "bounty_hunter",
+    name: "Bounty Hunter",
+    desc: "Tracks wanted outlaws for coin. Focused state sharpens your aim, and every bounty pays 25% more.",
+    perks: [
+      "Focused-synergy 12-card deck (iron nerve, apex predator, …)",
+      "+10% accuracy while Focused",
+      "×1.25 bounty payout on all kills",
+    ],
+    deckIds: BOUNTY_HUNTER_DECK_IDS,
+    permanent: { focusedAccBonus: 0.1, bountyMult: 1.25 },
+  },
+];
 
 function defaultRun(classId = "outlaw") {
   const cls = getClass(classId);
@@ -60,7 +78,7 @@ function hasSavedRun() {
 function loadRun() {
   try {
     const j = localStorage.getItem(LS_KEY);
-    if (!j) return defaultRun();
+    if (!j) return null;
     const o = JSON.parse(j);
     const base = defaultRun(o.classId ?? "outlaw");
     return {
@@ -72,7 +90,7 @@ function loadRun() {
       classId: o.classId ?? null,
     };
   } catch {
-    return defaultRun();
+    return null;
   }
 }
 
@@ -81,14 +99,16 @@ function saveRun(run) {
 }
 
 function bountyFor(oppId) {
-  if (oppId === "blackjack_riley") return 55;
-  if (oppId === "silent_rose") return 70;
-  return 50;
+  const base = oppId === "blackjack_riley" ? 55 : oppId === "silent_rose" ? 70 : 50;
+  const mult = game.run.permanent?.bountyMult ?? 1;
+  return Math.round(base * mult);
 }
+
+const _savedRun = loadRun();
 
 const game = {
   screen: "wanted",
-  run: loadRun(),
+  run: _savedRun ?? defaultRun(),
   duel: null,
   canvas: null,
   ctx: null,

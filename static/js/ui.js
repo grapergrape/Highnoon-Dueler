@@ -76,6 +76,20 @@ function buildEffectsHtml(def) {
   return `<span class="card-effects">${lines.join('')}</span>`;
 }
 
+export function renderClassSelect(game, classes, onPickClass) {
+  const el = panel();
+  el.className = "panel";
+  el.innerHTML = `<h2>Choose Your Path</h2><p>Your class shapes your starting hand and special abilities.</p><div class="class-grid"></div>`;
+  const g = el.querySelector(".class-grid");
+  for (const cls of classes) {
+    const d = document.createElement("div");
+    d.className = "poster class-card";
+    d.innerHTML = `<h3>${cls.name}</h3><p>${cls.desc}</p><ul class="class-perks">${cls.perks.map((p) => `<li>${p}</li>`).join("")}</ul>`;
+    d.onclick = () => onPickClass(cls.id);
+    g.appendChild(d);
+  }
+}
+
 export function updateHud(game) {
   if (hudRun()) hudRun().textContent = `Bounty: $${game.run.money | 0}`;
   if (hudHealth()) hudHealth().textContent = `${game.run.hp | 0} / ${game.run.maxHp} HP`;
