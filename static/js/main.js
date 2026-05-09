@@ -20,7 +20,7 @@ import {
   renderDuelPanel,
   renderGameOver,
 } from "./ui.js";
-import { getClass } from "./classes.js";
+import { CLASSES, getClass } from "./classes.js";
 
 const LS_KEY = "highnoon_duelist_v1";
 
@@ -145,7 +145,25 @@ function goClassSelect() {
 }
 
 function pickClass(classId) {
+  const cls = CLASSES.find((c) => c.id === classId);
   game.run.classId = classId;
+  if (cls) {
+    if (cls.starterGunId) {
+      game.run.gunId = cls.starterGunId;
+      if (!game.run.ownedGuns.includes(cls.starterGunId)) {
+        game.run.ownedGuns = [...game.run.ownedGuns, cls.starterGunId];
+      }
+    }
+    if (cls.starterDeckIds?.length) {
+      game.run.deckIds = [...cls.starterDeckIds];
+    }
+    if (cls.passives) {
+      if (!game.run.permanent) game.run.permanent = {};
+      for (const [k, v] of Object.entries(cls.passives)) {
+        game.run.permanent[k] = v;
+      }
+    }
+  }
   saveRun(game.run);
   updateHud(game);
   goWanted();
@@ -154,15 +172,9 @@ function pickClass(classId) {
 function renderClassSelect(onPick) {
   const el = document.getElementById("panel");
   el.className = "panel";
-  let html = `<h2>Choose Your Class</h2><p>Every gunslinger has a specialty. Pick your path.</p><div class="class-grid"></div>`;
-  el.innerHTML = html;
+  el.innerHTML = `<h2>Choose Your Class</h2><p>Every gunslinger has a specialty. Pick your path.</p><div class="class-grid"></div>`;
   const grid = el.querySelector(".class-grid");
-  for (const cls of [
-    { id: "gunslinger", name: "Gunslinger", title: "Quick-Draw Specialist", abilityName: "Quick Draw", abilityBlurb: "+1 bullet in every shootout, no prep needed.", portraitTint: "#c4a574" },
-    { id: "sharpshooter", name: "Sharpshooter", title: "Dead-Eye Marksman", abilityName: "Dead-Eye", abilityBlurb: "+15% accuracy across all shootouts.", portraitTint: "#4a6fa5" },
-    { id: "brawler", name: "Brawler", title: "Grit & Thunder", abilityName: "Thunderstrike", abilityBlurb: "+2 base damage in every shootout.", portraitTint: "#7a2929" },
-    { id: "drifter", name: "Drifter", title: "Wandering Survivor", abilityName: "Iron Hide", abilityBlurb: "+20 max HP from the start of every duel.", portraitTint: "#4d6228" },
-  ]) {
+  for (const cls of CLASSES) {
     const d = document.createElement("div");
     d.className = "poster";
     d.style.borderLeftColor = cls.portraitTint;
