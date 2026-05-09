@@ -222,7 +222,15 @@ function endDuelFlow() {
   resetCombatUi(game);
   syncDeckFromDuel();
   if (d.winner === "player") {
-    game.run.money += game.lastBounty;
+    const mult = game.run.permanent?.bountyMult ?? 1;
+    game.run.money += Math.round(game.lastBounty * mult);
+
+    // Apply cumulative growth for next time (Outlaw class: bountyGrowthPerWin = 0.25, cap 3.0)
+    const growth = game.run.permanent?.bountyGrowthPerWin ?? 0;
+    if (growth > 0) {
+      game.run.permanent.bountyMult = Math.min(3.0, mult + growth);
+    }
+
     saveRun(game.run);
     updateHud(game);
     openShop();
