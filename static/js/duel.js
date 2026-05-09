@@ -373,8 +373,9 @@ export function duelDisplayedVolleyPreview(duel, run) {
   const pg = getGun(run.gunId);
   const eg = duel.enemy.gun;
   const permAcc = run.permanent?.accBonus ?? 0;
+  const focusedAccBonus = duel.playerFocused ? (run.permanent?.focusedAccBonus ?? 0) : 0;
   return {
-    player: buildVolleySide(pg, duel.playerMods, duel.playerDebuffs, permAcc),
+    player: buildVolleySide(pg, duel.playerMods, duel.playerDebuffs, permAcc + focusedAccBonus),
     enemy: buildVolleySide(eg, duel.enemyMods, duel.enemyDebuffs, 0),
   };
 }
@@ -417,7 +418,7 @@ export function resolveShootout(duel, run) {
   // Apply focus bonuses if player is focused this cycle
   if (duel.playerFocused) {
     P.bullets = Math.max(1, Math.round(P.bullets + duel.playerMods.focusBonusBullets));
-    P.acc = Math.min(0.96, P.acc + duel.playerMods.focusBonusAcc);
+    P.acc = Math.min(0.96, P.acc + duel.playerMods.focusBonusAcc + (run.permanent?.focusedAccBonus ?? 0));
   }
 
   const log = [];

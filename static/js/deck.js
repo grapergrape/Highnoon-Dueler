@@ -49,3 +49,19 @@ export const STARTER_DECK_IDS = [
   "atk_sand_chamber",
   "char_thick_hide",
 ];
+
+/** Bounty Hunter class starter deck — heavy Focused-state synergy (12 cards) */
+export const BOUNTY_HUNTER_DECK_IDS = [
+  "atk_iron_nerve",
+  "atk_iron_nerve",
+  "atk_cold_blood",
+  "atk_focused_volley",
+  "atk_apex_predator",
+  "feat_snipers_breath",
+  "feat_second_wind",
+  "gun_long_barrel",
+  "gun_silver_tongue",
+  "char_preacher",
+  "atk_phantom_round",
+  "atk_rattlesnake",
+];
