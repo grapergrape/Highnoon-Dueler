@@ -37,7 +37,12 @@ function defaultRun() {
     gunId: DEFAULT_GUN_ID,
     deckIds: [...STARTER_DECK_IDS],
     ownedGuns: [DEFAULT_GUN_ID],
-    permanent: {},
+    // Outlaw class — "Wanted Dead" ability (Ability 2/3)
+    permanent: {
+      focusPerRound: 1,
+      bountyGrowthPerWin: 0.25,
+      bountyMult: 1.0,
+    },
   };
 }
 
@@ -134,7 +139,7 @@ function goWanted() {
 function startDuel(oppId) {
   resetCombatUi(game);
   const opp = getOpponent(oppId);
-  game.lastBounty = bountyFor(oppId);
+  game.lastBounty = Math.round(bountyFor(oppId) * (game.run.permanent.bountyMult ?? 1));
   game.run.hp = Math.min(game.run.maxHp, Math.max(1, game.run.hp));
   game.duel = createDuel(opp, game.run);
   dealStaredownChoices(game.duel);
@@ -223,6 +228,10 @@ function endDuelFlow() {
   syncDeckFromDuel();
   if (d.winner === "player") {
     game.run.money += game.lastBounty;
+    const perm = game.run.permanent;
+    if (perm.bountyGrowthPerWin != null) {
+      perm.bountyMult = Math.min(3.0, (perm.bountyMult ?? 1.0) + perm.bountyGrowthPerWin);
+    }
     saveRun(game.run);
     updateHud(game);
     openShop();
