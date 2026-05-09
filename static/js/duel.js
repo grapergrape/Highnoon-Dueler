@@ -73,6 +73,7 @@ export function createDuel(oppDef, run) {
     staredownChoices: [],
     feedbackEnemyRound: [],
     playLog: [],
+    freeCardAvailable: false,
   };
 }
 
@@ -215,6 +216,7 @@ function applyEnemyPlayedCard(duel, def) {
 
 export function startPrepRound(duel, run) {
   duel.playerLocked = false;
+  duel.freeCardAvailable = !!run.permanent?.freeFirstCardPerRound;
   duel.message = `Preparation — round ${duel.prepRound} of 3. Play your hand, then Lock In.`;
   pushPlayLogBulletin(duel, `Preparation round ${duel.prepRound}/3 — draw and play.`);
   refillFocus(duel, run);
@@ -250,7 +252,11 @@ export function tryPlayCard(duel, run, cardUid) {
   const def = getCardDef(card.id);
   if (!def) return { ok: false, reason: "Bad card" };
   if (duel.playerLocked) return { ok: false, reason: "Locked in" };
-  if (def.cost > duel.playerFocus) return { ok: false, reason: "Not enough focus" };
+
+  // Free-first-card perk: one non-gun, non-character card costs 0 per prep round
+  const isFreePlay = duel.freeCardAvailable && def.type !== "gun" && def.type !== "character";
+  const effectiveCost = isFreePlay ? 0 : def.cost;
+  if (effectiveCost > duel.playerFocus) return { ok: false, reason: "Not enough focus" };
 
   if (def.type === "character") {
     applyPermanentFromCharacter(run, def);
@@ -262,7 +268,11 @@ export function tryPlayCard(duel, run, cardUid) {
     return { ok: true, character: true, feedback: feedbackLinesForCard(def, "player") };
   }
 
-  duel.playerFocus -= def.cost;
+  if (isFreePlay) {
+    duel.freeCardAvailable = false;
+    pushPlayLogBulletin(duel, `★ Tracker's eye — ${def.name} costs nothing this round.`);
+  }
+  duel.playerFocus -= effectiveCost;
   duel.playerHand.splice(idx, 1);
   duel.playerDiscard.push(card);
 

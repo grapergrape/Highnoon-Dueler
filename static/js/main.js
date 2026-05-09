@@ -1,4 +1,4 @@
-import { STARTER_DECK_IDS, shuffle } from "./deck.js";
+import { STARTER_DECK_IDS, APACHE_TRACKER_DECK_IDS, shuffle } from "./deck.js";
 import { DEFAULT_GUN_ID } from "./guns.js";
 import { getOpponent } from "./opponents.js";
 import {
@@ -19,6 +19,7 @@ import {
   renderShop,
   renderDuelPanel,
   renderGameOver,
+  renderClassSelect,
 } from "./ui.js";
 
 const LS_KEY = "highnoon_duelist_v1";
@@ -29,6 +30,21 @@ const DUEL_END_LINGER_MS = 2800;
 /** After game-over, idle before returning to Wanted Board (click skips) */
 const GAMEOVER_AUTO_RETURN_MS = 4200;
 
+const CLASS_CONFIGS = {
+  outlaw: {
+    maxHp: 100,
+    gunId: DEFAULT_GUN_ID,
+    deckIds: STARTER_DECK_IDS,
+    permanent: {},
+  },
+  apache_tracker: {
+    maxHp: 100,
+    gunId: DEFAULT_GUN_ID,
+    deckIds: APACHE_TRACKER_DECK_IDS,
+    permanent: { accBonus: 0.05, freeFirstCardPerRound: true },
+  },
+};
+
 function defaultRun() {
   return {
     money: 40,
@@ -38,6 +54,20 @@ function defaultRun() {
     deckIds: [...STARTER_DECK_IDS],
     ownedGuns: [DEFAULT_GUN_ID],
     permanent: {},
+  };
+}
+
+function runForClass(classId) {
+  const cfg = CLASS_CONFIGS[classId] ?? CLASS_CONFIGS.outlaw;
+  return {
+    classId,
+    money: 40,
+    hp: cfg.maxHp,
+    maxHp: cfg.maxHp,
+    gunId: cfg.gunId,
+    deckIds: [...cfg.deckIds],
+    ownedGuns: [cfg.gunId],
+    permanent: { ...cfg.permanent },
   };
 }
 
@@ -119,6 +149,19 @@ function clearNavTimers() {
     clearTimeout(game._gameOverReturnTimer);
     game._gameOverReturnTimer = null;
   }
+}
+
+function goClassSelect() {
+  clearNavTimers();
+  resetCombatUi(game);
+  game.screen = "class_select";
+  game.duel = null;
+  updateHud(game);
+  renderClassSelect(game, (classId) => {
+    game.run = runForClass(classId);
+    saveRun(game.run);
+    goWanted();
+  });
 }
 
 function goWanted() {
@@ -230,17 +273,12 @@ function endDuelFlow() {
     game.screen = "gameover";
     renderGameOver(game, () => {
       clearNavTimers();
-      game.run = defaultRun();
-      saveRun(game.run);
-      goWanted();
+      goClassSelect();
     });
     game._gameOverReturnTimer = setTimeout(() => {
       game._gameOverReturnTimer = null;
       if (game.screen !== "gameover") return;
-      clearNavTimers();
-      game.run = defaultRun();
-      saveRun(game.run);
-      goWanted();
+      goClassSelect();
     }, GAMEOVER_AUTO_RETURN_MS);
   }
   game.duel = null;
@@ -321,7 +359,12 @@ function init() {
   game.canvas = document.getElementById("game-canvas");
   game.ctx = game.canvas.getContext("2d");
   updateHud(game);
-  goWanted();
+  const hasSave = !!localStorage.getItem(LS_KEY);
+  if (hasSave) {
+    goWanted();
+  } else {
+    goClassSelect();
+  }
 
   bindInput(game, {
     onLockIn,

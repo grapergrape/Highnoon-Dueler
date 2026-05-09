@@ -49,3 +49,19 @@ export const STARTER_DECK_IDS = [
   "atk_sand_chamber",
   "char_thick_hide",
 ];
+
+/** Apache Tracker class starter deck — accuracy + low-cost focus on free-first-card perk */
+export const APACHE_TRACKER_DECK_IDS = [
+  "atk_rattlesnake",
+  "atk_rattlesnake",
+  "atk_dust_throw",
+  "atk_dust_throw",
+  "atk_devils_due",
+  "feat_steady_aim",
+  "feat_steady_aim",
+  "feat_tumbleweed",
+  "char_hawk_eye",
+  "gun_quick_draw",
+  "gun_oiled_chamber",
+  "atk_iron_nerve",
+];

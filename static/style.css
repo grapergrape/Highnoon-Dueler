@@ -518,6 +518,12 @@ button.shop-card:active {
   color: #b8d4f4;
 }
 
+.status-free {
+  background: rgba(60, 130, 70, 0.55);
+  border: 1px solid rgba(90, 180, 100, 0.5);
+  color: #b8f4c0;
+}
+
 .btn-lockin {
   margin: 0;
   padding: 0.35rem 0.85rem;
