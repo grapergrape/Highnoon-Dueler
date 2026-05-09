@@ -202,8 +202,7 @@ function pickClass(classId) {
 function renderClassSelect(onPick) {
   const el = document.getElementById("panel");
   el.className = "panel";
-  let html = `<h2>Choose Your Class</h2><p>Every gunslinger has a specialty. Pick your path.</p><div class="class-grid"></div>`;
-  el.innerHTML = html;
+  el.innerHTML = `<h2>Choose Your Class</h2><p>Every gunslinger has a specialty. Pick your path.</p><div class="class-grid"></div>`;
   const grid = el.querySelector(".class-grid");
   for (const cls of CLASSES) {
     const d = document.createElement("div");
