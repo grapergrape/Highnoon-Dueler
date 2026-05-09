@@ -132,6 +132,39 @@ export function renderClassSelect(onPick) {
   }
 }
 
+export function renderClassSelect(onPick) {
+  const el = panel();
+  el.className = "panel";
+  el.innerHTML = `
+    <h2>Choose Your Class</h2>
+    <p>Your legend begins here. Pick your path.</p>
+    <div class="wanted-grid" id="class-grid"></div>`;
+  const g = el.querySelector("#class-grid");
+
+  const classes = [
+    {
+      id: "default",
+      name: "Drifter",
+      tagline: "No badge, no allegiance — just survival.",
+      details: "100 HP · Peacemaker · Standard starter deck",
+    },
+    {
+      id: "sheriff",
+      name: "Sheriff",
+      tagline: "Law and lead — durability and accuracy.",
+      details: "115 HP · Schofield · +5 HP per duel · Steady-hand deck",
+    },
+  ];
+
+  for (const c of classes) {
+    const d = document.createElement("div");
+    d.className = "poster";
+    d.innerHTML = `<h3>${c.name}</h3><p><em>${c.tagline}</em></p><p>${c.details}</p>`;
+    d.onclick = () => onPick(c.id);
+    g.appendChild(d);
+  }
+}
+
 export function renderWanted(game, onPick) {
   const el = panel();
   el.className = "panel";
@@ -161,11 +194,12 @@ export function renderShop(game, onBuyCard, onHeal, onGun, onContinue) {
   const el = panel();
   el.className = "panel";
   const pool = shuffle([...shopPool(game)]).slice(0, 5);
+  const schofieldOwned = game.run.ownedGuns?.includes("schofield");
   el.innerHTML = `<h2>Merchant</h2><p>Spend your bounty. Health does not refill between fights.</p>
     <p>Wallet: <strong>$${game.run.money}</strong></p>
     <div class="shop-list" id="shop-cards"></div>
     <button class="btn" id="heal">Whiskey ($12) +20 HP</button>
-    <button class="btn" id="gun">Schofield ($45)</button>
+    <button class="btn${schofieldOwned ? " disabled" : ""}" id="gun" ${schofieldOwned ? "disabled" : ""}>Schofield ($45)${schofieldOwned ? " ✓" : ""}</button>
     <button class="btn" id="done">Ride On</button>`;
 
   const sc = el.querySelector("#shop-cards");

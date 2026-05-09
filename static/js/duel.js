@@ -488,6 +488,11 @@ export function resolveShootout(duel, run) {
     P.damageMult = Math.max(0.25, P.damageMult * (1 + lateBonus));
   }
 
+  // Sheriff trait: first-cycle accuracy penalty (offset by feat_steady_hand)
+  if (duel.cycleCount === 0 && run.permanent?.firstCycleAccPenalty) {
+    P.acc = Math.max(0.08, P.acc - run.permanent.firstCycleAccPenalty);
+  }
+
   const log = [];
   let pi = 0;
   let ei = 0;
@@ -570,6 +575,7 @@ export function resolveShootout(duel, run) {
   }
 
   duel.shootoutLog = log;
+  duel.cycleCount += 1;
   duel.winner = winner;
   if (!winner) {
     duel.cycleNumber = (duel.cycleNumber ?? 1) + 1;
