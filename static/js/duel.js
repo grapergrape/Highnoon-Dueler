@@ -238,9 +238,12 @@ export function startPrepRound(duel, run) {
   const eDraw = drawCards(duel.enemy.drawPile, duel.enemy.discardPile, 3);
   duel.enemy.hand.push(...eDraw);
 
-  const heal = run.permanent?.healPerDuel ?? 0;
-  if (heal) {
-    run.hp = Math.min(run.maxHp, run.hp + heal);
+  // healPerDuel fires once per duel (cycle 1, prep round 1 only)
+  if (duel.cycleNumber === 1 && duel.prepRound === 1) {
+    const heal = run.permanent?.healPerDuel ?? 0;
+    if (heal) {
+      run.hp = Math.min(run.maxHp, run.hp + heal);
+    }
   }
 }
 
