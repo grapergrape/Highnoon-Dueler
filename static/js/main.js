@@ -149,7 +149,10 @@ function syncDeckFromDuel() {
   if (!game.duel) return;
   const d = game.duel;
   const all = [...d.playerDrawPile, ...d.playerDiscard, ...d.playerHand].map((c) => c.id);
-  game.run.deckIds = shuffle(all.length ? all : [...STARTER_DECK_IDS]);
+  const fallback = game.run?.classId
+    ? (getClass(game.run.classId)?.starterDeckIds ?? STARTER_DECK_IDS)
+    : STARTER_DECK_IDS;
+  game.run.deckIds = shuffle(all.length ? all : [...fallback]);
 }
 
 function clearNavTimers() {
@@ -320,6 +323,7 @@ function endDuelFlow() {
     openShop();
   } else {
     game.screen = "gameover";
+    localStorage.removeItem(LS_KEY);
     renderGameOver(game, () => {
       clearNavTimers();
       localStorage.removeItem(LS_KEY);
