@@ -493,6 +493,15 @@ export const CARD_DEFINITIONS = [
     cost: 0,
     effects: ["accGlobal+0.1", "focusPerRound+3", "healPerDuel+10"],
   },
+  {
+    id: "char_sheriff",
+    name: "Lawman's Resolve",
+    type: "character",
+    rarity: "legendary",
+    cost: 0,
+    // +15 maxHp → 115 total; heal 5 HP at each duel start; slow-draw -10% acc on cycle 1 only; equips Schofield + keeps Peacemaker
+    effects: ["maxHp+15", "healPerDuel+5", "firstCycleAccPenalty+0.10", "startGunSchofield"],
+  },
 
   // ── FEAT CARDS ─────────────────────────────────────────────────────────────
   {
