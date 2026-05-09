@@ -245,6 +245,8 @@ export function startPrepRound(duel, run) {
       run.hp = Math.min(run.maxHp, run.hp + heal);
     }
   }
+
+  duel.freeCardAvailable = !!run.permanent?.freeFirstCardPerRound;
 }
 
 export function tryPlayCard(duel, run, cardUid) {
@@ -254,7 +256,12 @@ export function tryPlayCard(duel, run, cardUid) {
   const def = getCardDef(card.id);
   if (!def) return { ok: false, reason: "Bad card" };
   if (duel.playerLocked) return { ok: false, reason: "Locked in" };
-  if (def.cost > duel.playerFocus) return { ok: false, reason: "Not enough focus" };
+
+  const isCharacter = def.type === "character";
+  const usingFreebie = !isCharacter && duel.freeCardAvailable === true;
+  const cost = usingFreebie ? 0 : def.cost;
+
+  if (cost > duel.playerFocus) return { ok: false, reason: "Not enough focus" };
 
   if (def.type === "character") {
     applyPermanentFromCharacter(run, def);
@@ -266,7 +273,11 @@ export function tryPlayCard(duel, run, cardUid) {
     return { ok: true, character: true, feedback: feedbackLinesForCard(def, "player") };
   }
 
-  duel.playerFocus -= def.cost;
+  duel.playerFocus -= cost;
+  if (usingFreebie) {
+    duel.freeCardAvailable = false;
+    pushPlayLogBulletin(duel, "Read the wind — first card was free.");
+  }
   duel.playerHand.splice(idx, 1);
   duel.playerDiscard.push(card);
 
@@ -346,6 +357,7 @@ function enemyPrepPlay(duel) {
 export function lockInPrep(duel, run) {
   if (duel.phase !== "prep") return { toShootout: false, enemyFeedback: [] };
   duel.playerLocked = true;
+  duel.freeCardAvailable = false;
   for (const c of duel.playerHand) {
     duel.playerDiscard.push(c);
   }
