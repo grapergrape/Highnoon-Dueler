@@ -64,6 +64,18 @@ export const CLASSES = [
     abilityBlurb: "Earn $5 extra bounty from every duel won.",
     portraitTint: "#5c3d11",
   },
+  {
+    id: "marshal",
+    name: "U.S. Marshal",
+    title: "Federal Iron",
+    backstory:
+      "Rides under federal warrant across three territories. Knows the trains, the schedules, and which judges accept silver. The badge authorizes lethal force in any jurisdiction — and he documents each use promptly. Forms filed. Body counted. Moving on.",
+    selectFlavor: "By the authority vested. Same authority that buries you.",
+    winFlavor: "Paperwork in triplicate.",
+    abilityName: "Federal Warrant",
+    abilityBlurb: "+5% acc, +1 focus/round. +1 extra mark whenever you mark.",
+    portraitTint: "#3a5b8e",
+  },
 ];
 
 /** Lookup a class by its id string. */
