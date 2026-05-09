@@ -73,6 +73,7 @@ export function createDuel(oppDef, run) {
     staredownChoices: [],
     feedbackEnemyRound: [],
     playLog: [],
+    cycleNumber: 1,
   };
 }
 
@@ -305,6 +306,7 @@ function applyPermanentFromCharacter(run, def) {
     if (e.kind === "staminaPerRound") run.permanent.focusPerRound = (run.permanent.focusPerRound || 0) + (e.value || 0); // legacy compat
     if (e.kind === "deadeye") run.permanent.deadeye = true;
     if (e.kind === "damageTaken") run.permanent.damageReduce = (run.permanent.damageReduce || 0) + Math.abs(e.value ?? 1);
+    if (e.kind === "firstCycleAccPenalty") run.permanent.firstCycleAccPenalty = (run.permanent.firstCycleAccPenalty || 0) + (e.value || 0);
   }
 }
 
@@ -373,10 +375,16 @@ export function duelDisplayedVolleyPreview(duel, run) {
   const pg = getGun(run.gunId);
   const eg = duel.enemy.gun;
   const permAcc = run.permanent?.accBonus ?? 0;
-  return {
+  const result = {
     player: buildVolleySide(pg, duel.playerMods, duel.playerDebuffs, permAcc),
     enemy: buildVolleySide(eg, duel.enemyMods, duel.enemyDebuffs, 0),
   };
+  const cyc = duel.cycleNumber ?? 1;
+  const fcp = run.permanent?.firstCycleAccPenalty ?? 0;
+  if (cyc === 1 && fcp > 0) {
+    result.player.acc = Math.max(0.08, result.player.acc - fcp);
+  }
+  return result;
 }
 
 function buildVolleySide(gun, mods, debuffs, permAcc) {
@@ -418,6 +426,12 @@ export function resolveShootout(duel, run) {
   if (duel.playerFocused) {
     P.bullets = Math.max(1, Math.round(P.bullets + duel.playerMods.focusBonusBullets));
     P.acc = Math.min(0.96, P.acc + duel.playerMods.focusBonusAcc);
+  }
+
+  const cyc = duel.cycleNumber ?? 1;
+  const firstCycleAccPenalty = run.permanent?.firstCycleAccPenalty ?? 0;
+  if (cyc === 1 && firstCycleAccPenalty > 0) {
+    P.acc = Math.max(0.08, P.acc - firstCycleAccPenalty);
   }
 
   const log = [];
@@ -504,6 +518,7 @@ export function resolveShootout(duel, run) {
   duel.shootoutLog = log;
   duel.winner = winner;
   if (!winner) {
+    duel.cycleNumber = (duel.cycleNumber ?? 1) + 1;
     pushPlayLogBulletin(duel, "Volleys done — both still standing. New prep.");
     duel.phase = "prep";
     duel.prepRound = 1;
