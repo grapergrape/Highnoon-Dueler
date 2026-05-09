@@ -54,7 +54,7 @@ export function createDuel(oppDef, run) {
     playerDrawPile: buildDeckFromIds(run.deckIds),
     playerDiscard: [],
     playerFocus: 0,
-    playerMaxFocus: 7 + (run.permanent?.focusPerRound ?? 0),
+    playerMaxFocus: 5 + (run.permanent?.focusPerRound ?? 0),
     focusBonusCycle: 0,
     playerMods: emptyMods(),
     enemyMods: emptyMods(),
@@ -102,7 +102,7 @@ export function pushPlayLogBulletin(duel, text) {
 }
 
 export function refillFocus(duel, run) {
-  const base = 7 + (run.permanent?.focusPerRound ?? 0);
+  const base = 5 + (run.permanent?.focusPerRound ?? 0);
   duel.playerMaxFocus = base + duel.focusBonusCycle;
   duel.playerFocus = duel.playerMaxFocus;
   duel.enemy.focus = duel.enemy.maxFocus;

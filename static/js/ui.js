@@ -14,12 +14,64 @@ const RIBBON_LABEL = {
   character: "Legend",
 };
 
-function accentLine(def) {
-  const t = def.type;
-  if (t === "gun") return "Chamber these modifiers for High Noon.";
-  if (t === "attack") return "Weaken the outlaw before the bells ring.";
-  if (t === "feat") return "One duel only — burns bright.";
-  return "Keeps for the whole trail.";
+function pct(v) { return `${Math.round((v ?? 0) * 100)}%`; }
+
+function effectToText(raw) {
+  const m = raw.match(/^([a-zA-Z_]+)([+-]\d+(?:\.\d+)?)?$/);
+  if (!m) return null;
+  const kind = m[1];
+  const numStr = m[2];
+  const v = numStr ? (numStr.includes('.') ? parseFloat(numStr) : parseInt(numStr, 10)) : null;
+  switch (kind) {
+    case 'bullets': return v > 0 ? `+${v} bullets` : `${v} bullets`;
+    case 'damage': return v > 0 ? `+${v} damage` : `${v} damage`;
+    case 'accShootout': return v > 0 ? `+${pct(v)} accuracy` : `${pct(v)} accuracy`;
+    case 'accGlobal': return v > 0 ? `+${pct(v)} acc (perm)` : `${pct(v)} acc (perm)`;
+    case 'enemyAccNext': return `Foe −${pct(-v)} accuracy`;
+    case 'enemyBullets': return v < 0 ? `Foe ${v} bullets` : `Foe +${v} bullets`;
+    case 'pierce': return 'Piercing shots';
+    case 'ricochet': return 'Ricochet on hit';
+    case 'healNow': return `Heal +${v} HP now`;
+    case 'hpAfterShootout': return v < 0 ? `${v} HP after volley` : `+${v} HP after volley`;
+    case 'hpAfterCycle': return v < 0 ? `${v} HP on lock-in` : `+${v} HP on lock-in`;
+    case 'focusCycle': return `+${v} focus next cycle`;
+    case 'gainFocused': return 'Gain Focused ✦';
+    case 'markEnemy': return `Mark foe ×${v}`;
+    case 'markBurst': return `+${v} dmg per mark`;
+    case 'focusBonusBullets': return `+${v} bullets if Focused`;
+    case 'focusBonusAcc': return `+${pct(v)} acc if Focused`;
+    case 'firstHitsAuto': return `First ${v} shots auto-hit`;
+    case 'dodgeRecv': return `${pct(v)} dodge chance`;
+    case 'returnBulletOnHit': return `Return ${v} bullet/hit`;
+    case 'damageShootout': return v > 0 ? `+${pct(v)} volley dmg` : `${pct(v)} volley dmg`;
+    case 'maxHp': return v > 0 ? `+${v} max HP` : `${v} max HP`;
+    case 'healPerDuel': return `+${v} HP per duel`;
+    case 'deadeye': return 'Crit shots (Deadeye)';
+    case 'damageTaken': return `−${Math.abs(v)} dmg taken`;
+    case 'focusPerRound': return `+${v} focus/round`;
+    case 'staminaPerRound': return `+${v} focus/round`;
+    case 'staredownOnly': return null;
+    default: return raw;
+  }
+}
+
+function classifyEffect(raw) {
+  if (raw.startsWith('enemy') || raw.startsWith('markEnemy')) return 'enemy';
+  if (raw.startsWith('markBurst')) return 'pos';
+  if (raw.match(/^(hpAfterShootout|hpAfterCycle|maxHp|bullets|damage|accShootout)-/)) return 'neg';
+  return 'pos';
+}
+
+function buildEffectsHtml(def) {
+  const lines = [];
+  for (const raw of def.effects ?? []) {
+    const text = effectToText(raw);
+    if (!text) continue;
+    const cls = classifyEffect(raw);
+    lines.push(`<span class="card-eff card-eff-${cls}">${text}</span>`);
+  }
+  if (!lines.length) return '';
+  return `<span class="card-effects">${lines.join('')}</span>`;
 }
 
 export function updateHud(game) {
@@ -60,16 +112,15 @@ export function renderShop(game, onBuyCard, onHeal, onGun, onContinue) {
   const sc = el.querySelector("#shop-cards");
   for (const c of pool) {
     const b = document.createElement("button");
-    const typeClass = typeToClass(c.type);
     const price = 8 + (c.cost || 0) * 3;
     b.type = "button";
     b.className = `shop-card hand-card-${c.type}`;
     b.innerHTML = `
       <span class="shop-card-inner hand-card-inner">
-        <span class="card-ribbon">${RIBBON_LABEL[c.type] ?? c.type}</span>
+        <span class="card-ribbon">${RIBBON_LABEL[c.type] ?? c.type} — $${price}</span>
         <span class="card-cost">${c.cost}</span>
         <span class="card-name-text">${c.name}</span>
-        <span class="card-rule">${accentLine(c)} — <strong>$${price}</strong></span>
+        ${buildEffectsHtml(c)}
       </span>`;
     b.onclick = () => onBuyCard(c.id, price);
     sc.appendChild(b);
@@ -109,13 +160,14 @@ function fillBattleLog(container, duel) {
   });
 }
 
-function buildCardHtml(def) {
+function buildCardHtml(def, costLabel = 'free') {
   return `
     <span class="hand-card-inner">
       <span class="card-ribbon">${RIBBON_LABEL[def.type] ?? def.type}</span>
-      <span class="card-cost">free</span>
+      <span class="card-cost">${costLabel}</span>
       <span class="card-name-text">${def.name}</span>
-      <span class="card-rule">${def.flavorText ?? accentLine(def)}</span>
+      ${def.flavorText ? `<span class="card-flavor">${def.flavorText}</span>` : ''}
+      ${buildEffectsHtml(def)}
     </span>`;
 }
 
@@ -152,10 +204,18 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown) {
       </div>
     </div>`;
   } else if (d.phase === "prep") {
-    const markStr = d.enemyMarked > 0 ? ` · Marked ◆×${d.enemyMarked}` : "";
-    const focStr = d.playerFocused ? " · Focused ✦" : "";
-    html += `<p>Round <strong>${d.prepRound}</strong>/3 · Focus <strong>${d.playerFocus}</strong>/${d.playerMaxFocus}${markStr}${focStr}</p>`;
-    html += `<button class="btn" id="lock" ${d.playerLocked ? "disabled" : ""}>Lock In (Space)</button>`;
+    const markStr = d.enemyMarked > 0 ? `<span class="status-tag status-mark">◆ Marked ×${d.enemyMarked}</span>` : "";
+    const focStr = d.playerFocused ? `<span class="status-tag status-focused">✦ Focused</span>` : "";
+    const focPips = Array.from({ length: d.playerMaxFocus }, (_, i) =>
+      `<span class="focus-pip${i < d.playerFocus ? ' filled' : ''}"></span>`
+    ).join('');
+    html += `<div class="prep-bar">
+      <span class="prep-round">Round ${d.prepRound}/3</span>
+      <span class="focus-bar" title="Focus: ${d.playerFocus}/${d.playerMaxFocus}">${focPips}</span>
+      <span class="focus-label">${d.playerFocus}/${d.playerMaxFocus} focus</span>
+      ${markStr}${focStr}
+      <button class="btn btn-lockin" id="lock" ${d.playerLocked ? "disabled" : ""}>Lock In</button>
+    </div>`;
     html += `<div class="card-row" id="hand"></div>`;
   } else if (d.phase === "highnoon") {
     html += `<p>Steel sings across the dust…</p>`;
@@ -187,13 +247,7 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown) {
       const card = document.createElement("div");
       const affordable = def.cost <= d.playerFocus;
       card.className = `hand-card hand-card-${def.type}${affordable ? "" : " disabled"}`;
-      card.innerHTML = `
-        <span class="hand-card-inner">
-          <span class="card-ribbon">${RIBBON_LABEL[def.type] ?? def.type}</span>
-          <span class="card-cost">${def.cost}</span>
-          <span class="card-name-text">${def.name}</span>
-          <span class="card-rule">${accentLine(def)}</span>
-        </span>`;
+      card.innerHTML = buildCardHtml(def, def.cost);
       if (affordable) {
         card.onclick = () => onPlayCard(c.uid);
       }
