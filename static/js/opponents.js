@@ -12,6 +12,8 @@ import { getGun } from "./guns.js";
  * @property {number} prepAggression — 0-1, chance to play another card
  * @property {string} bgKey — render palette
  * @property {string[]} deckTemplate — card ids for prep draws (weighted pool)
+ * @property {string} [selectFlavor] — line shown when player picks this opponent
+ * @property {string} [winFlavor] — line shown when this opponent is defeated
  */
 
 /** @type {Opponent[]} */
