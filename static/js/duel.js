@@ -49,6 +49,7 @@ export function createDuel(oppDef, run) {
     enemy,
     phase: "staredown_commit",
     prepRound: 1,
+    cycleNumber: 1,
     playerLocked: false,
     playerHand: [],
     playerDrawPile: buildDeckFromIds(run.deckIds),
@@ -415,12 +416,12 @@ export function duelDisplayedVolleyPreview(duel, run) {
   return result;
 }
 
-function buildVolleySide(gun, mods, debuffs, permAcc) {
+function buildVolleySide(gun, mods, debuffs, permAcc, cycleAccPenalty = 0) {
   let bullets = gun.mag + mods.bulletDelta + (debuffs?.bulletNext ?? 0);
   bullets = Math.max(1, Math.round(bullets));
   let damage = gun.damage + mods.damageDelta;
   damage = Math.max(1, Math.round(damage));
-  let acc = gun.accuracy + mods.accDelta + (permAcc || 0) + (debuffs?.accNext ?? 0);
+  let acc = gun.accuracy + mods.accDelta + (permAcc || 0) + (debuffs?.accNext ?? 0) - (cycleAccPenalty || 0);
   acc = Math.min(0.96, Math.max(0.08, acc));
   return {
     bullets,
@@ -440,8 +441,9 @@ export function resolveShootout(duel, run) {
   const pg = getGun(run.gunId);
   const eg = duel.enemy.gun;
   const permAcc = run.permanent?.accBonus ?? 0;
+  const cycleAccPenalty = duel.cycleNumber === 1 ? (run.permanent?.firstCycleAccPenalty ?? 0) : 0;
 
-  const P = buildVolleySide(pg, duel.playerMods, duel.playerDebuffs, permAcc);
+  const P = buildVolleySide(pg, duel.playerMods, duel.playerDebuffs, permAcc, cycleAccPenalty);
   const E = buildVolleySide(eg, duel.enemyMods, duel.enemyDebuffs, 0);
 
   // Apply mark burst: each mark on enemy amplifies damage
@@ -565,6 +567,7 @@ export function resolveShootout(duel, run) {
   if (!winner) {
     duel.cycleNumber = (duel.cycleNumber ?? 1) + 1;
     pushPlayLogBulletin(duel, "Volleys done — both still standing. New prep.");
+    duel.cycleNumber = (duel.cycleNumber || 1) + 1;
     duel.phase = "prep";
     duel.prepRound = 1;
     duel.playerStaredown = null;
