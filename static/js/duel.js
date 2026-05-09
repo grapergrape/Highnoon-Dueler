@@ -373,10 +373,19 @@ export function duelDisplayedVolleyPreview(duel, run) {
   const pg = getGun(run.gunId);
   const eg = duel.enemy.gun;
   const permAcc = run.permanent?.accBonus ?? 0;
-  return {
+  const result = {
     player: buildVolleySide(pg, duel.playerMods, duel.playerDebuffs, permAcc),
     enemy: buildVolleySide(eg, duel.enemyMods, duel.enemyDebuffs, 0),
   };
+
+  // Mirror the late-cycle damage bonus so HUD preview matches actual shootout
+  const cyc = duel.cycleNumber ?? 1;
+  const lateBonus = run.permanent?.lateCycleDmgBonus ?? 0;
+  if (cyc >= 3 && lateBonus > 0) {
+    result.player.damageMult = Math.max(0.25, result.player.damageMult * (1 + lateBonus));
+  }
+
+  return result;
 }
 
 function buildVolleySide(gun, mods, debuffs, permAcc) {
@@ -418,6 +427,13 @@ export function resolveShootout(duel, run) {
   if (duel.playerFocused) {
     P.bullets = Math.max(1, Math.round(P.bullets + duel.playerMods.focusBonusBullets));
     P.acc = Math.min(0.96, P.acc + duel.playerMods.focusBonusAcc);
+  }
+
+  // Apply late-cycle damage bonus (Vaquero: cycles 3+)
+  const cyc = duel.cycleNumber ?? 1;
+  const lateBonus = run.permanent?.lateCycleDmgBonus ?? 0;
+  if (cyc >= 3 && lateBonus > 0) {
+    P.damageMult = Math.max(0.25, P.damageMult * (1 + lateBonus));
   }
 
   const log = [];
