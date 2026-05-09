@@ -169,7 +169,7 @@ function mergeGunIntoMods(mods, effects, sign = 1) {
   }
 }
 
-function applyPlayerCardEffects(duel, def) {
+function applyPlayerCardEffects(duel, run, def) {
   const eff = def.effects ?? [];
   for (const raw of eff) {
     const e = parseEffect(raw);
@@ -178,7 +178,9 @@ function applyPlayerCardEffects(duel, def) {
     } else if (e.kind === "enemyBullets") {
       duel.enemyDebuffs.bulletNext += e.value || 0;
     } else if (e.kind === "markEnemy") {
-      duel.enemyMarked += e.value || 0;
+      const baseMarks = e.value || 0;
+      const extra = run?.permanent?.extraMarkPerApply ?? 0;
+      duel.enemyMarked += baseMarks + extra;
     } else {
       mergeGunIntoMods(duel.playerMods, [raw], 1);
     }
@@ -266,7 +268,7 @@ export function tryPlayCard(duel, run, cardUid) {
   duel.playerHand.splice(idx, 1);
   duel.playerDiscard.push(card);
 
-  applyPlayerCardEffects(duel, def);
+  applyPlayerCardEffects(duel, run, def);
 
   if (def.effects?.some((x) => x.startsWith("healNow"))) {
     const h = def.effects.map(parseEffect).find((e) => e.kind === "healNow");
@@ -372,7 +374,10 @@ export function lockInPrep(duel, run) {
 export function duelDisplayedVolleyPreview(duel, run) {
   const pg = getGun(run.gunId);
   const eg = duel.enemy.gun;
-  const permAcc = run.permanent?.accBonus ?? 0;
+  let permAcc = run.permanent?.accBonus ?? 0;
+  if (duel.playerFocused) {
+    permAcc += run.permanent?.focusedAccBonus ?? 0;
+  }
   return {
     player: buildVolleySide(pg, duel.playerMods, duel.playerDebuffs, permAcc),
     enemy: buildVolleySide(eg, duel.enemyMods, duel.enemyDebuffs, 0),
@@ -418,6 +423,10 @@ export function resolveShootout(duel, run) {
   if (duel.playerFocused) {
     P.bullets = Math.max(1, Math.round(P.bullets + duel.playerMods.focusBonusBullets));
     P.acc = Math.min(0.96, P.acc + duel.playerMods.focusBonusAcc);
+    const focBonus = run.permanent?.focusedAccBonus ?? 0;
+    if (focBonus > 0) {
+      P.acc = Math.min(0.96, P.acc + focBonus);
+    }
   }
 
   const log = [];
@@ -523,7 +532,7 @@ function resolveStaredown(duel, run) {
   if (duel.playerStaredown) {
     const def = getCardDef(duel.playerStaredown.id);
     if (def) {
-      applyPlayerCardEffects(duel, def);
+      applyPlayerCardEffects(duel, run, def);
       pushPlayLogCard(duel, "you", def);
     }
   }
