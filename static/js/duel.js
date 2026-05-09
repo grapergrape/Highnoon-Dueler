@@ -494,6 +494,12 @@ export function resolveShootout(duel, run) {
     P.acc = Math.max(0.08, P.acc - run.permanent.firstCycleAccPenalty);
   }
 
+  const cyc = duel.cycleNumber ?? 1;
+  const firstCycleAccPenalty = run.permanent?.firstCycleAccPenalty ?? 0;
+  if (cyc === 1 && firstCycleAccPenalty > 0) {
+    P.acc = Math.max(0.08, P.acc - firstCycleAccPenalty);
+  }
+
   const log = [];
   let pi = 0;
   let ei = 0;
