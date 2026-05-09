@@ -471,6 +471,13 @@ export function resolveShootout(duel, run) {
     P.damageMult = Math.max(0.25, P.damageMult * (1 + lateBonus));
   }
 
+  // Apply late-cycle damage bonus (Vaquero: cycles 3+)
+  const cyc = duel.cycleNumber ?? 1;
+  const lateBonus = run.permanent?.lateCycleDmgBonus ?? 0;
+  if (cyc >= 3 && lateBonus > 0) {
+    P.damageMult = Math.max(0.25, P.damageMult * (1 + lateBonus));
+  }
+
   const log = [];
   let pi = 0;
   let ei = 0;
