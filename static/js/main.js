@@ -217,7 +217,7 @@ function renderClassSelect(onPick) {
 function startDuel(oppId) {
   resetCombatUi(game);
   const opp = getOpponent(oppId);
-  game.lastBounty = bountyFor(oppId);
+  game.lastBounty = Math.round(bountyFor(oppId) * (game.run.permanent.bountyMult ?? 1));
   game.run.hp = Math.min(game.run.maxHp, Math.max(1, game.run.hp));
   game.duel = createDuel(opp, game.run);
   dealStaredownChoices(game.duel);
