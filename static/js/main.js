@@ -20,6 +20,7 @@ import {
   renderDuelPanel,
   renderGameOver,
 } from "./ui.js";
+import { getClass } from "./classes.js";
 
 const LS_KEY = "highnoon_duelist_v1";
 
@@ -38,6 +39,7 @@ function defaultRun() {
     deckIds: [...STARTER_DECK_IDS],
     ownedGuns: [DEFAULT_GUN_ID],
     permanent: {},
+    classId: null,
   };
 }
 
@@ -52,6 +54,7 @@ function loadRun() {
       deckIds: o.deckIds?.length ? o.deckIds : [...STARTER_DECK_IDS],
       ownedGuns: o.ownedGuns?.length ? o.ownedGuns : [DEFAULT_GUN_ID],
       permanent: o.permanent && typeof o.permanent === "object" ? o.permanent : {},
+      classId: o.classId ?? null,
     };
   } catch {
     return defaultRun();
@@ -129,6 +132,44 @@ function goWanted() {
   saveRun(game.run);
   updateHud(game);
   renderWanted(game, startDuel);
+}
+
+function goClassSelect() {
+  clearNavTimers();
+  resetCombatUi(game);
+  game.screen = "class-select";
+  game.duel = null;
+  saveRun(game.run);
+  updateHud(game);
+  renderClassSelect(pickClass);
+}
+
+function pickClass(classId) {
+  game.run.classId = classId;
+  saveRun(game.run);
+  updateHud(game);
+  goWanted();
+}
+
+function renderClassSelect(onPick) {
+  const el = document.getElementById("panel");
+  el.className = "panel";
+  let html = `<h2>Choose Your Class</h2><p>Every gunslinger has a specialty. Pick your path.</p><div class="class-grid"></div>`;
+  el.innerHTML = html;
+  const grid = el.querySelector(".class-grid");
+  for (const cls of [
+    { id: "gunslinger", name: "Gunslinger", title: "Quick-Draw Specialist", abilityName: "Quick Draw", abilityBlurb: "+1 bullet in every shootout, no prep needed.", portraitTint: "#c4a574" },
+    { id: "sharpshooter", name: "Sharpshooter", title: "Dead-Eye Marksman", abilityName: "Dead-Eye", abilityBlurb: "+15% accuracy across all shootouts.", portraitTint: "#4a6fa5" },
+    { id: "brawler", name: "Brawler", title: "Grit & Thunder", abilityName: "Thunderstrike", abilityBlurb: "+2 base damage in every shootout.", portraitTint: "#7a2929" },
+    { id: "drifter", name: "Drifter", title: "Wandering Survivor", abilityName: "Iron Hide", abilityBlurb: "+20 max HP from the start of every duel.", portraitTint: "#4d6228" },
+  ]) {
+    const d = document.createElement("div");
+    d.className = "poster";
+    d.style.borderLeftColor = cls.portraitTint;
+    d.innerHTML = `<h3 style="color:${cls.portraitTint}">${cls.name}</h3><p><em>${cls.title}</em></p><p><strong>${cls.abilityName}</strong>: ${cls.abilityBlurb}</p>`;
+    d.onclick = () => onPick(cls.id);
+    grid.appendChild(d);
+  }
 }
 
 function startDuel(oppId) {
@@ -321,7 +362,11 @@ function init() {
   game.canvas = document.getElementById("game-canvas");
   game.ctx = game.canvas.getContext("2d");
   updateHud(game);
-  goWanted();
+  if (!game.run.classId) {
+    goClassSelect();
+  } else {
+    goWanted();
+  }
 
   bindInput(game, {
     onLockIn,
