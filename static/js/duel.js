@@ -384,6 +384,12 @@ export function duelDisplayedVolleyPreview(duel, run) {
   if (cyc === 1 && fcp > 0) {
     result.player.acc = Math.max(0.08, result.player.acc - fcp);
   }
+
+  // Mirror the late-cycle damage bonus so HUD preview matches actual shootout
+  const lateBonus = run.permanent?.lateCycleDmgBonus ?? 0;
+  if (cyc >= 3 && lateBonus > 0) {
+    result.player.damageMult = Math.max(0.25, result.player.damageMult * (1 + lateBonus));
+  }
   return result;
 }
 
@@ -432,6 +438,12 @@ export function resolveShootout(duel, run) {
   const firstCycleAccPenalty = run.permanent?.firstCycleAccPenalty ?? 0;
   if (cyc === 1 && firstCycleAccPenalty > 0) {
     P.acc = Math.max(0.08, P.acc - firstCycleAccPenalty);
+  }
+
+  // Apply late-cycle damage bonus (Vaquero: cycles 3+)
+  const lateBonus = run.permanent?.lateCycleDmgBonus ?? 0;
+  if (cyc >= 3 && lateBonus > 0) {
+    P.damageMult = Math.max(0.25, P.damageMult * (1 + lateBonus));
   }
 
   const log = [];
