@@ -75,6 +75,11 @@ function buildEffectsHtml(def) {
 }
 
 export function updateHud(game) {
+  if (!game.run) {
+    if (hudRun()) hudRun().textContent = `Bounty: —`;
+    if (hudHealth()) hudHealth().textContent = `— HP`;
+    return;
+  }
   if (hudRun()) hudRun().textContent = `Bounty: $${game.run.money | 0}`;
   if (hudHealth()) hudHealth().textContent = `${game.run.hp | 0} / ${game.run.maxHp} HP`;
 }
@@ -262,7 +267,21 @@ export function renderGameOver(game, onRestart) {
   const el = panel();
   el.className = "panel panel-gameover";
   el.innerHTML = `<h2>Game Over</h2><p>The desert keeps your coin.</p>
-    <p class="game-over-wait">Back to Wanted Board shortly… Press below to ride now.</p>
+    <p class="game-over-wait">Back to class select shortly… Press below to ride now.</p>
     <button class="btn" id="rs">Return now</button>`;
   el.querySelector("#rs").onclick = onRestart;
+}
+
+export function renderClassSelect(game, classList, onPick) {
+  const el = panel();
+  el.className = "panel";
+  el.innerHTML = `<h2>Choose Your Class</h2><p>Each path is a different kind of legend.</p><div class="class-grid"></div>`;
+  const g = el.querySelector(".class-grid");
+  for (const cls of classList) {
+    const d = document.createElement("div");
+    d.className = "poster class-card";
+    d.innerHTML = `<h3>${cls.name}</h3><p><em>${cls.tagline}</em></p><p>${cls.description}</p><p><strong>HP</strong> ${cls.maxHp}</p>`;
+    d.onclick = () => onPick(cls.id);
+    g.appendChild(d);
+  }
 }

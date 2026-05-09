@@ -19,7 +19,9 @@ import {
   renderShop,
   renderDuelPanel,
   renderGameOver,
+  renderClassSelect,
 } from "./ui.js";
+import { getClass, getClassList } from "./classes.js";
 
 const LS_KEY = "highnoon_duelist_v1";
 
@@ -41,20 +43,38 @@ function defaultRun() {
   };
 }
 
+function defaultRunForClass(classId) {
+  const cls = getClass(classId);
+  if (!cls) return defaultRun();
+  return {
+    classId: cls.id,
+    money: 40,
+    hp: cls.maxHp,
+    maxHp: cls.maxHp,
+    gunId: cls.gunId,
+    deckIds: [...cls.starterDeckIds],
+    ownedGuns: [cls.gunId],
+    permanent: { ...cls.permanent },
+  };
+}
+
 function loadRun() {
   try {
     const j = localStorage.getItem(LS_KEY);
-    if (!j) return defaultRun();
+    if (!j) return null;
     const o = JSON.parse(j);
+    if (!o.classId) return null;
+    const cls = getClass(o.classId);
+    if (!cls) return null;
     return {
-      ...defaultRun(),
+      ...defaultRunForClass(o.classId),
       ...o,
-      deckIds: o.deckIds?.length ? o.deckIds : [...STARTER_DECK_IDS],
-      ownedGuns: o.ownedGuns?.length ? o.ownedGuns : [DEFAULT_GUN_ID],
-      permanent: o.permanent && typeof o.permanent === "object" ? o.permanent : {},
+      deckIds: o.deckIds?.length ? o.deckIds : [...cls.starterDeckIds],
+      ownedGuns: o.ownedGuns?.length ? o.ownedGuns : [cls.gunId],
+      permanent: o.permanent && typeof o.permanent === "object" ? o.permanent : { ...cls.permanent },
     };
   } catch {
-    return defaultRun();
+    return null;
   }
 }
 
@@ -68,9 +88,22 @@ function bountyFor(oppId) {
   return 50;
 }
 
+function applyBounty(base) {
+  const mult = game.run?.permanent?.bountyMult ?? 1.0;
+  return Math.round(base * mult);
+}
+
+function growBountyMult() {
+  const growth = game.run?.permanent?.bountyGrowthPerWin;
+  if (!growth || !game.run?.permanent) return;
+  game.run.permanent.bountyMult = Math.round(
+    ((game.run.permanent.bountyMult ?? 1.0) + growth) * 100
+  ) / 100;
+}
+
 const game = {
-  screen: "wanted",
-  run: loadRun(),
+  screen: "classSelect",
+  run: null,
   duel: null,
   canvas: null,
   ctx: null,
@@ -111,7 +144,10 @@ function syncDeckFromDuel() {
   if (!game.duel) return;
   const d = game.duel;
   const all = [...d.playerDrawPile, ...d.playerDiscard, ...d.playerHand].map((c) => c.id);
-  game.run.deckIds = shuffle(all.length ? all : [...STARTER_DECK_IDS]);
+  const fallback = game.run?.classId
+    ? (getClass(game.run.classId)?.starterDeckIds ?? STARTER_DECK_IDS)
+    : STARTER_DECK_IDS;
+  game.run.deckIds = shuffle(all.length ? all : [...fallback]);
 }
 
 function clearNavTimers() {
@@ -119,6 +155,21 @@ function clearNavTimers() {
     clearTimeout(game._gameOverReturnTimer);
     game._gameOverReturnTimer = null;
   }
+}
+
+function goClassSelect() {
+  clearNavTimers();
+  resetCombatUi(game);
+  game.screen = "classSelect";
+  game.duel = null;
+  game.run = null;
+  updateHud(game);
+  renderClassSelect(game, getClassList(), (classId) => {
+    game.run = defaultRunForClass(classId);
+    saveRun(game.run);
+    updateHud(game);
+    goWanted();
+  });
 }
 
 function goWanted() {
@@ -222,25 +273,23 @@ function endDuelFlow() {
   resetCombatUi(game);
   syncDeckFromDuel();
   if (d.winner === "player") {
-    game.run.money += game.lastBounty;
+    game.run.money += applyBounty(game.lastBounty);
+    growBountyMult();
     saveRun(game.run);
     updateHud(game);
     openShop();
   } else {
     game.screen = "gameover";
+    localStorage.removeItem(LS_KEY);
     renderGameOver(game, () => {
       clearNavTimers();
-      game.run = defaultRun();
-      saveRun(game.run);
-      goWanted();
+      goClassSelect();
     });
     game._gameOverReturnTimer = setTimeout(() => {
       game._gameOverReturnTimer = null;
       if (game.screen !== "gameover") return;
       clearNavTimers();
-      game.run = defaultRun();
-      saveRun(game.run);
-      goWanted();
+      goClassSelect();
     }, GAMEOVER_AUTO_RETURN_MS);
   }
   game.duel = null;
@@ -320,8 +369,14 @@ function init() {
   preloadDuelArt();
   game.canvas = document.getElementById("game-canvas");
   game.ctx = game.canvas.getContext("2d");
-  updateHud(game);
-  goWanted();
+  const saved = loadRun();
+  if (saved) {
+    game.run = saved;
+    updateHud(game);
+    goWanted();
+  } else {
+    goClassSelect();
+  }
 
   bindInput(game, {
     onLockIn,
