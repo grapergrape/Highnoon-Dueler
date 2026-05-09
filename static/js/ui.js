@@ -109,7 +109,17 @@ function fillBattleLog(container, duel) {
   });
 }
 
-export function renderDuelPanel(game, onPlayCard, onLockIn) {
+function buildCardHtml(def) {
+  return `
+    <span class="hand-card-inner">
+      <span class="card-ribbon">${RIBBON_LABEL[def.type] ?? def.type}</span>
+      <span class="card-cost">free</span>
+      <span class="card-name-text">${def.name}</span>
+      <span class="card-rule">${def.flavorText ?? accentLine(def)}</span>
+    </span>`;
+}
+
+export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown) {
   const el = panel();
   const d = game.duel;
   if (!d) return;
@@ -119,7 +129,29 @@ export function renderDuelPanel(game, onPlayCard, onLockIn) {
     <div class="battle-log-title">Sheriff's ledger</div>
     <div class="battle-log" id="battle-log" role="log" aria-live="polite" aria-relevant="additions"></div>
   </div>`;
-  if (d.phase === "prep") {
+
+  if (d.phase === "staredown_commit") {
+    html += `<div class="staredown-panel">
+      <p class="staredown-desc">Before the prep — commit one card face-down. It resolves <em>before</em> the shootout, free of cost.</p>
+      <div class="card-row" id="staredown-choices"></div>
+    </div>`;
+  } else if (d.phase === "staredown_reveal") {
+    const pDef = d.playerStaredown ? getCardDef(d.playerStaredown.id) : null;
+    const eDef = d.enemyStaredown ? getCardDef(d.enemyStaredown.id) : null;
+    html += `<div class="staredown-panel staredown-reveal">
+      <div class="staredown-sides">
+        <div class="staredown-side">
+          <div class="staredown-side-label">Your card</div>
+          ${pDef ? `<div class="hand-card hand-card-${pDef.type}">${buildCardHtml(pDef)}</div>` : "<em>—</em>"}
+        </div>
+        <div class="staredown-vs">⚔</div>
+        <div class="staredown-side">
+          <div class="staredown-side-label">${d.opponentDef.name}</div>
+          ${eDef ? `<div class="hand-card hand-card-${eDef.type}">${buildCardHtml(eDef)}</div>` : "<em>Nothing</em>"}
+        </div>
+      </div>
+    </div>`;
+  } else if (d.phase === "prep") {
     const markStr = d.enemyMarked > 0 ? ` · Marked ◆×${d.enemyMarked}` : "";
     const focStr = d.playerFocused ? " · Focused ✦" : "";
     html += `<p>Round <strong>${d.prepRound}</strong>/3 · Focus <strong>${d.playerFocus}</strong>/${d.playerMaxFocus}${markStr}${focStr}</p>`;
@@ -130,9 +162,24 @@ export function renderDuelPanel(game, onPlayCard, onLockIn) {
   } else if (d.phase === "ended") {
     html += `<p><strong>${d.winner === "player" ? "You survived." : "You died."}</strong></p>`;
   }
+
   el.innerHTML = html;
   fillBattleLog(el.querySelector("#battle-log"), d);
-  if (d.phase === "prep" && !d.playerLocked) {
+
+  if (d.phase === "staredown_commit") {
+    const row = el.querySelector("#staredown-choices");
+    if (row) {
+      for (const c of d.staredownChoices) {
+        const def = getCardDef(c.id);
+        if (!def) continue;
+        const card = document.createElement("div");
+        card.className = `hand-card hand-card-${def.type} staredown-choice`;
+        card.innerHTML = buildCardHtml(def);
+        card.onclick = () => onCommitStaredown(c.uid);
+        row.appendChild(card);
+      }
+    }
+  } else if (d.phase === "prep" && !d.playerLocked) {
     const row = el.querySelector("#hand");
     for (const c of d.playerHand) {
       const def = getCardDef(c.id);

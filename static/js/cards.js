@@ -624,6 +624,43 @@ export const CARD_DEFINITIONS = [
     cost: 3,
     effects: ["bullets+5", "accShootout+0.6", "hpAfterCycle-30"],
   },
+  // ── STARE-DOWN CARDS ──────────────────────────────────────────────────────
+  {
+    id: "std_dead_eye",
+    name: "Dead Eye",
+    type: "attack",
+    rarity: "rare",
+    cost: 0,
+    effects: ["accShootout+0.20", "staredownOnly"],
+    flavorText: "Patience is its own kind of violence.",
+  },
+  {
+    id: "std_warning_shot",
+    name: "Warning Shot",
+    type: "feat",
+    rarity: "uncommon",
+    cost: 0,
+    effects: ["enemyAccNext-0.20", "enemyBullets-1", "staredownOnly"],
+    flavorText: "The next one won't miss on purpose.",
+  },
+  {
+    id: "std_iron_will",
+    name: "Iron Will",
+    type: "feat",
+    rarity: "uncommon",
+    cost: 0,
+    effects: ["gainFocused", "focusBonusBullets+1", "staredownOnly"],
+    flavorText: "Still hands, cold blood.",
+  },
+  {
+    id: "std_marked_man",
+    name: "Marked Man",
+    type: "attack",
+    rarity: "rare",
+    cost: 0,
+    effects: ["markEnemy+2", "markBurst+2", "staredownOnly"],
+    flavorText: "They've been dead since you laid eyes on them.",
+  },
 ];
 
 const byId = new Map(CARD_DEFINITIONS.map((c) => [c.id, c]));

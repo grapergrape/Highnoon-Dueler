@@ -3,10 +3,12 @@ import { DEFAULT_GUN_ID } from "./guns.js";
 import { getOpponent } from "./opponents.js";
 import {
   createDuel,
-  startPrepRound,
   tryPlayCard,
   lockInPrep,
   tickHighNoon,
+  tickStaredown,
+  dealStaredownChoices,
+  commitPlayerStaredown,
 } from "./duel.js";
 import { drawGame, pushTracer, tickFx } from "./render.js";
 import { tickCombatUi, enqueueCombatFloats, resetCombatUi } from "./combat-ui.js";
@@ -135,14 +137,24 @@ function startDuel(oppId) {
   game.lastBounty = bountyFor(oppId);
   game.run.hp = Math.min(game.run.maxHp, Math.max(1, game.run.hp));
   game.duel = createDuel(opp, game.run);
-  startPrepRound(game.duel, game.run);
+  dealStaredownChoices(game.duel);
   game.screen = "duel";
   updateHud(game);
   refreshDuelUi();
 }
 
 function refreshDuelUi() {
-  renderDuelPanel(game, onPlayCard, onLockIn);
+  renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown);
+}
+
+function onCommitStaredown(uid) {
+  if (!game.duel) return;
+  const ok = commitPlayerStaredown(game.duel, game.run, uid);
+  if (ok) {
+    saveRun(game.run);
+    updateHud(game);
+    refreshDuelUi();
+  }
 }
 
 function onPlayCard(uid) {
@@ -162,8 +174,8 @@ function onLockIn() {
   saveRun(game.run);
   updateHud(game);
   refreshDuelUi();
-  if (r.toShootout) {
-    game.screenShake = 0.2;
+  if (r.toStaredown) {
+    game.screenShake = 0.1;
   }
 }
 
@@ -241,6 +253,15 @@ function loop(ts) {
 
   if (game.screenShake > 0) {
     game.screenShake = Math.max(0, game.screenShake - dt * 1.4);
+  }
+
+  if (game.screen === "duel" && game.duel?.phase === "staredown_reveal") {
+    const before = game.duel.phase;
+    tickStaredown(game.duel, game.run, dt);
+    if (before === "staredown_reveal" && game.duel.phase !== "staredown_reveal") {
+      game.screenShake = 0.2;
+      refreshDuelUi();
+    }
   }
 
   if (game.screen === "duel" && game.duel?.phase === "highnoon") {

@@ -4,6 +4,8 @@ import { getGun } from "./guns.js";
 import { makeEnemyRuntime } from "./opponents.js";
 import { buildDeckFromIds, drawCards, shuffle } from "./deck.js";
 
+const STAREDOWN_POOL = ["std_dead_eye", "std_warning_shot", "std_iron_will", "std_marked_man"];
+
 export function emptyMods() {
   return {
     bulletDelta: 0,
@@ -45,7 +47,7 @@ export function createDuel(oppDef, run) {
   return {
     opponentDef: oppDef,
     enemy,
-    phase: "prep",
+    phase: "staredown_commit",
     prepRound: 1,
     playerLocked: false,
     playerHand: [],
@@ -62,9 +64,13 @@ export function createDuel(oppDef, run) {
     enemyMarked: 0,
     playerFocused: false,
     shootoutLog: [],
-    message: "Round 1 — the street goes quiet.",
+    message: "STARE-DOWN — commit your hidden card before the prep.",
     winner: null,
     highNoonT: 0,
+    staredownT: 0,
+    playerStaredown: null,
+    enemyStaredown: null,
+    staredownChoices: [],
     feedbackEnemyRound: [],
     playLog: [],
   };
@@ -105,6 +111,39 @@ export function refillFocus(duel, run) {
 // Legacy alias used by external modules that read run.permanent.staminaPerRound
 // (kept for save-state compatibility)
 export { refillFocus as refillStamina };
+
+export function dealStaredownChoices(duel) {
+  const pool = shuffle([...STAREDOWN_POOL]);
+  duel.staredownChoices = pool.slice(0, 4).map((id) => cloneCardInstance(id)).filter(Boolean);
+}
+
+function commitEnemyStaredown(duel) {
+  const eligible = duel.enemy.drawPile.filter((c) => {
+    const d = getCardDef(c.id);
+    return d && d.type !== "character" && d.type !== "gun";
+  });
+  if (eligible.length > 0) {
+    const pick = eligible[(Math.random() * eligible.length) | 0];
+    duel.enemyStaredown = pick;
+    const idx = duel.enemy.drawPile.indexOf(pick);
+    if (idx >= 0) duel.enemy.drawPile.splice(idx, 1);
+  }
+}
+
+export function commitPlayerStaredown(duel, run, cardUid) {
+  if (duel.phase !== "staredown_commit") return false;
+  if (duel.playerStaredown) return false;
+  const card = duel.staredownChoices.find((c) => c.uid === cardUid);
+  if (!card) return false;
+  duel.playerStaredown = card;
+  duel.staredownChoices = [];
+  commitEnemyStaredown(duel);
+  pushPlayLogBulletin(duel, "Both gunslingers commit their stare-down card…");
+  duel.phase = "prep";
+  duel.message = "Round 1 — the street goes quiet.";
+  startPrepRound(duel, run);
+  return true;
+}
 
 function mergeGunIntoMods(mods, effects, sign = 1) {
   for (const raw of effects ?? []) {
@@ -319,15 +358,15 @@ export function lockInPrep(duel, run) {
   }
 
   if (duel.prepRound >= 3) {
-    duel.phase = "highnoon";
-    duel.highNoonT = 2.4;
-    duel.message = "HIGH NOON";
-    pushPlayLogBulletin(duel, "HIGH NOON — steel answers.");
-    return { toShootout: true, enemyFeedback };
+    duel.phase = "staredown_reveal";
+    duel.staredownT = 2.2;
+    duel.message = "STARE-DOWN — read their eyes…";
+    pushPlayLogBulletin(duel, "STARE-DOWN — the moment of truth.");
+    return { toShootout: false, toStaredown: true, enemyFeedback };
   }
   duel.prepRound += 1;
   startPrepRound(duel, run);
-  return { toShootout: false, enemyFeedback };
+  return { toShootout: false, toStaredown: false, enemyFeedback };
 }
 
 export function duelDisplayedVolleyPreview(duel, run) {
@@ -468,6 +507,8 @@ export function resolveShootout(duel, run) {
     pushPlayLogBulletin(duel, "Volleys done — both still standing. New prep.");
     duel.phase = "prep";
     duel.prepRound = 1;
+    duel.playerStaredown = null;
+    duel.enemyStaredown = null;
     duel.message = "Smoke clears. Neither buried. Prepare again.";
     startPrepRound(duel, run);
   } else {
@@ -476,6 +517,35 @@ export function resolveShootout(duel, run) {
     pushPlayLogBulletin(duel, winner === "player" ? "You win the duel." : "Outlaw wins the street.");
   }
   return { winner, log };
+}
+
+function resolveStaredown(duel, run) {
+  if (duel.playerStaredown) {
+    const def = getCardDef(duel.playerStaredown.id);
+    if (def) {
+      applyPlayerCardEffects(duel, def);
+      pushPlayLogCard(duel, "you", def);
+    }
+  }
+  if (duel.enemyStaredown) {
+    const def = getCardDef(duel.enemyStaredown.id);
+    if (def) {
+      applyEnemyPlayedCard(duel, def);
+      pushPlayLogCard(duel, "outlaw", def);
+    }
+  }
+  duel.phase = "highnoon";
+  duel.highNoonT = 2.4;
+  duel.message = "HIGH NOON";
+  pushPlayLogBulletin(duel, "HIGH NOON — steel answers.");
+}
+
+export function tickStaredown(duel, run, dt) {
+  if (duel.phase !== "staredown_reveal") return;
+  duel.staredownT -= dt;
+  if (duel.staredownT <= 0) {
+    resolveStaredown(duel, run);
+  }
 }
 
 export function tickHighNoon(duel, run, dt) {

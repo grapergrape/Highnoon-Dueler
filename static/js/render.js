@@ -73,6 +73,9 @@ export function drawGame(ctx, game, w, h) {
   drawHud(ctx, w, h, game);
   drawStatGlows(ctx, w, h, game);
   drawCombatFloats(ctx, w, h, game);
+  if (game.duel?.phase === "staredown_reveal") {
+    drawStaredownReveal(ctx, w, h, game.duel.staredownT);
+  }
   if (game.duel?.phase === "highnoon") {
     drawHighNoon(ctx, w, h, game.duel.highNoonT);
   }
@@ -403,6 +406,23 @@ function roundRect(ctx, x, y, wid, hei, r) {
   ctx.lineTo(x, y + r);
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
+}
+
+function drawStaredownReveal(ctx, w, h, remain) {
+  const pulse = 1 + Math.sin(performance.now() * 0.01) * 0.04;
+  ctx.save();
+  ctx.translate(w * 0.5, h * 0.32);
+  ctx.scale(pulse, pulse);
+  ctx.textAlign = "center";
+  ctx.font = "bold 44px Georgia, serif";
+  ctx.fillStyle = "rgba(0,0,0,0.65)";
+  ctx.fillText("STARE-DOWN", 5, 5);
+  ctx.fillStyle = "#e8c87a";
+  ctx.fillText("STARE-DOWN", 0, 0);
+  ctx.font = "18px Georgia, serif";
+  ctx.fillStyle = "#c4a574";
+  ctx.fillText("cards revealed…", 0, 32);
+  ctx.restore();
 }
 
 function drawHighNoon(ctx, w, h, remain) {
