@@ -1,6 +1,7 @@
 import { STARTER_DECK_IDS, shuffle } from "./deck.js";
 import { DEFAULT_GUN_ID } from "./guns.js";
 import { getOpponent } from "./opponents.js";
+import { getClass } from "./classes.js";
 import {
   createDuel,
   tryPlayCard,
@@ -15,6 +16,7 @@ import { tickCombatUi, enqueueCombatFloats, resetCombatUi } from "./combat-ui.js
 import { bindInput } from "./input.js";
 import {
   updateHud,
+  renderClassSelect,
   renderWanted,
   renderShop,
   renderDuelPanel,
@@ -29,16 +31,29 @@ const DUEL_END_LINGER_MS = 2800;
 /** After game-over, idle before returning to Wanted Board (click skips) */
 const GAMEOVER_AUTO_RETURN_MS = 4200;
 
-function defaultRun() {
+function defaultRun(classId = "outlaw") {
+  const cls = getClass(classId);
   return {
-    money: 40,
+    money: 40 + cls.bonusMoney,
     hp: 100,
     maxHp: 100,
     gunId: DEFAULT_GUN_ID,
-    deckIds: [...STARTER_DECK_IDS],
+    deckIds: [...cls.starterDeck],
     ownedGuns: [DEFAULT_GUN_ID],
     permanent: {},
+    classId: cls.id,
   };
+}
+
+function hasSavedRun() {
+  try {
+    const j = localStorage.getItem(LS_KEY);
+    if (!j) return false;
+    const o = JSON.parse(j);
+    return !!(o && o.classId);
+  } catch {
+    return false;
+  }
 }
 
 function loadRun() {
@@ -46,12 +61,14 @@ function loadRun() {
     const j = localStorage.getItem(LS_KEY);
     if (!j) return defaultRun();
     const o = JSON.parse(j);
+    const base = defaultRun(o.classId ?? "outlaw");
     return {
-      ...defaultRun(),
+      ...base,
       ...o,
-      deckIds: o.deckIds?.length ? o.deckIds : [...STARTER_DECK_IDS],
+      deckIds: o.deckIds?.length ? o.deckIds : base.deckIds,
       ownedGuns: o.ownedGuns?.length ? o.ownedGuns : [DEFAULT_GUN_ID],
       permanent: o.permanent && typeof o.permanent === "object" ? o.permanent : {},
+      classId: o.classId ?? "outlaw",
     };
   } catch {
     return defaultRun();
@@ -119,6 +136,19 @@ function clearNavTimers() {
     clearTimeout(game._gameOverReturnTimer);
     game._gameOverReturnTimer = null;
   }
+}
+
+function goClassSelect() {
+  clearNavTimers();
+  resetCombatUi(game);
+  game.screen = "classselect";
+  game.duel = null;
+  updateHud(game);
+  renderClassSelect((classId) => {
+    game.run = defaultRun(classId);
+    saveRun(game.run);
+    goWanted();
+  });
 }
 
 function goWanted() {
@@ -230,17 +260,15 @@ function endDuelFlow() {
     game.screen = "gameover";
     renderGameOver(game, () => {
       clearNavTimers();
-      game.run = defaultRun();
-      saveRun(game.run);
-      goWanted();
+      localStorage.removeItem(LS_KEY);
+      goClassSelect();
     });
     game._gameOverReturnTimer = setTimeout(() => {
       game._gameOverReturnTimer = null;
       if (game.screen !== "gameover") return;
       clearNavTimers();
-      game.run = defaultRun();
-      saveRun(game.run);
-      goWanted();
+      localStorage.removeItem(LS_KEY);
+      goClassSelect();
     }, GAMEOVER_AUTO_RETURN_MS);
   }
   game.duel = null;
@@ -321,7 +349,11 @@ function init() {
   game.canvas = document.getElementById("game-canvas");
   game.ctx = game.canvas.getContext("2d");
   updateHud(game);
-  goWanted();
+  if (hasSavedRun()) {
+    goWanted();
+  } else {
+    goClassSelect();
+  }
 
   bindInput(game, {
     onLockIn,

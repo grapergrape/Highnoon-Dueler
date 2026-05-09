@@ -579,3 +579,85 @@ button.shop-card:active {
   transform: translateY(-4px) scale(1.03);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
 }
+
+/* ── Class selection screen ─────────────────────────────────────────────── */
+.panel-class-select h2 {
+  text-align: center;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sand);
+}
+
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.class-card {
+  background: linear-gradient(165deg, #3d2e22 0%, #2a1e16 100%);
+  border: 3px solid var(--sand);
+  border-radius: 3px;
+  padding: 1.1rem;
+  box-shadow: 4px 4px 0 #120d0a;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.class-name {
+  font-size: 1.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sand);
+  margin: 0;
+}
+
+.class-tagline {
+  margin: 0;
+  font-style: italic;
+  color: #c4a574cc;
+  font-size: 0.92rem;
+}
+
+.class-backstory {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--parchment);
+  line-height: 1.5;
+}
+
+.class-ability {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #f4d03f;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.4rem 0.6rem;
+  border-left: 3px solid #b8860b;
+  border-radius: 1px;
+}
+
+.class-deck-count {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #a89878;
+}
+
+.btn-pick-class {
+  margin-top: auto;
+  padding: 0.55rem 1rem;
+  background: linear-gradient(180deg, #8b4a2a 0%, #5a2e1a 100%);
+  color: var(--parchment);
+  border: 2px solid var(--sand);
+  font-family: Georgia, serif;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border-radius: 2px;
+  letter-spacing: 0.04em;
+  transition: background 0.12s ease;
+}
+
+.btn-pick-class:hover {
+  background: linear-gradient(180deg, #a85a3a 0%, #6a3a22 100%);
+}

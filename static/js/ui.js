@@ -1,6 +1,7 @@
 import { OPPONENTS } from "./opponents.js";
 import { getCardDef } from "./cards.js";
 import { CARD_DEFINITIONS } from "./cards.js";
+import { PLAYER_CLASSES } from "./classes.js";
 
 const panel = () => document.getElementById("panel");
 const hudRun = () => document.getElementById("hud-run");
@@ -77,6 +78,26 @@ function buildEffectsHtml(def) {
 export function updateHud(game) {
   if (hudRun()) hudRun().textContent = `Bounty: $${game.run.money | 0}`;
   if (hudHealth()) hudHealth().textContent = `${game.run.hp | 0} / ${game.run.maxHp} HP`;
+}
+
+export function renderClassSelect(onPick) {
+  const el = panel();
+  el.className = "panel panel-class-select";
+  el.innerHTML = `<h2>Choose Your Path</h2><p>Your class shapes your starting deck and abilities. Choose wisely — the desert forgives no one.</p><div class="class-grid"></div>`;
+  const g = el.querySelector(".class-grid");
+  for (const cls of PLAYER_CLASSES) {
+    const d = document.createElement("div");
+    d.className = "class-card";
+    d.innerHTML = `
+      <h3 class="class-name">${cls.name}</h3>
+      <p class="class-tagline"><em>${cls.tagline}</em></p>
+      <p class="class-backstory">${cls.backstory}</p>
+      <p class="class-ability"><strong>★ ${cls.ability}</strong></p>
+      <p class="class-deck-count">${cls.starterDeck.length}-card starting deck${cls.bonusMoney ? ` · +$${cls.bonusMoney}` : ''}</p>
+      <button class="btn btn-pick-class">Ride as ${cls.name}</button>`;
+    d.querySelector(".btn-pick-class").onclick = () => onPick(cls.id);
+    g.appendChild(d);
+  }
 }
 
 export function renderWanted(game, onPick) {
