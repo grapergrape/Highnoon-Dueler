@@ -82,6 +82,30 @@ export const OPPONENTS = [
       "feat_adrenaline",
     ],
   },
+  {
+    id: "the_sheriff",
+    name: "The Sheriff",
+    title: "The Last Law in Dry Creek",
+    backstory:
+      "Forty years behind the same badge. He buried his deputy, two mayors, and a horse he called Brother. Doesn't raise his voice anymore. Doesn't need to.",
+    selectFlavor: "I do this slow because I do it once.",
+    winFlavor: "Town's a little quieter tonight.",
+    maxHp: 120,
+    gunId: "peacemaker",
+    focus: 7,
+    prepAggression: 0.3,
+    bgKey: "street",
+    deckTemplate: [
+      "feat_steady_hand",
+      "feat_dead_eye_focus",
+      "atk_leg_shot",
+      "gun_crosshairs",
+      "feat_snipers_breath",
+      "atk_trick_shot",
+      "feat_steady_aim",
+      "atk_rust_bullet",
+    ],
+  },
 ];
 
 export function getOpponent(id) {
