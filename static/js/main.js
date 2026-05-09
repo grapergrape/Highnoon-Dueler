@@ -1,4 +1,4 @@
-import { STARTER_DECK_IDS, shuffle } from "./deck.js";
+import { STARTER_DECK_IDS, SHERIFF_DECK_IDS, shuffle } from "./deck.js";
 import { DEFAULT_GUN_ID } from "./guns.js";
 import { getOpponent } from "./opponents.js";
 import {
@@ -15,6 +15,7 @@ import { tickCombatUi, enqueueCombatFloats, resetCombatUi } from "./combat-ui.js
 import { bindInput } from "./input.js";
 import {
   updateHud,
+  renderClassSelect,
   renderWanted,
   renderShop,
   renderDuelPanel,
@@ -38,7 +39,26 @@ function defaultRun() {
     deckIds: [...STARTER_DECK_IDS],
     ownedGuns: [DEFAULT_GUN_ID],
     permanent: {},
+    classId: "default",
   };
+}
+
+function sheriffRun() {
+  return {
+    money: 40,
+    hp: 115,
+    maxHp: 115,
+    gunId: "schofield",
+    deckIds: [...SHERIFF_DECK_IDS],
+    ownedGuns: ["peacemaker", "schofield"],
+    permanent: { healPerDuel: 5, firstCycleAccPenalty: 0.10 },
+    classId: "sheriff",
+  };
+}
+
+function runForClass(classId) {
+  if (classId === "sheriff") return sheriffRun();
+  return defaultRun();
 }
 
 function loadRun() {
@@ -119,6 +139,19 @@ function clearNavTimers() {
     clearTimeout(game._gameOverReturnTimer);
     game._gameOverReturnTimer = null;
   }
+}
+
+function goClassSelect() {
+  clearNavTimers();
+  resetCombatUi(game);
+  game.screen = "class_select";
+  game.duel = null;
+  renderClassSelect((classId) => {
+    game.run = runForClass(classId);
+    saveRun(game.run);
+    updateHud(game);
+    goWanted();
+  });
 }
 
 function goWanted() {
@@ -230,17 +263,13 @@ function endDuelFlow() {
     game.screen = "gameover";
     renderGameOver(game, () => {
       clearNavTimers();
-      game.run = defaultRun();
-      saveRun(game.run);
-      goWanted();
+      goClassSelect();
     });
     game._gameOverReturnTimer = setTimeout(() => {
       game._gameOverReturnTimer = null;
       if (game.screen !== "gameover") return;
       clearNavTimers();
-      game.run = defaultRun();
-      saveRun(game.run);
-      goWanted();
+      goClassSelect();
     }, GAMEOVER_AUTO_RETURN_MS);
   }
   game.duel = null;
@@ -321,7 +350,12 @@ function init() {
   game.canvas = document.getElementById("game-canvas");
   game.ctx = game.canvas.getContext("2d");
   updateHud(game);
-  goWanted();
+  const hasSave = !!localStorage.getItem(LS_KEY);
+  if (hasSave) {
+    goWanted();
+  } else {
+    goClassSelect();
+  }
 
   bindInput(game, {
     onLockIn,

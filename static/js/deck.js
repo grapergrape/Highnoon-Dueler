@@ -34,7 +34,23 @@ export function discardCards(discard, cards) {
   for (const c of cards) discard.push(c);
 }
 
-/** Starter deck for new runs */
+/** Sheriff class starter deck */
+export const SHERIFF_DECK_IDS = [
+  "atk_rattlesnake",
+  "atk_devils_due",
+  "atk_rust_bullet",
+  "atk_rust_bullet",
+  "atk_leg_shot",
+  "feat_steady_hand",
+  "feat_whiskey",
+  "char_iron_gut",
+  "char_thick_hide",
+  "gun_oiled_chamber",
+  "gun_iron_maiden",
+  "atk_phantom_round",
+];
+
+/** Default starter deck for new runs */
 export const STARTER_DECK_IDS = [
   "atk_rattlesnake",
   "atk_rattlesnake",

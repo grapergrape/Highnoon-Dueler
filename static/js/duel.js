@@ -73,6 +73,7 @@ export function createDuel(oppDef, run) {
     staredownChoices: [],
     feedbackEnemyRound: [],
     playLog: [],
+    cycleCount: 0,
   };
 }
 
@@ -237,9 +238,12 @@ export function startPrepRound(duel, run) {
   const eDraw = drawCards(duel.enemy.drawPile, duel.enemy.discardPile, 3);
   duel.enemy.hand.push(...eDraw);
 
-  const heal = run.permanent?.healPerDuel ?? 0;
-  if (heal) {
-    run.hp = Math.min(run.maxHp, run.hp + heal);
+  if (duel.prepRound === 1) {
+    const heal = run.permanent?.healPerDuel ?? 0;
+    if (heal) {
+      run.hp = Math.min(run.maxHp, run.hp + heal);
+      pushPlayLogBulletin(duel, `+${heal} HP (badge perk).`);
+    }
   }
 }
 
@@ -420,6 +424,11 @@ export function resolveShootout(duel, run) {
     P.acc = Math.min(0.96, P.acc + duel.playerMods.focusBonusAcc);
   }
 
+  // Sheriff trait: first-cycle accuracy penalty (offset by feat_steady_hand)
+  if (duel.cycleCount === 0 && run.permanent?.firstCycleAccPenalty) {
+    P.acc = Math.max(0.08, P.acc - run.permanent.firstCycleAccPenalty);
+  }
+
   const log = [];
   let pi = 0;
   let ei = 0;
@@ -502,6 +511,7 @@ export function resolveShootout(duel, run) {
   }
 
   duel.shootoutLog = log;
+  duel.cycleCount += 1;
   duel.winner = winner;
   if (!winner) {
     pushPlayLogBulletin(duel, "Volleys done — both still standing. New prep.");
