@@ -222,7 +222,10 @@ function endDuelFlow() {
   resetCombatUi(game);
   syncDeckFromDuel();
   if (d.winner === "player") {
-    game.run.money += game.lastBounty;
+    const mult = game.run.permanent?.bountyMult ?? 1;
+    const payout = Math.round(game.lastBounty * mult);
+    game.run.money += payout;
+    game.run._lastPayout = payout;
     saveRun(game.run);
     updateHud(game);
     openShop();
