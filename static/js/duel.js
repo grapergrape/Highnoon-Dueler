@@ -17,8 +17,13 @@ export function emptyMods() {
     returnBulletOnHit: 0,
     hpAfterShootout: 0,
     hpAfterCycle: 0,
-    staminaCycleBonus: 0,
+    focusCycleBonus: 0,
     healNow: 0,
+    // Synergy mods
+    markBurstDmg: 0,       // extra damage per mark on enemy at shootout
+    focusBonusBullets: 0,  // extra bullets if player is focused
+    focusBonusAcc: 0,      // extra accuracy if player is focused
+    gainFocused: false,    // whether playing this card grants focused state
   };
 }
 
@@ -46,13 +51,16 @@ export function createDuel(oppDef, run) {
     playerHand: [],
     playerDrawPile: buildDeckFromIds(run.deckIds),
     playerDiscard: [],
-    playerStamina: 0,
-    playerMaxStamina: 10 + (run.permanent?.staminaPerRound ?? 0),
-    staminaBonusThisCycle: 0,
+    playerFocus: 0,
+    playerMaxFocus: 7 + (run.permanent?.focusPerRound ?? 0),
+    focusBonusCycle: 0,
     playerMods: emptyMods(),
     enemyMods: emptyMods(),
     playerDebuffs: emptyDebuffs(),
     enemyDebuffs: emptyDebuffs(),
+    // Synergy state (persists across prep rounds, cleared after shootout)
+    enemyMarked: 0,
+    playerFocused: false,
     shootoutLog: [],
     message: "Round 1 — the street goes quiet.",
     winner: null,
@@ -87,12 +95,16 @@ export function pushPlayLogBulletin(duel, text) {
   duel.playLog.push({ kind: "bulletin", text, prepRound: duel.prepRound });
 }
 
-export function refillStamina(duel, run) {
-  const base = 10 + (run.permanent?.staminaPerRound ?? 0);
-  duel.playerMaxStamina = base + duel.staminaBonusThisCycle;
-  duel.playerStamina = duel.playerMaxStamina;
-  duel.enemy.stamina = duel.enemy.maxStamina;
+export function refillFocus(duel, run) {
+  const base = 7 + (run.permanent?.focusPerRound ?? 0);
+  duel.playerMaxFocus = base + duel.focusBonusCycle;
+  duel.playerFocus = duel.playerMaxFocus;
+  duel.enemy.focus = duel.enemy.maxFocus;
 }
+
+// Legacy alias used by external modules that read run.permanent.staminaPerRound
+// (kept for save-state compatibility)
+export { refillFocus as refillStamina };
 
 function mergeGunIntoMods(mods, effects, sign = 1) {
   for (const raw of effects ?? []) {
@@ -108,8 +120,13 @@ function mergeGunIntoMods(mods, effects, sign = 1) {
     else if (e.kind === "returnBulletOnHit") mods.returnBulletOnHit += sign * (e.value || 0);
     else if (e.kind === "hpAfterShootout") mods.hpAfterShootout += sign * (e.value || 0);
     else if (e.kind === "hpAfterCycle") mods.hpAfterCycle += sign * (e.value || 0);
-    else if (e.kind === "staminaCycle") mods.staminaCycleBonus += sign * (e.value || 0);
+    else if (e.kind === "focusCycle") mods.focusCycleBonus += sign * (e.value || 0);
     else if (e.kind === "healNow") mods.healNow += sign * (e.value || 0);
+    // Synergy effects
+    else if (e.kind === "markBurst") mods.markBurstDmg += sign * (e.value || 0);
+    else if (e.kind === "focusBonusBullets") mods.focusBonusBullets += sign * (e.value || 0);
+    else if (e.kind === "focusBonusAcc") mods.focusBonusAcc += sign * (e.value || 0);
+    else if (e.kind === "gainFocused" && sign > 0) mods.gainFocused = true;
   }
 }
 
@@ -121,9 +138,16 @@ function applyPlayerCardEffects(duel, def) {
       duel.enemyDebuffs.accNext += e.value || 0;
     } else if (e.kind === "enemyBullets") {
       duel.enemyDebuffs.bulletNext += e.value || 0;
+    } else if (e.kind === "markEnemy") {
+      duel.enemyMarked += e.value || 0;
     } else {
       mergeGunIntoMods(duel.playerMods, [raw], 1);
     }
+  }
+  // Apply gainFocused directly to duel state
+  if (duel.playerMods.gainFocused) {
+    duel.playerFocused = true;
+    duel.playerMods.gainFocused = false;
   }
 }
 
@@ -142,6 +166,8 @@ function applyEnemyPlayedCard(duel, def) {
       duel.playerDebuffs.accNext += e.value || 0;
     } else if (e.kind === "enemyBullets") {
       duel.playerDebuffs.bulletNext += e.value || 0;
+    } else if (e.kind === "markEnemy") {
+      // Enemy marking player doesn't use the same mechanic
     } else {
       mergeGunIntoMods(duel.enemyMods, [raw], 1);
     }
@@ -152,7 +178,7 @@ export function startPrepRound(duel, run) {
   duel.playerLocked = false;
   duel.message = `Preparation — round ${duel.prepRound} of 3. Play your hand, then Lock In.`;
   pushPlayLogBulletin(duel, `Preparation round ${duel.prepRound}/3 — draw and play.`);
-  refillStamina(duel, run);
+  refillFocus(duel, run);
 
   const gunPool = ["gun_quick_draw", "gun_heavy_slugger", "gun_oiled_chamber", "gun_bandit_gambit"];
   const gid = gunPool[(Math.random() * gunPool.length) | 0];
@@ -185,11 +211,11 @@ export function tryPlayCard(duel, run, cardUid) {
   const def = getCardDef(card.id);
   if (!def) return { ok: false, reason: "Bad card" };
   if (duel.playerLocked) return { ok: false, reason: "Locked in" };
-  if (def.cost > duel.playerStamina) return { ok: false, reason: "Not enough stamina" };
+  if (def.cost > duel.playerFocus) return { ok: false, reason: "Not enough focus" };
 
   if (def.type === "character") {
     applyPermanentFromCharacter(run, def);
-    duel.playerStamina -= def.cost;
+    duel.playerFocus -= def.cost;
     duel.playerHand.splice(idx, 1);
     duel.playerDiscard.push(card);
     duel.message = `${def.name} — carries for the whole trail.`;
@@ -197,29 +223,31 @@ export function tryPlayCard(duel, run, cardUid) {
     return { ok: true, character: true, feedback: feedbackLinesForCard(def, "player") };
   }
 
-  duel.playerStamina -= def.cost;
+  duel.playerFocus -= def.cost;
   duel.playerHand.splice(idx, 1);
   duel.playerDiscard.push(card);
 
-  if (def.type === "gun") {
-    applyPlayerCardEffects(duel, def);
-  } else {
-    applyPlayerCardEffects(duel, def);
-  }
+  applyPlayerCardEffects(duel, def);
 
   if (def.effects?.some((x) => x.startsWith("healNow"))) {
     const h = def.effects.map(parseEffect).find((e) => e.kind === "healNow");
     if (h) run.hp = Math.min(run.maxHp, run.hp + (h.value || 0));
   }
-  if (def.effects?.some((x) => x.startsWith("staminaCycle"))) {
-    const s = def.effects.map(parseEffect).find((e) => e.kind === "staminaCycle");
+  if (def.effects?.some((x) => x.startsWith("focusCycle"))) {
+    const s = def.effects.map(parseEffect).find((e) => e.kind === "focusCycle");
     const add = s?.value || 0;
-    duel.staminaBonusThisCycle += add;
-    duel.playerMaxStamina += add;
-    duel.playerStamina += add;
+    duel.focusBonusCycle += add;
+    duel.playerMaxFocus += add;
+    duel.playerFocus += add;
   }
 
   duel.message = `Played ${def.name}.`;
+  if (duel.enemyMarked > 0) {
+    duel.message += ` (Enemy marked ×${duel.enemyMarked})`;
+  }
+  if (duel.playerFocused) {
+    duel.message += ` (Focused)`;
+  }
   pushPlayLogCard(duel, "you", def);
   return { ok: true, feedback: feedbackLinesForCard(def, "player") };
 }
@@ -234,7 +262,8 @@ function applyPermanentFromCharacter(run, def) {
     }
     if (e.kind === "healPerDuel") run.permanent.healPerDuel = (run.permanent.healPerDuel || 0) + (e.value || 0);
     if (e.kind === "accGlobal") run.permanent.accBonus = (run.permanent.accBonus || 0) + (e.value || 0);
-    if (e.kind === "staminaPerRound") run.permanent.staminaPerRound = (run.permanent.staminaPerRound || 0) + (e.value || 0);
+    if (e.kind === "focusPerRound") run.permanent.focusPerRound = (run.permanent.focusPerRound || 0) + (e.value || 0);
+    if (e.kind === "staminaPerRound") run.permanent.focusPerRound = (run.permanent.focusPerRound || 0) + (e.value || 0); // legacy compat
     if (e.kind === "deadeye") run.permanent.deadeye = true;
     if (e.kind === "damageTaken") run.permanent.damageReduce = (run.permanent.damageReduce || 0) + Math.abs(e.value ?? 1);
   }
@@ -245,19 +274,19 @@ function enemyPrepPlay(duel) {
   duel.feedbackEnemyRound = [];
   const playable = enemy.hand.filter((c) => {
     const d = getCardDef(c.id);
-    return d && d.type !== "character" && d.cost <= enemy.stamina;
+    return d && d.type !== "character" && d.cost <= enemy.focus;
   });
   playable.sort(() => Math.random() - 0.5);
   let guard = 0;
   while (guard++ < 10) {
     if (Math.random() > duel.opponentDef.prepAggression && guard > 1) break;
-    const pick = playable.find((c) => getCardDef(c.id).cost <= enemy.stamina);
+    const pick = playable.find((c) => getCardDef(c.id).cost <= enemy.focus);
     if (!pick) break;
     const d = getCardDef(pick.id);
-    enemy.stamina -= d.cost;
+    enemy.focus -= d.cost;
     const ix = enemy.hand.indexOf(pick);
     enemy.hand.splice(ix, 1);
-    enemy.discard.push(pick);
+    enemy.discardPile.push(pick);
     applyEnemyPlayedCard(duel, d);
     pushPlayLogCard(duel, "outlaw", d);
     duel.feedbackEnemyRound.push(...feedbackLinesForCard(d, "enemy"));
@@ -265,7 +294,7 @@ function enemyPrepPlay(duel) {
     if (pi >= 0) playable.splice(pi, 1);
   }
   for (const c of [...enemy.hand]) {
-    enemy.discard.push(c);
+    enemy.discardPile.push(c);
   }
   enemy.hand.length = 0;
 }
@@ -340,6 +369,18 @@ export function resolveShootout(duel, run) {
   const P = buildVolleySide(pg, duel.playerMods, duel.playerDebuffs, permAcc);
   const E = buildVolleySide(eg, duel.enemyMods, duel.enemyDebuffs, 0);
 
+  // Apply mark burst: each mark on enemy amplifies damage
+  if (duel.enemyMarked > 0 && duel.playerMods.markBurstDmg > 0) {
+    const markBonus = Math.floor(duel.playerMods.markBurstDmg * duel.enemyMarked);
+    P.damage += markBonus;
+  }
+
+  // Apply focus bonuses if player is focused this cycle
+  if (duel.playerFocused) {
+    P.bullets = Math.max(1, Math.round(P.bullets + duel.playerMods.focusBonusBullets));
+    P.acc = Math.min(0.96, P.acc + duel.playerMods.focusBonusAcc);
+  }
+
   const log = [];
   let pi = 0;
   let ei = 0;
@@ -402,10 +443,15 @@ export function resolveShootout(duel, run) {
   }
 
   run.hp = Math.max(0, Math.min(run.maxHp, run.hp + duel.playerMods.hpAfterShootout));
+
+  // Clear all mods, debuffs, and synergy state for next cycle
   duel.playerMods = emptyMods();
   duel.enemyMods = emptyMods();
   duel.playerDebuffs = emptyDebuffs();
   duel.enemyDebuffs = emptyDebuffs();
+  duel.enemyMarked = 0;
+  duel.playerFocused = false;
+  duel.focusBonusCycle = 0;
 
   let winner = null;
   if (duel.enemy.hp <= 0 && run.hp <= 0) {

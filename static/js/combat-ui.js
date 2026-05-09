@@ -69,8 +69,18 @@ export function feedbackLinesForCard(def, playedBy) {
           kind: (e.value ?? 0) >= 0 ? "buff" : "debuff",
           text: `Next lock ${e.value ?? 0} HP`,
         });
-      } else if (e.kind === "staminaCycle") {
-        lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} STA` });
+      } else if (e.kind === "focusCycle") {
+        lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} FOC` });
+      } else if (e.kind === "markEnemy") {
+        lines.push({ targetSide: "enemy", kind: "debuff", text: `MARK ×${e.value}` });
+      } else if (e.kind === "markBurst") {
+        lines.push({ targetSide: "enemy", kind: "debuff", text: `BURST +${e.value}/mark` });
+      } else if (e.kind === "gainFocused") {
+        lines.push({ targetSide: "player", kind: "buff", text: "FOCUSED ✦" });
+      } else if (e.kind === "focusBonusBullets") {
+        lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} rds if focused` });
+      } else if (e.kind === "focusBonusAcc") {
+        lines.push({ targetSide: "player", kind: "buff", text: `+${fmtPct(e.value)} acc if focused` });
       } else if (e.kind === "healNow") {
         lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} HP` });
       }

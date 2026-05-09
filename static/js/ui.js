@@ -120,7 +120,9 @@ export function renderDuelPanel(game, onPlayCard, onLockIn) {
     <div class="battle-log" id="battle-log" role="log" aria-live="polite" aria-relevant="additions"></div>
   </div>`;
   if (d.phase === "prep") {
-    html += `<p>Round <strong>${d.prepRound}</strong>/3 · Stamina <strong>${d.playerStamina}</strong>/${d.playerMaxStamina}</p>`;
+    const markStr = d.enemyMarked > 0 ? ` · Marked ◆×${d.enemyMarked}` : "";
+    const focStr = d.playerFocused ? " · Focused ✦" : "";
+    html += `<p>Round <strong>${d.prepRound}</strong>/3 · Focus <strong>${d.playerFocus}</strong>/${d.playerMaxFocus}${markStr}${focStr}</p>`;
     html += `<button class="btn" id="lock" ${d.playerLocked ? "disabled" : ""}>Lock In (Space)</button>`;
     html += `<div class="card-row" id="hand"></div>`;
   } else if (d.phase === "highnoon") {
@@ -136,7 +138,7 @@ export function renderDuelPanel(game, onPlayCard, onLockIn) {
       const def = getCardDef(c.id);
       if (!def) continue;
       const card = document.createElement("div");
-      const affordable = def.cost <= d.playerStamina;
+      const affordable = def.cost <= d.playerFocus;
       card.className = `hand-card hand-card-${def.type}${affordable ? "" : " disabled"}`;
       card.innerHTML = `
         <span class="hand-card-inner">

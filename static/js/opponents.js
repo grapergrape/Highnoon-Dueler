@@ -8,7 +8,7 @@ import { getGun } from "./guns.js";
  * @property {string} backstory
  * @property {number} maxHp
  * @property {string} gunId
- * @property {number} stamina
+ * @property {number} focus
  * @property {number} prepAggression — 0-1, chance to play another card
  * @property {string} bgKey — render palette
  * @property {string[]} deckTemplate — card ids for prep draws (weighted pool)
@@ -24,7 +24,7 @@ export const OPPONENTS = [
       "A fat bearded outlaw who robbed three counties. Slow draw, but he soaks lead like a rain barrel.",
     maxHp: 140,
     gunId: "mare_leg",
-    stamina: 8,
+    focus: 6,
     prepAggression: 0.35,
     bgKey: "saloon",
     deckTemplate: [
@@ -46,7 +46,7 @@ export const OPPONENTS = [
       "Black leather, colder eyes. She does not talk in duels — her Schofield does the speaking.",
     maxHp: 95,
     gunId: "schofield",
-    stamina: 12,
+    focus: 7,
     prepAggression: 0.55,
     bgKey: "night",
     deckTemplate: [
@@ -68,7 +68,7 @@ export const OPPONENTS = [
       "Skinny, twitchy, too many teeth. Charges the noon sun like it owes him money.",
     maxHp: 105,
     gunId: "peacemaker",
-    stamina: 10,
+    focus: 8,
     prepAggression: 0.72,
     bgKey: "mine",
     deckTemplate: [
@@ -94,8 +94,8 @@ export function makeEnemyRuntime(opp) {
     def: opp,
     hp: opp.maxHp,
     maxHp: opp.maxHp,
-    stamina: opp.stamina,
-    maxStamina: opp.stamina,
+    focus: opp.focus,
+    maxFocus: opp.focus,
     gun: { ...gun },
     drawPile: [],
     discardPile: [],

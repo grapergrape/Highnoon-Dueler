@@ -250,12 +250,14 @@ function drawAtmosphere(ctx, w, h, bgKey, t) {
   }
 }
 
-function staminaLine(duel, side) {
-  if (duel.phase !== "prep") return "STA —";
+function focusLine(duel, side) {
+  if (duel.phase !== "prep") return "FOC —";
   if (side === "player") {
-    return `STA ${duel.playerStamina}/${duel.playerMaxStamina}`;
+    const mark = duel.enemyMarked > 0 ? ` ◆×${duel.enemyMarked}` : "";
+    const foc = duel.playerFocused ? " ✦" : "";
+    return `FOC ${duel.playerFocus}/${duel.playerMaxFocus}${mark}${foc}`;
   }
-  return `STA ${duel.enemy.stamina}/${duel.enemy.maxStamina}`;
+  return `FOC ${duel.enemy.focus}/${duel.enemy.maxFocus}`;
 }
 
 function drawHud(ctx, w, h, game) {
@@ -267,8 +269,8 @@ function drawHud(ctx, w, h, game) {
   const { player: Pv, enemy: Ev } = duelDisplayedVolleyPreview(duel, run);
   const pAcc = Math.round(Pv.acc * 100);
   const eAcc = Math.round(Ev.acc * 100);
-  const pSta = staminaLine(duel, "player");
-  const eSta = staminaLine(duel, "enemy");
+  const pSta = focusLine(duel, "player");
+  const eSta = focusLine(duel, "enemy");
 
   const boxW = Math.min(w * 0.44, 400);
   const boxH = 118;
