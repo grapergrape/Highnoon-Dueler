@@ -52,6 +52,7 @@ function effectToText(raw) {
     case 'damageTaken': return `−${Math.abs(v)} dmg taken`;
     case 'focusPerRound': return `+${v} focus/round`;
     case 'staminaPerRound': return `+${v} focus/round`;
+    case 'extraMarkPerApply': return `+${v} mark per Mark apply`;
     case 'staredownOnly': return null;
     default: return raw;
   }

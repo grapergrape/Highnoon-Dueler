@@ -62,6 +62,7 @@ export function createDuel(oppDef, run) {
     playerDebuffs: emptyDebuffs(),
     enemyDebuffs: emptyDebuffs(),
     // Synergy state (persists across prep rounds, cleared after shootout)
+    extraMarkPerApply: run.permanent?.extraMarkPerApply ?? 0,
     enemyMarked: 0,
     playerFocused: false,
     shootoutLog: [],
