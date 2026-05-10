@@ -1,10 +1,19 @@
 import { getCardDef, parseEffect, cloneCardInstance } from "./cards.js";
 import { feedbackLinesForCard } from "./combat-ui.js";
-import { getGun } from "./guns.js";
+import { getGun, FALLBACK_GUN_ID, starterGunIdForClass } from "./guns.js";
 import { makeEnemyRuntime } from "./opponents.js";
 import { buildDeckFromIds, drawCards, shuffle } from "./deck.js";
 
 const STAREDOWN_POOL = ["std_dead_eye", "std_warning_shot", "std_iron_will", "std_marked_man"];
+
+const STAREDOWN_BY_CLASS = {
+  marshal:       ["std_marked_man", "std_federal_stare", "std_cold_stare", "std_warning_shot"],
+  vaquero:       ["std_twin_stance", "std_hot_blood", "std_iron_will", "std_dead_eye"],
+  sheriff:       ["std_last_stand_eye", "std_tin_star", "std_iron_will", "std_warning_shot"],
+  apache_tracker:["std_spirit_stare", "std_iron_will", "std_wind_read", "std_dead_eye"],
+  bounty_hunter: ["std_quickdraw_eye", "std_vendetta_eye", "std_dead_eye", "std_marked_man"],
+  outlaw:        ["std_outlaw_stare", "std_dirty_stare", "std_iron_will", "std_dead_eye"],
+};
 
 export function emptyMods() {
   return {
@@ -26,11 +35,122 @@ export function emptyMods() {
     focusBonusBullets: 0,  // extra bullets if player is focused
     focusBonusAcc: 0,      // extra accuracy if player is focused
     gainFocused: false,    // whether playing this card grants focused state
+    // New synergy mods
+    markBulletPerMark: 0,  // +N bullets per enemy mark at shootout
+    damagePerHp: 0,        // +1 damage per N current HP at shootout (denominator)
+    spiritScaleAcc: 0,     // accShootout += spirit * value (accumulates per card)
+    spiritScaleDamage: 0,  // damageShootout += spirit * value
+    spiritScaleEnemyAcc: 0,// enemyAccNext debuff -= spirit * value
+    extraVolleyShots: 0,   // bonus shootout shots (Outlaw legendary)
   };
 }
 
 export function emptyDebuffs() {
   return { accNext: 0, bulletNext: 0 };
+}
+
+/** Build an activeGun record from a gun definition. Effects are baked into mods at equip time. */
+function makeActiveGun(gunDef) {
+  if (!gunDef) return null;
+  const mods = emptyMods();
+  mergeGunIntoMods(mods, gunDef.effects ?? [], 1);
+  // Persistent gun mods do not grant single-shot states; strip those.
+  mods.gainFocused = false;
+  mods.healNow = 0;
+  mods.focusCycleBonus = 0;
+  mods.hpAfterCycle = 0;
+  return {
+    id: gunDef.id,
+    name: gunDef.name,
+    rarity: gunDef.rarity,
+    flavor: gunDef.flavor ?? null,
+    backstory: gunDef.backstory ?? null,
+    effects: [...(gunDef.effects ?? [])],
+    stats: { mag: gunDef.mag, damage: gunDef.damage, accuracy: gunDef.accuracy, name: gunDef.name },
+    mods,
+  };
+}
+
+/** Combined player gun stats — sums mag, averages damage/accuracy when dual-wielding. */
+function combinedGunStats(duel) {
+  const a = duel.playerActiveGun?.stats;
+  if (!a) return null;
+  const b = duel.playerSecondaryGun?.stats;
+  if (!b) return a;
+  return {
+    mag: a.mag + b.mag,
+    damage: Math.round((a.damage + b.damage) / 2),
+    accuracy: (a.accuracy + b.accuracy) / 2,
+    name: `${a.name} + ${b.name}`,
+  };
+}
+
+function elDobleEffect(duel) {
+  // If currently single gun → mirror into secondary slot
+  // If already dual-wielding → stack primary stats a 2nd time on top (triple-stack)
+  if (!duel.playerActiveGun) return;
+  if (!duel.playerSecondaryGun) {
+    duel.playerSecondaryGun = JSON.parse(JSON.stringify(duel.playerActiveGun));
+    pushPlayLogBulletin(duel, "El Doble — your iron mirrors itself.");
+  } else {
+    // Triple-stack: add primary's stats and mods on top of existing pair
+    const p = duel.playerActiveGun;
+    const s = duel.playerSecondaryGun;
+    s.stats.mag += p.stats.mag;
+    s.stats.damage = Math.round((s.stats.damage + p.stats.damage) / 2);
+    // Merge mods additively
+    for (const k of Object.keys(p.mods)) {
+      if (typeof p.mods[k] === "number") s.mods[k] += p.mods[k];
+      else if (typeof p.mods[k] === "boolean") s.mods[k] = s.mods[k] || p.mods[k];
+    }
+    pushPlayLogBulletin(duel, "El Doble — triple-stack! Three guns in two hands.");
+  }
+  duel.dualWieldPenaltyRemoved = true;
+}
+
+function resolveStartingGun(run) {
+  const id = run.activeGunId || run.gunId || starterGunIdForClass(run.classId) || FALLBACK_GUN_ID;
+  return getGun(id);
+}
+
+/** Combine persistent gun mods with transient (per-cycle) card mods. */
+function combinedMods(activeGun, transient, secondaryGun = null) {
+  const baseA = activeGun?.mods ?? emptyMods();
+  // If dual-wielding, merge secondary gun's mods into the primary side
+  let a = baseA;
+  if (secondaryGun) {
+    const s = secondaryGun.mods;
+    a = { ...baseA };
+    for (const k of Object.keys(emptyMods())) {
+      if (typeof a[k] === "number") a[k] = (a[k]||0) + (s[k]||0);
+      else if (typeof a[k] === "boolean") a[k] = a[k] || s[k];
+    }
+  }
+  return {
+    bulletDelta: a.bulletDelta + transient.bulletDelta,
+    damageDelta: a.damageDelta + transient.damageDelta,
+    accDelta: a.accDelta + transient.accDelta,
+    damageMult: a.damageMult * transient.damageMult,
+    pierce: a.pierce || transient.pierce,
+    ricochet: a.ricochet || transient.ricochet,
+    firstHitsAuto: a.firstHitsAuto + transient.firstHitsAuto,
+    dodgeRecv: a.dodgeRecv + transient.dodgeRecv,
+    returnBulletOnHit: a.returnBulletOnHit + transient.returnBulletOnHit,
+    hpAfterShootout: a.hpAfterShootout + transient.hpAfterShootout,
+    hpAfterCycle: a.hpAfterCycle + transient.hpAfterCycle,
+    focusCycleBonus: a.focusCycleBonus + transient.focusCycleBonus,
+    healNow: a.healNow + transient.healNow,
+    markBurstDmg: a.markBurstDmg + transient.markBurstDmg,
+    focusBonusBullets: a.focusBonusBullets + transient.focusBonusBullets,
+    focusBonusAcc: a.focusBonusAcc + transient.focusBonusAcc,
+    gainFocused: a.gainFocused || transient.gainFocused,
+    markBulletPerMark: (a.markBulletPerMark||0) + (transient.markBulletPerMark||0),
+    damagePerHp: (a.damagePerHp||0) + (transient.damagePerHp||0),
+    spiritScaleAcc: (a.spiritScaleAcc||0) + (transient.spiritScaleAcc||0),
+    spiritScaleDamage: (a.spiritScaleDamage||0) + (transient.spiritScaleDamage||0),
+    spiritScaleEnemyAcc: (a.spiritScaleEnemyAcc||0) + (transient.spiritScaleEnemyAcc||0),
+    extraVolleyShots: (a.extraVolleyShots||0) + (transient.extraVolleyShots||0),
+  };
 }
 
 /**
@@ -43,6 +163,12 @@ export function createDuel(oppDef, run) {
   enemy.drawPile = shuffle(pool);
   enemy.discardPile = [];
   enemy.hand = [];
+
+  // Initialize each side's persistent active gun.
+  const playerStartGun = resolveStartingGun(run);
+  const playerActiveGun = makeActiveGun(playerStartGun);
+  const enemyStartGun = getGun(oppDef.gunId);
+  enemy.activeGun = makeActiveGun(enemyStartGun);
 
   return {
     opponentDef: oppDef,
@@ -57,6 +183,7 @@ export function createDuel(oppDef, run) {
     playerFocus: 0,
     playerMaxFocus: 5 + (run.permanent?.focusPerRound ?? 0),
     focusBonusCycle: 0,
+    playerActiveGun,
     playerMods: emptyMods(),
     enemyMods: emptyMods(),
     playerDebuffs: emptyDebuffs(),
@@ -65,6 +192,16 @@ export function createDuel(oppDef, run) {
     extraMarkPerApply: run.permanent?.extraMarkPerApply ?? 0,
     enemyMarked: 0,
     playerFocused: false,
+    // Apache spirit (persists across prep rounds, cleared after shootout)
+    spirit: 0,
+    spiritDoubleNext: false,
+    // Vaquero dual-wield (secondary gun slot)
+    playerSecondaryGun: null,
+    dualWieldPenaltyRemoved: false,
+    // Outlaw combo tracking
+    roundOutlawCount: 0,
+    nextComboFree: false,
+    duelComboTriggers: 0,
     shootoutLog: [],
     message: "STARE-DOWN — commit your hidden card before the prep.",
     winner: null,
@@ -115,8 +252,9 @@ export function refillFocus(duel, run) {
 // (kept for save-state compatibility)
 export { refillFocus as refillStamina };
 
-export function dealStaredownChoices(duel) {
-  const pool = shuffle([...STAREDOWN_POOL]);
+export function dealStaredownChoices(duel, run) {
+  const classId = run?.classId;
+  const pool = (classId && STAREDOWN_BY_CLASS[classId]) ? STAREDOWN_BY_CLASS[classId] : STAREDOWN_POOL;
   duel.staredownChoices = pool.slice(0, 4).map((id) => cloneCardInstance(id)).filter(Boolean);
 }
 
@@ -169,11 +307,19 @@ function mergeGunIntoMods(mods, effects, sign = 1) {
     else if (e.kind === "focusBonusBullets") mods.focusBonusBullets += sign * (e.value || 0);
     else if (e.kind === "focusBonusAcc") mods.focusBonusAcc += sign * (e.value || 0);
     else if (e.kind === "gainFocused" && sign > 0) mods.gainFocused = true;
+    else if (e.kind === "markBulletPerMark") mods.markBulletPerMark += sign * (e.value || 0);
+    else if (e.kind === "damagePerHp") mods.damagePerHp += sign * (e.value || 0);
+    else if (e.kind === "spiritScaleAcc") mods.spiritScaleAcc += sign * (e.value || 0);
+    else if (e.kind === "spiritScaleDamage") mods.spiritScaleDamage += sign * (e.value || 0);
+    else if (e.kind === "spiritScaleEnemyAcc") mods.spiritScaleEnemyAcc += sign * (e.value || 0);
+    else if (e.kind === "extraVolleyShots") mods.extraVolleyShots += sign * (e.value || 0);
   }
 }
 
 function applyPlayerCardEffects(duel, run, def) {
   const eff = def.effects ?? [];
+  // Spirit-scaled debuffs use the spirit value at play time for next-volley enemy acc
+  const spiritNow = duel.spirit || 0;
   for (const raw of eff) {
     const e = parseEffect(raw);
     if (e.kind === "enemyAccNext") {
@@ -184,6 +330,12 @@ function applyPlayerCardEffects(duel, run, def) {
       const baseMarks = e.value || 0;
       const extra = run?.permanent?.extraMarkPerApply ?? 0;
       duel.enemyMarked += baseMarks + extra;
+    } else if (e.kind === "spirit") {
+      const cap = run?.permanent?.spiritMax ?? 10;
+      duel.spirit = Math.min(cap, (duel.spirit || 0) + (e.value || 0));
+    } else if (e.kind === "spiritScaleEnemyAcc") {
+      // Apply now using current spirit as a debuff on enemy next volley
+      duel.enemyDebuffs.accNext += spiritNow * (e.value || 0);
     } else {
       mergeGunIntoMods(duel.playerMods, [raw], 1);
     }
@@ -195,13 +347,14 @@ function applyPlayerCardEffects(duel, run, def) {
   }
 }
 
-function applyEnemyGunAuto(duel, gunCardDef) {
-  if (gunCardDef?.type === "gun") mergeGunIntoMods(duel.enemyMods, gunCardDef.effects ?? [], 1);
-}
-
 function applyEnemyPlayedCard(duel, def) {
   if (def.type === "gun") {
-    mergeGunIntoMods(duel.enemyMods, def.effects ?? [], 1);
+    const gunDef = getGun(def.id);
+    const prev = duel.enemy.activeGun;
+    duel.enemy.activeGun = makeActiveGun(gunDef);
+    if (prev && prev.id !== gunDef.id) {
+      pushPlayLogBulletin(duel, `${duel.opponentDef.name} holsters the ${prev.name} and draws the ${gunDef.name}.`);
+    }
     return;
   }
   for (const raw of def.effects ?? []) {
@@ -221,26 +374,16 @@ function applyEnemyPlayedCard(duel, def) {
 export function startPrepRound(duel, run) {
   duel.playerLocked = false;
   duel.freeCardAvailable = !!run.permanent?.freeFirstCardPerRound;
+  duel.roundOutlawCount = 0;
+  duel.roundOutlawCards = [];
   duel.message = `Preparation — round ${duel.prepRound} of 3. Play your hand, then Lock In.`;
   pushPlayLogBulletin(duel, `Preparation round ${duel.prepRound}/3 — draw and play.`);
   refillFocus(duel, run);
 
-  const gunPool = ["gun_quick_draw", "gun_heavy_slugger", "gun_oiled_chamber", "gun_bandit_gambit"];
-  const gid = gunPool[(Math.random() * gunPool.length) | 0];
-  const gunCard = cloneCardInstance(gid);
-  const drawn = drawCards(duel.playerDrawPile, duel.playerDiscard, 3);
-  duel.playerHand.push(gunCard, ...drawn);
+  const drawn = drawCards(duel.playerDrawPile, duel.playerDiscard, 4);
+  duel.playerHand.push(...drawn);
 
-  const enemyGunIds = ["gun_quick_draw", "gun_heavy_slugger", "gun_oiled_chamber", "gun_bandit_gambit"];
-  const egid = enemyGunIds[(Math.random() * enemyGunIds.length) | 0];
-  const enemyGun = cloneCardInstance(egid);
-  const enemyGunDef = getCardDef(enemyGun.id);
-  applyEnemyGunAuto(duel, enemyGunDef);
-  if (enemyGunDef) {
-    pushPlayLogCard(duel, "outlaw", enemyGunDef);
-  }
-
-  const eDraw = drawCards(duel.enemy.drawPile, duel.enemy.discardPile, 3);
+  const eDraw = drawCards(duel.enemy.drawPile, duel.enemy.discardPile, 4);
   duel.enemy.hand.push(...eDraw);
 
   // healPerDuel fires once per duel (cycle 1, prep round 1 only)
@@ -263,10 +406,22 @@ export function tryPlayCard(duel, run, cardUid) {
   if (duel.playerLocked) return { ok: false, reason: "Locked in" };
 
   const isCharacter = def.type === "character";
-  const usingFreebie = !isCharacter && duel.freeCardAvailable === true;
-  const cost = usingFreebie ? 0 : def.cost;
+  const isOutlawCombo = !!def.outlawCombo;
+  const isComboFree = !isCharacter && isOutlawCombo && duel.nextComboFree;
+  const usingFreebie = !isCharacter && !isComboFree && duel.freeCardAvailable === true;
+  const cost = (usingFreebie || isComboFree) ? 0 : def.cost;
 
   if (cost > duel.playerFocus) return { ok: false, reason: "Not enough focus" };
+
+  // payHp gating: refuse if HP cost would kill caster
+  let payHpAmount = 0;
+  for (const raw of def.effects ?? []) {
+    const e = parseEffect(raw);
+    if (e.kind === "payHp") payHpAmount += Math.abs(e.value || 0);
+  }
+  if (payHpAmount > 0 && run.hp - payHpAmount <= 0) {
+    return { ok: false, reason: "Would be lethal" };
+  }
 
   if (def.type === "character") {
     applyPermanentFromCharacter(run, def);
@@ -283,10 +438,101 @@ export function tryPlayCard(duel, run, cardUid) {
     duel.freeCardAvailable = false;
     pushPlayLogBulletin(duel, "Read the wind — first card was free.");
   }
+  if (isComboFree) {
+    duel.nextComboFree = false;
+    pushPlayLogBulletin(duel, "Outlaw's Pact — that one was on the house.");
+  }
   duel.playerHand.splice(idx, 1);
   duel.playerDiscard.push(card);
 
+  // Pay HP cost if any
+  if (payHpAmount > 0) {
+    run.hp = Math.max(1, run.hp - payHpAmount);
+    pushPlayLogBulletin(duel, `Spent ${payHpAmount} HP for ${def.name}.`);
+  }
+
+  if (def.type === "gun") {
+    const gunDef = getGun(def.id);
+    const dualWieldEnabled = !!run.permanent?.dualWieldEnabled;
+    if (dualWieldEnabled) {
+      // Vaquero path: secondary slot
+      if (!duel.playerActiveGun) {
+        duel.playerActiveGun = makeActiveGun(gunDef);
+        if (run) run.activeGunId = gunDef.id;
+        pushPlayLogBulletin(duel, `You draw the ${gunDef.name}.`);
+      } else if (!duel.playerSecondaryGun) {
+        duel.playerSecondaryGun = makeActiveGun(gunDef);
+        pushPlayLogBulletin(duel, `Off-hand: you also draw the ${gunDef.name}. Dos pistolas.`);
+      } else {
+        // Already dual; replace secondary
+        const prev = duel.playerSecondaryGun;
+        duel.playerSecondaryGun = makeActiveGun(gunDef);
+        pushPlayLogBulletin(duel, `Off-hand swap: ${prev.name} → ${gunDef.name}.`);
+      }
+    } else {
+      const prev = duel.playerActiveGun;
+      duel.playerActiveGun = makeActiveGun(gunDef);
+      if (run) run.activeGunId = gunDef.id;
+      if (prev && prev.id !== gunDef.id) {
+        pushPlayLogBulletin(duel, `You holster the ${prev.name} and draw the ${gunDef.name}.`);
+      } else if (!prev) {
+        pushPlayLogBulletin(duel, `You draw the ${gunDef.name}.`);
+      }
+    }
+    duel.message = `Drew ${gunDef.name}.`;
+    pushPlayLogCard(duel, "you", def);
+    return { ok: true, gunSwap: true, feedback: feedbackLinesForCard(def, "player") };
+  }
+
+  // Outlaw combo tracking — count outlaw-combo cards in this round
+  if (isOutlawCombo) {
+    duel.roundOutlawCount = (duel.roundOutlawCount || 0) + 1;
+    if (!duel.roundOutlawCards) duel.roundOutlawCards = [];
+    duel.roundOutlawCards.push(def);
+  }
+
   applyPlayerCardEffects(duel, run, def);
+
+  if (isOutlawCombo) {
+    const extractCombo = (d) => (d.effects ?? []).filter(t => t.startsWith("comboBonus:")).map(t => t.slice("comboBonus:".length));
+    if (duel.roundOutlawCount === 2) {
+      // Retroactively apply 1st card's comboBonus + this card's
+      for (const prior of duel.roundOutlawCards) {
+        const tokens = extractCombo(prior);
+        if (tokens.length) {
+          applyPlayerCardEffects(duel, run, { effects: tokens });
+          duel.duelComboTriggers = (duel.duelComboTriggers || 0) + 1;
+        }
+      }
+      pushPlayLogBulletin(duel, "Combo! Outlaw cards stack their bonuses.");
+    } else if (duel.roundOutlawCount > 2) {
+      // Each subsequent combo card applies its own bonus
+      const tokens = extractCombo(def);
+      if (tokens.length) {
+        applyPlayerCardEffects(duel, run, { effects: tokens });
+        duel.duelComboTriggers = (duel.duelComboTriggers || 0) + 1;
+        pushPlayLogBulletin(duel, `Combo! ${def.name} stacks.`);
+      }
+    }
+    if ((def.effects || []).includes("nextComboFree")) {
+      duel.nextComboFree = true;
+    }
+  }
+
+  // removeDualPenalty effect
+  if ((def.effects || []).includes("removeDualPenalty")) {
+    duel.dualWieldPenaltyRemoved = true;
+    pushPlayLogBulletin(duel, "Dual-wield penalty cleared for this duel.");
+  }
+  // El Doble triple-stack: if already dual, double-apply primary stats; else mirror primary into secondary
+  if ((def.effects || []).includes("elDoble")) {
+    elDobleEffect(duel);
+  }
+
+  // Spirit-doubling for Apache legendary
+  if ((def.effects || []).includes("spiritDoubleNext")) {
+    duel.spiritDoubleNext = true;
+  }
 
   if (def.effects?.some((x) => x.startsWith("healNow"))) {
     const h = def.effects.map(parseEffect).find((e) => e.kind === "healNow");
@@ -327,6 +573,8 @@ function applyPermanentFromCharacter(run, def) {
     if (e.kind === "damageTaken") run.permanent.damageReduce = (run.permanent.damageReduce || 0) + Math.abs(e.value ?? 1);
     if (e.kind === "firstCycleAccPenalty") run.permanent.firstCycleAccPenalty = (run.permanent.firstCycleAccPenalty || 0) + (e.value || 0);
     if (e.kind === "bountyMult") run.permanent.bountyMult = (run.permanent.bountyMult ?? 1) + (e.value || 0);
+    if (e.kind === "dualWieldAccPenaltyReduce") run.permanent.dualWieldAccPenaltyReduce = (run.permanent.dualWieldAccPenaltyReduce || 0) + (e.value || 0);
+    if (e.kind === "spiritMax") run.permanent.spiritMax = (run.permanent.spiritMax || 10) + (e.value || 0);
   }
 }
 
@@ -393,18 +641,24 @@ export function lockInPrep(duel, run) {
 }
 
 export function duelDisplayedVolleyPreview(duel, run) {
-  const pg = getGun(run.gunId);
-  const eg = duel.enemy.gun;
+  const pg = combinedGunStats(duel) ?? getGun(FALLBACK_GUN_ID);
+  const eg = duel.enemy.activeGun?.stats ?? duel.enemy.gun;
   let permAcc = run.permanent?.accBonus ?? 0;
   if (duel.playerFocused) {
     permAcc += run.permanent?.focusedAccBonus ?? 0;
   }
+  const playerMods = combinedMods(duel.playerActiveGun, duel.playerMods, duel.playerSecondaryGun);
+  const enemyMods = combinedMods(duel.enemy.activeGun, duel.enemyMods);
   const result = {
-    player: buildVolleySide(pg, duel.playerMods, duel.playerDebuffs, permAcc),
-    enemy: buildVolleySide(eg, duel.enemyMods, duel.enemyDebuffs, 0),
+    player: buildVolleySide(pg, playerMods, duel.playerDebuffs, permAcc),
+    enemy: buildVolleySide(eg, enemyMods, duel.enemyDebuffs, 0),
   };
+  if (duel.playerFocused) {
+    result.player.bullets = Math.max(1, Math.round(result.player.bullets + (playerMods.focusBonusBullets || 0)));
+    result.player.acc = Math.min(0.96, result.player.acc + (playerMods.focusBonusAcc || 0));
+  }
   const cyc = duel.cycleNumber ?? 1;
-  const fcp = run.permanent?.firstCycleAccPenalty ?? 0;
+  const fcp = effectiveFirstCycleAccPenalty(run);
   if (cyc === 1 && fcp > 0) {
     result.player.acc = Math.max(0.08, result.player.acc - fcp);
   }
@@ -414,7 +668,22 @@ export function duelDisplayedVolleyPreview(duel, run) {
   if (cyc >= 3 && lateBonus > 0) {
     result.player.damageMult = Math.max(0.25, result.player.damageMult * (1 + lateBonus));
   }
+
+  // Apache Tracker floor: player accuracy never drops below accFloor
+  const floor = run.permanent?.accFloor ?? 0;
+  if (floor > 0) {
+    result.player.acc = Math.max(floor, result.player.acc);
+  }
   return result;
+}
+
+// Sheriff Respect reduces the slow-draw penalty by `respectAccPenaltyReduceEach` per point.
+function effectiveFirstCycleAccPenalty(run) {
+  const base = run.permanent?.firstCycleAccPenalty ?? 0;
+  if (base <= 0) return 0;
+  const respect = run.permanent?.respect ?? 0;
+  const each = run.permanent?.respectAccPenaltyReduceEach ?? 0;
+  return Math.max(0, base - respect * each);
 }
 
 function buildVolleySide(gun, mods, debuffs, permAcc, cycleAccPenalty = 0) {
@@ -439,24 +708,65 @@ function buildVolleySide(gun, mods, debuffs, permAcc, cycleAccPenalty = 0) {
 }
 
 export function resolveShootout(duel, run) {
-  const pg = getGun(run.gunId);
-  const eg = duel.enemy.gun;
+  const pg = combinedGunStats(duel) ?? getGun(FALLBACK_GUN_ID);
+  const eg = duel.enemy.activeGun?.stats ?? duel.enemy.gun;
   const permAcc = run.permanent?.accBonus ?? 0;
-  const cycleAccPenalty = duel.cycleNumber === 1 ? (run.permanent?.firstCycleAccPenalty ?? 0) : 0;
+  const cycleAccPenalty = duel.cycleNumber === 1 ? effectiveFirstCycleAccPenalty(run) : 0;
 
-  const P = buildVolleySide(pg, duel.playerMods, duel.playerDebuffs, permAcc, cycleAccPenalty);
-  const E = buildVolleySide(eg, duel.enemyMods, duel.enemyDebuffs, 0);
+  const playerMods = combinedMods(duel.playerActiveGun, duel.playerMods, duel.playerSecondaryGun);
+  const enemyMods = combinedMods(duel.enemy.activeGun, duel.enemyMods);
+
+  const P = buildVolleySide(pg, playerMods, duel.playerDebuffs, permAcc, cycleAccPenalty);
+  const E = buildVolleySide(eg, enemyMods, duel.enemyDebuffs, 0);
 
   // Apply mark burst: each mark on enemy amplifies damage
-  if (duel.enemyMarked > 0 && duel.playerMods.markBurstDmg > 0) {
-    const markBonus = Math.floor(duel.playerMods.markBurstDmg * duel.enemyMarked);
+  if (duel.enemyMarked > 0 && playerMods.markBurstDmg > 0) {
+    const markBonus = Math.floor(playerMods.markBurstDmg * duel.enemyMarked);
     P.damage += markBonus;
+  }
+  // Marshal legendary: +N bullets per enemy mark
+  if (duel.enemyMarked > 0 && playerMods.markBulletPerMark > 0) {
+    const addBullets = playerMods.markBulletPerMark * duel.enemyMarked;
+    P.bullets += addBullets;
+    pushPlayLogBulletin(duel, `Federal Bounty — +${addBullets} bullets from ${duel.enemyMarked} marks.`);
+  }
+  // Sheriff: +1 damage per N current HP
+  if (playerMods.damagePerHp > 0) {
+    const bonus = Math.floor(run.hp / playerMods.damagePerHp);
+    if (bonus > 0) {
+      P.damage += bonus;
+      pushPlayLogBulletin(duel, `Star of Justice — HP empowers your shot (+${bonus} dmg).`);
+    }
+  }
+  // Apache spirit scaling
+  const spiritMult = duel.spiritDoubleNext ? 2 : 1;
+  if ((duel.spirit || 0) > 0 && spiritMult > 0) {
+    if (playerMods.spiritScaleAcc > 0) {
+      P.acc = Math.min(0.96, P.acc + duel.spirit * playerMods.spiritScaleAcc * spiritMult);
+    }
+    if (playerMods.spiritScaleDamage > 0) {
+      P.damageMult = Math.max(0.25, P.damageMult * (1 + duel.spirit * playerMods.spiritScaleDamage * spiritMult));
+    }
+  }
+  // Vaquero dual-wield accuracy penalty
+  if (duel.playerSecondaryGun && !duel.dualWieldPenaltyRemoved) {
+    let pen = run.permanent?.dualWieldAccPenalty ?? 0.10;
+    pen = Math.max(0, pen - (run.permanent?.dualWieldAccPenaltyReduce ?? 0));
+    P.acc = Math.max(0.08, P.acc - pen);
+  }
+  // Outlaw legendary: +1 volley shot per combo trigger this duel
+  if (playerMods.extraVolleyShots > 0) {
+    const extra = playerMods.extraVolleyShots * (duel.duelComboTriggers || 0);
+    if (extra > 0) {
+      P.bullets += extra;
+      pushPlayLogBulletin(duel, `No Honor Among Thieves — +${extra} bonus shots from combos.`);
+    }
   }
 
   // Apply focus bonuses if player is focused this cycle
   if (duel.playerFocused) {
-    P.bullets = Math.max(1, Math.round(P.bullets + duel.playerMods.focusBonusBullets));
-    P.acc = Math.min(0.96, P.acc + duel.playerMods.focusBonusAcc);
+    P.bullets = Math.max(1, Math.round(P.bullets + playerMods.focusBonusBullets));
+    P.acc = Math.min(0.96, P.acc + playerMods.focusBonusAcc);
     const focBonus = run.permanent?.focusedAccBonus ?? 0;
     if (focBonus > 0) {
       P.acc = Math.min(0.96, P.acc + focBonus);
@@ -464,40 +774,21 @@ export function resolveShootout(duel, run) {
   }
 
   const cyc = duel.cycleNumber ?? 1;
-  const firstCycleAccPenalty = run.permanent?.firstCycleAccPenalty ?? 0;
+  const firstCycleAccPenalty = effectiveFirstCycleAccPenalty(run);
   if (cyc === 1 && firstCycleAccPenalty > 0) {
     P.acc = Math.max(0.08, P.acc - firstCycleAccPenalty);
+  }
+
+  // Apache Tracker floor: player accuracy never drops below accFloor
+  const accFloor = run.permanent?.accFloor ?? 0;
+  if (accFloor > 0) {
+    P.acc = Math.max(accFloor, P.acc);
   }
 
   // Apply late-cycle damage bonus (Vaquero: cycles 3+)
   const lateBonus = run.permanent?.lateCycleDmgBonus ?? 0;
   if (cyc >= 3 && lateBonus > 0) {
     P.damageMult = Math.max(0.25, P.damageMult * (1 + lateBonus));
-  }
-
-  // Apply late-cycle damage bonus (Vaquero: cycles 3+)
-  const cyc = duel.cycleNumber ?? 1;
-  const lateBonus = run.permanent?.lateCycleDmgBonus ?? 0;
-  if (cyc >= 3 && lateBonus > 0) {
-    P.damageMult = Math.max(0.25, P.damageMult * (1 + lateBonus));
-  }
-
-  // Vaquero late-cycle damage bonus: active from cycle 3 onward
-  const cyc = duel.cycleNumber ?? 1;
-  const lateBonus = run.permanent?.lateCycleDmgBonus ?? 0;
-  if (cyc >= 3 && lateBonus > 0) {
-    P.damageMult = Math.max(0.25, P.damageMult * (1 + lateBonus));
-  }
-
-  // Sheriff trait: first-cycle accuracy penalty (offset by feat_steady_hand)
-  if (duel.cycleCount === 0 && run.permanent?.firstCycleAccPenalty) {
-    P.acc = Math.max(0.08, P.acc - run.permanent.firstCycleAccPenalty);
-  }
-
-  const cyc = duel.cycleNumber ?? 1;
-  const firstCycleAccPenalty = run.permanent?.firstCycleAccPenalty ?? 0;
-  if (cyc === 1 && firstCycleAccPenalty > 0) {
-    P.acc = Math.max(0.08, P.acc - firstCycleAccPenalty);
   }
 
   const log = [];
@@ -507,12 +798,21 @@ export function resolveShootout(duel, run) {
   const deadeye = run.permanent?.deadeye;
 
   const volley = { P, E };
+  const summary = {
+    player: { hits: 0, misses: 0, dodged: 0, damage: 0, accuracy: P.acc, baseDamage: P.damage, shots: [] },
+    enemy: { hits: 0, misses: 0, dodged: 0, damage: 0, accuracy: E.acc, baseDamage: E.damage, shots: [] },
+  };
 
   const fire = (attKey, defKey, tag, bulletIndex) => {
     const att = volley[attKey];
     const def = volley[defKey];
+    const side = tag === "player" ? summary.player : summary.enemy;
+    const shot = { i: bulletIndex + 1, outcome: "miss", dmg: 0 };
     if (def.dodgeRecv > 0 && Math.random() < def.dodgeRecv) {
       log.push({ kind: "dodge", who: defKey === "P" ? "player" : "enemy" });
+      shot.outcome = "dodged";
+      side.dodged++;
+      side.shots.push(shot);
       return;
     }
     const roll = Math.random();
@@ -520,11 +820,16 @@ export function resolveShootout(duel, run) {
     const hit = auto || roll < att.acc;
     if (!hit) {
       log.push({ kind: "miss", by: tag });
+      side.misses++;
+      side.shots.push(shot);
       return;
     }
     let dmg = Math.round(att.damage * att.damageMult);
     if (deadeye && tag === "player" && roll > 0.85) dmg = Math.round(dmg * 1.3);
     if (tag === "enemy") dmg = Math.max(1, dmg - reduce);
+
+    shot.outcome = "hit";
+    shot.dmg = dmg;
 
     if (tag === "player") {
       duel.enemy.hp -= dmg;
@@ -533,16 +838,22 @@ export function resolveShootout(duel, run) {
         const rd = Math.max(1, Math.round(dmg * 0.5));
         duel.enemy.hp -= rd;
         log.push({ kind: "rico", dmg: rd });
+        shot.ricochet = rd;
+        side.damage += rd;
       }
       if (att.returnBulletOnHit > 0) {
         const add = Math.min(4, att.returnBulletOnHit);
         att.bullets += add;
         log.push({ kind: "return", n: add });
+        shot.returnBullet = add;
       }
     } else {
       run.hp -= dmg;
       log.push({ kind: "hit", by: "enemy", dmg });
     }
+    side.hits++;
+    side.damage += dmg;
+    side.shots.push(shot);
   };
 
   let rounds = 0;
@@ -561,7 +872,8 @@ export function resolveShootout(duel, run) {
     if (duel.enemy.hp <= 0 || run.hp <= 0) break;
   }
 
-  run.hp = Math.max(0, Math.min(run.maxHp, run.hp + duel.playerMods.hpAfterShootout));
+  const totalHpAfter = (duel.playerActiveGun?.mods.hpAfterShootout ?? 0) + duel.playerMods.hpAfterShootout;
+  run.hp = Math.max(0, Math.min(run.maxHp, run.hp + totalHpAfter));
 
   // Clear all mods, debuffs, and synergy state for next cycle
   duel.playerMods = emptyMods();
@@ -571,10 +883,22 @@ export function resolveShootout(duel, run) {
   duel.enemyMarked = 0;
   duel.playerFocused = false;
   duel.focusBonusCycle = 0;
+  duel.spiritDoubleNext = false;
+  duel.roundOutlawCount = 0;
 
   let winner = null;
   if (duel.enemy.hp <= 0 && run.hp <= 0) {
-    winner = run.hp >= duel.enemy.hp ? "player" : "enemy";
+    if (run.permanent?.quickdrawWin) {
+      winner = "player";
+      const healPct = run.permanent?.quickdrawHealPct ?? 0;
+      if (healPct > 0) {
+        const healed = Math.max(1, Math.round(run.maxHp * healPct));
+        run.hp = Math.min(run.maxHp, healed);
+        pushPlayLogBulletin(duel, `Quickdraw — you live, +${healed} HP.`);
+      }
+    } else {
+      winner = run.hp >= duel.enemy.hp ? "player" : "enemy";
+    }
   } else if (duel.enemy.hp <= 0) {
     winner = "player";
   } else if (run.hp <= 0) {
@@ -582,6 +906,9 @@ export function resolveShootout(duel, run) {
   }
 
   duel.shootoutLog = log;
+  summary.player.bullets = summary.player.shots.length;
+  summary.enemy.bullets = summary.enemy.shots.length;
+  duel.shootoutSummary = summary;
   duel.cycleCount += 1;
   duel.winner = winner;
   if (!winner) {

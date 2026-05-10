@@ -34,40 +34,25 @@ export function discardCards(discard, cards) {
   for (const c of cards) discard.push(c);
 }
 
-/** Sheriff class starter deck */
-export const SHERIFF_DECK_IDS = [
-  "atk_rattlesnake",
-  "atk_devils_due",
-  "atk_rust_bullet",
-  "atk_rust_bullet",
-  "atk_leg_shot",
-  "feat_steady_hand",
-  "feat_whiskey",
-  "char_iron_gut",
-  "char_thick_hide",
-  "gun_oiled_chamber",
-  "gun_iron_maiden",
-  "atk_phantom_round",
-];
-
-/** Default starter deck for new runs */
+/** Default starter deck for new runs (Drifter; classes override via classes.js) */
 export const STARTER_DECK_IDS = [
+  "gun_service_revolver",
   "atk_rattlesnake",
   "atk_rattlesnake",
   "atk_devils_due",
   "atk_rust_bullet",
   "atk_fan_hammer",
-  "gun_quick_draw",
-  "gun_quick_draw",
   "feat_whiskey",
   "feat_tumbleweed",
   "atk_trick_shot",
   "atk_sand_chamber",
   "char_thick_hide",
+  "atk_dust_throw",
 ];
 
-/** Bounty Hunter class starter deck — heavy Focused-state synergy (12 cards) */
+/** Bounty Hunter alt deck (still referenced by main.js) */
 export const BOUNTY_HUNTER_DECK_IDS = [
+  "gun_derringer_41",
   "atk_iron_nerve",
   "atk_iron_nerve",
   "atk_cold_blood",
@@ -75,9 +60,8 @@ export const BOUNTY_HUNTER_DECK_IDS = [
   "atk_apex_predator",
   "feat_snipers_breath",
   "feat_second_wind",
-  "gun_long_barrel",
-  "gun_silver_tongue",
   "char_preacher",
   "atk_phantom_round",
+  "atk_rattlesnake",
   "atk_rattlesnake",
 ];

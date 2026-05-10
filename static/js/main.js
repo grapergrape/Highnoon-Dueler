@@ -1,7 +1,6 @@
 import { STARTER_DECK_IDS, BOUNTY_HUNTER_DECK_IDS, shuffle } from "./deck.js";
-import { DEFAULT_GUN_ID } from "./guns.js";
+import { FALLBACK_GUN_ID, starterGunIdForClass } from "./guns.js";
 import { getOpponent } from "./opponents.js";
-import { getClass } from "./classes.js";
 import {
   createDuel,
   tryPlayCard,
@@ -21,11 +20,11 @@ import {
   renderShop,
   renderDuelPanel,
   renderGameOver,
-  renderClassSelect,
 } from "./ui.js";
 import { CLASSES, getClass, applyClassToRun } from "./classes.js";
 
-const LS_KEY = "highnoon_duelist_v1";
+const LS_KEY = "highnoon_duelist_v2";
+const GAMEOVER_AUTO_RETURN_MS = 10000;
 
 const CLASS_CONFIGS = [
   {
@@ -50,18 +49,21 @@ const CLASS_CONFIGS = [
   },
 ];
 
-function defaultRun(classId = "outlaw") {
-  const cls = getClass(classId);
-  return {
-    money: 40 + cls.bonusMoney,
+function defaultRun(classId = null) {
+  const base = {
+    money: 40,
     hp: 100,
     maxHp: 100,
-    gunId: DEFAULT_GUN_ID,
-    deckIds: [...cls.starterDeck],
-    ownedGuns: [DEFAULT_GUN_ID],
+    activeGunId: FALLBACK_GUN_ID,
+    deckIds: [...STARTER_DECK_IDS],
     permanent: {},
     classId: null,
   };
+  if (classId) {
+    applyClassToRun(base, classId);
+    base.activeGunId = starterGunIdForClass(classId);
+  }
+  return base;
 }
 
 function hasSavedRun() {
@@ -80,14 +82,15 @@ function loadRun() {
     const j = localStorage.getItem(LS_KEY);
     if (!j) return null;
     const o = JSON.parse(j);
-    const base = defaultRun(o.classId ?? "outlaw");
+    const validClassId = o.classId && getClass(o.classId) ? o.classId : null;
+    const base = validClassId ? defaultRun(validClassId) : defaultRun();
     return {
       ...base,
       ...o,
       deckIds: o.deckIds?.length ? o.deckIds : base.deckIds,
-      ownedGuns: o.ownedGuns?.length ? o.ownedGuns : [DEFAULT_GUN_ID],
-      permanent: o.permanent && typeof o.permanent === "object" ? o.permanent : {},
-      classId: o.classId ?? null,
+      activeGunId: o.activeGunId || base.activeGunId,
+      permanent: o.permanent && typeof o.permanent === "object" && !Array.isArray(o.permanent) ? o.permanent : {},
+      classId: validClassId,
     };
   } catch {
     return null;
@@ -162,19 +165,6 @@ function clearNavTimers() {
   }
 }
 
-function goClassSelect() {
-  clearNavTimers();
-  resetCombatUi(game);
-  game.screen = "classselect";
-  game.duel = null;
-  updateHud(game);
-  renderClassSelect((classId) => {
-    game.run = defaultRun(classId);
-    saveRun(game.run);
-    goWanted();
-  });
-}
-
 function goWanted() {
   clearNavTimers();
   resetCombatUi(game);
@@ -197,24 +187,10 @@ function goClassSelect() {
 
 function pickClass(classId) {
   applyClassToRun(game.run, classId);
+  game.run.activeGunId = starterGunIdForClass(classId);
   saveRun(game.run);
   updateHud(game);
   goWanted();
-}
-
-function renderClassSelect(onPick) {
-  const el = document.getElementById("panel");
-  el.className = "panel";
-  el.innerHTML = `<h2>Choose Your Class</h2><p>Every gunslinger has a specialty. Pick your path.</p><div class="class-grid"></div>`;
-  const grid = el.querySelector(".class-grid");
-  for (const cls of CLASSES) {
-    const d = document.createElement("div");
-    d.className = "poster";
-    d.style.borderLeftColor = cls.portraitTint;
-    d.innerHTML = `<h3 style="color:${cls.portraitTint}">${cls.name}</h3><p><em>${cls.title}</em></p><p><strong>${cls.abilityName}</strong>: ${cls.abilityBlurb}</p>`;
-    d.onclick = () => onPick(cls.id);
-    grid.appendChild(d);
-  }
 }
 
 function startDuel(oppId) {
@@ -223,14 +199,19 @@ function startDuel(oppId) {
   game.lastBounty = Math.round(bountyFor(oppId) * (game.run.permanent.bountyMult ?? 1));
   game.run.hp = Math.min(game.run.maxHp, Math.max(1, game.run.hp));
   game.duel = createDuel(opp, game.run);
-  dealStaredownChoices(game.duel);
+  dealStaredownChoices(game.duel, game.run);
   game.screen = "duel";
   updateHud(game);
   refreshDuelUi();
 }
 
 function refreshDuelUi() {
-  renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown);
+  renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, onContinueDuel);
+}
+
+function onContinueDuel() {
+  if (!game.duel || game.duel.phase !== "ended") return;
+  endDuelFlow();
 }
 
 function onCommitStaredown(uid) {
@@ -265,13 +246,30 @@ function onLockIn() {
   }
 }
 
+function gunCountInDeck(deckIds) {
+  let n = 0;
+  for (const id of deckIds) if (id.startsWith("gun_")) n++;
+  return n;
+}
+
 function openShop() {
   game.screen = "shop";
   renderShop(
     game,
-    (cardId, price) => {
+    (cardId, price, opts) => {
       if (game.run.money < price) return;
       if (game.run.deckIds.length >= 22) return;
+      const isGun = cardId.startsWith("gun_");
+      if (isGun) {
+        if (game.run.deckIds.includes(cardId)) return; // no duplicate guns
+        const owned = gunCountInDeck(game.run.deckIds);
+        if (owned >= 3) {
+          if (!opts?.replaceGunId) return; // shop should re-prompt
+          const ix = game.run.deckIds.indexOf(opts.replaceGunId);
+          if (ix < 0) return;
+          game.run.deckIds.splice(ix, 1);
+        }
+      }
       game.run.money -= price;
       game.run.deckIds.push(cardId);
       saveRun(game.run);
@@ -282,16 +280,6 @@ function openShop() {
       if (game.run.money < 12) return;
       game.run.money -= 12;
       game.run.hp = Math.min(game.run.maxHp, game.run.hp + 20);
-      saveRun(game.run);
-      updateHud(game);
-      openShop();
-    },
-    () => {
-      if (game.run.money < 45) return;
-      if (game.run.ownedGuns?.includes("schofield")) return;
-      game.run.money -= 45;
-      game.run.gunId = "schofield";
-      game.run.ownedGuns = [...(game.run.ownedGuns || []), "schofield"];
       saveRun(game.run);
       updateHud(game);
       openShop();
@@ -315,6 +303,21 @@ function endDuelFlow() {
     const growth = game.run.permanent?.bountyGrowthPerWin ?? 0;
     if (growth > 0) {
       game.run.permanent.bountyMult = Math.min(3.0, mult + growth);
+    }
+
+    // Sheriff Respect: each kill earns 1 point (cap respectMax), each point grants +respectMaxHpEach max HP.
+    const perm = game.run.permanent;
+    if (perm && Number.isFinite(perm.respectMax) && perm.respectMax > 0) {
+      const cap = perm.respectMax;
+      const cur = perm.respect ?? 0;
+      if (cur < cap) {
+        perm.respect = cur + 1;
+        const hpEach = perm.respectMaxHpEach ?? 0;
+        if (hpEach > 0) {
+          game.run.maxHp += hpEach;
+          game.run.hp = Math.min(game.run.maxHp, game.run.hp + hpEach);
+        }
+      }
     }
 
 
@@ -369,14 +372,7 @@ function loop(ts) {
       game.screenShake = 0.4;
       updateHud(game);
       refreshDuelUi();
-      if (game.duel.phase === "ended" && !game.duel._finishScheduled) {
-        game.duel._finishScheduled = true;
-        const snap = game.duel;
-        setTimeout(() => {
-          game.duel = snap;
-          endDuelFlow();
-        }, DUEL_END_LINGER_MS);
-      }
+      // Duel ended — wait for player to click Continue (see onContinueDuel).
     }
   }
 

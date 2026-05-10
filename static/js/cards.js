@@ -1,5 +1,7 @@
+import { GUNS_LIST } from "./guns.js";
+
 /** @typedef {'gun'|'attack'|'character'|'feat'} CardType */
-/** @typedef {'common'|'uncommon'|'rare'|'legendary'} CardRarity */
+/** @typedef {'common'|'uncommon'|'rare'|'epic'|'legendary'} CardRarity */
 
 /**
  * @typedef {Object} CardDef
@@ -13,152 +15,9 @@
 
 /** @type {CardDef[]} */
 export const CARD_DEFINITIONS = [
-  // ── GUN CARDS ──────────────────────────────────────────────────────────────
-  {
-    id: "gun_quick_draw",
-    name: "Quick Draw Revolver",
-    type: "gun",
-    rarity: "common",
-    cost: 2,
-    effects: ["bullets+2", "accShootout+0.15"],
-  },
-  {
-    id: "gun_heavy_slugger",
-    name: "Heavy Slugger",
-    type: "gun",
-    rarity: "common",
-    cost: 2,
-    effects: ["damage+3", "accShootout-0.1"],
-  },
-  {
-    id: "gun_oiled_chamber",
-    name: "Oiled Chamber",
-    type: "gun",
-    rarity: "uncommon",
-    cost: 3,
-    effects: ["accShootout+0.25", "pierce"],
-  },
-  {
-    id: "gun_bandit_gambit",
-    name: "Bandit's Gambit",
-    type: "gun",
-    rarity: "uncommon",
-    cost: 2,
-    effects: ["bullets+4", "hpAfterShootout-8"],
-  },
-  {
-    id: "gun_desperado",
-    name: "Desperado's Pistol",
-    type: "gun",
-    rarity: "common",
-    cost: 1,
-    effects: ["bullets+1", "accShootout+0.05"],
-  },
-  {
-    id: "gun_iron_maiden",
-    name: "Iron Maiden",
-    type: "gun",
-    rarity: "uncommon",
-    cost: 2,
-    effects: ["damage+2", "accShootout+0.1"],
-  },
-  {
-    id: "gun_snake_eye",
-    name: "Snake Eye Special",
-    type: "gun",
-    rarity: "uncommon",
-    cost: 3,
-    effects: ["bullets+3", "accGlobal-0.05"],
-  },
-  {
-    id: "gun_twin_irons",
-    name: "Twin Irons",
-    type: "gun",
-    rarity: "rare",
-    cost: 3,
-    effects: ["bullets+5", "accShootout-0.15"],
-  },
-  {
-    id: "gun_silver_tongue",
-    name: "Silver Tongue Derringer",
-    type: "gun",
-    rarity: "rare",
-    cost: 2,
-    effects: ["pierce", "accShootout+0.2"],
-  },
-  {
-    id: "gun_rangers_repeat",
-    name: "Ranger's Repeater",
-    type: "gun",
-    rarity: "uncommon",
-    cost: 2,
-    effects: ["bullets+2", "hpAfterShootout-8"],
-  },
-  {
-    id: "gun_widowmaker",
-    name: "Widowmaker",
-    type: "gun",
-    rarity: "legendary",
-    cost: 4,
-    effects: ["bullets+3", "damage+4", "accShootout+0.2"],
-  },
-  {
-    id: "gun_devils_hand",
-    name: "Devil's Hand Cannon",
-    type: "gun",
-    rarity: "legendary",
-    cost: 3,
-    effects: ["damage+6", "hpAfterShootout-15"],
-  },
-  // ── NEW GUN CARDS ─────────────────────────────────────────────────────────
-  {
-    id: "gun_crosshairs",
-    name: "Crosshairs",
-    type: "gun",
-    rarity: "uncommon",
-    cost: 2,
-    effects: ["bullets+1", "markEnemy+1"],
-  },
-  {
-    id: "gun_bone_saw",
-    name: "Bone Saw",
-    type: "gun",
-    rarity: "rare",
-    cost: 3,
-    effects: ["damage+4", "markEnemy+2"],
-  },
-  {
-    id: "gun_volcanic_six",
-    name: "Volcanic Six-Shooter",
-    type: "gun",
-    rarity: "common",
-    cost: 2,
-    effects: ["bullets+3", "damage-2"],
-  },
-  {
-    id: "gun_hair_trigger",
-    name: "Hair Trigger",
-    type: "gun",
-    rarity: "uncommon",
-    cost: 2,
-    effects: ["firstHitsAuto+2", "accShootout-0.1"],
-  },
-  {
-    id: "gun_long_barrel",
-    name: "Long Barrel",
-    type: "gun",
-    rarity: "rare",
-    cost: 3,
-    effects: ["accShootout+0.3", "damage+2", "bullets-1"],
-  },
-  {
-    id: "gun_sawn_off",
-    name: "Sawn-Off",
-    type: "gun",
-    rarity: "common",
-    cost: 1,
-    effects: ["bullets+2", "accShootout-0.2", "damage+2"],
-  },
+  // Gun cards are derived from GUNS_LIST and appended to CARD_DEFINITIONS at
+  // module load (see bottom of file). Each gun appears here as a CardDef with
+  // type "gun".
 
   // ── ATTACK CARDS ───────────────────────────────────────────────────────────
   {
@@ -633,7 +492,362 @@ export const CARD_DEFINITIONS = [
     cost: 3,
     effects: ["bullets+5", "accShootout+0.6", "hpAfterCycle-30"],
   },
+  // ── MARSHAL: MARKS → LEAD ────────────────────────────────────────────────
+  {
+    id: "atk_posse_mark", name: "Posse Mark", type: "attack", rarity: "uncommon", cost: 2,
+    classId: "marshal",
+    effects: ["markEnemy+2", "bullets+1"],
+    flavorText: "Deputies follow the trail you set.",
+  },
+  {
+    id: "atk_shackle_round", name: "Shackle Round", type: "attack", rarity: "uncommon", cost: 2,
+    classId: "marshal",
+    effects: ["markEnemy+1", "enemyBullets-1", "enemyAccNext-0.1"],
+    flavorText: "Iron in the wrist, lead in the chamber.",
+  },
+  {
+    id: "atk_federal_warrant", name: "Federal Warrant", type: "attack", rarity: "common", cost: 1,
+    classId: "marshal",
+    effects: ["markEnemy+2", "accShootout+0.05"],
+    flavorText: "Signed by a judge, served in lead.",
+  },
+  {
+    id: "atk_federal_bounty_program", name: "Federal Bounty Program", type: "attack", rarity: "legendary", cost: 4,
+    classId: "marshal",
+    effects: ["markBulletPerMark+1"],
+    flavorText: "Every mark is a paycheck.",
+    backstory: "The Department of Justice's standing offer: one bullet, one bounty, paid by the head.",
+  },
+
+  // ── VAQUERO: DOS PISTOLAS ────────────────────────────────────────────────
+  {
+    id: "atk_both_barrels", name: "Both Barrels", type: "attack", rarity: "uncommon", cost: 2,
+    classId: "vaquero",
+    effects: ["bullets+1", "damageShootout+0.2"],
+    flavorText: "Why pick one when you brought two?",
+  },
+  {
+    id: "atk_crossfire", name: "Crossfire", type: "attack", rarity: "uncommon", cost: 2,
+    classId: "vaquero",
+    effects: ["bullets+2"],
+    flavorText: "Left, right, left again.",
+  },
+  {
+    id: "atk_steady_offhand", name: "Steady the Off-Hand", type: "attack", rarity: "common", cost: 1,
+    classId: "vaquero",
+    effects: ["accShootout+0.15"],
+    flavorText: "The weak hand learns the strong one's lesson.",
+  },
+  {
+    id: "atk_mescal_blaze", name: "Mescal Blaze", type: "attack", rarity: "rare", cost: 3,
+    classId: "vaquero",
+    effects: ["accShootout+0.2", "damageShootout+0.2"],
+    flavorText: "Mescal in the throat, fire in the hand.",
+  },
+  {
+    id: "atk_dance_of_lead", name: "Dance of Lead", type: "attack", rarity: "uncommon", cost: 2,
+    classId: "vaquero",
+    effects: ["bullets+1", "ricochet"],
+    flavorText: "Two pistols, one rhythm.",
+  },
+  {
+    id: "atk_quick_holster", name: "Quick Holster", type: "attack", rarity: "common", cost: 1,
+    classId: "vaquero",
+    effects: ["accShootout+0.1"],
+    flavorText: "Greased leather, no hesitation.",
+  },
+  {
+    id: "atk_el_doble", name: "El Doble", type: "attack", rarity: "legendary", cost: 4,
+    classId: "vaquero",
+    effects: ["elDoble", "removeDualPenalty"],
+    flavorText: "Dos pistolas se vuelven tres.",
+    backstory: "South of the border, a pistolero who counted to two but fought as if to three.",
+  },
+  {
+    id: "char_ambidextrous", name: "Ambidextrous", type: "character", rarity: "uncommon", cost: 0,
+    classId: "vaquero",
+    effects: ["dualWieldAccPenaltyReduce+0.05"],
+    flavorText: "Both hands, both sure.",
+  },
+
+  // ── SHERIFF: IRON WILL ───────────────────────────────────────────────────
+  {
+    id: "atk_bulwark", name: "Bulwark", type: "attack", rarity: "common", cost: 1,
+    classId: "sheriff",
+    effects: ["healNow+10"],
+    flavorText: "The badge keeps you upright.",
+  },
+  {
+    id: "atk_lawmans_stand", name: "Lawman's Stand", type: "attack", rarity: "uncommon", cost: 2,
+    classId: "sheriff",
+    effects: ["hpAfterCycle+10", "accShootout+0.05"],
+    flavorText: "Plant your boots. Don't blink.",
+  },
+  {
+    id: "atk_towns_strength", name: "Town's Strength", type: "attack", rarity: "uncommon", cost: 2,
+    classId: "sheriff",
+    effects: ["damageShootout+0.25"],
+    flavorText: "The street stands behind you.",
+  },
+  {
+    id: "atk_heavy_iron", name: "Heavy Iron", type: "attack", rarity: "common", cost: 2,
+    classId: "sheriff",
+    effects: ["damage+3"],
+    flavorText: "Weight in the hand. Weight in the shot.",
+  },
+  {
+    id: "atk_iron_resolve", name: "Iron Resolve", type: "attack", rarity: "uncommon", cost: 2,
+    classId: "sheriff",
+    effects: ["healNow+5", "accShootout+0.05"],
+    flavorText: "He bleeds. He keeps walking.",
+  },
+  {
+    id: "atk_bullet_proof", name: "Bullet-Proof", type: "feat", rarity: "rare", cost: 3,
+    classId: "sheriff",
+    effects: ["dodgeRecv+0.3"],
+    flavorText: "Lead finds the air around him, not him.",
+  },
+  {
+    id: "atk_star_of_justice", name: "Star of Justice", type: "attack", rarity: "legendary", cost: 4,
+    classId: "sheriff",
+    effects: ["damagePerHp+10"],
+    flavorText: "Every breath in him is a bullet.",
+    backstory: "The badge a man wears to his last breath shines brightest the longer he holds it.",
+  },
+
+  // ── APACHE TRACKER: SPIRIT WALKER ────────────────────────────────────────
+  {
+    id: "atk_wind_whisper", name: "Wind Whisper", type: "attack", rarity: "common", cost: 1,
+    classId: "apache_tracker",
+    effects: ["spirit+1", "gainFocused"],
+    flavorText: "The wind tells you where to look.",
+  },
+  {
+    id: "atk_spirit_talk", name: "Spirit Talk", type: "attack", rarity: "common", cost: 1,
+    classId: "apache_tracker",
+    effects: ["spirit+2"],
+    flavorText: "Listen first. The dead have things to say.",
+  },
+  {
+    id: "atk_owls_vision", name: "Owl's Vision", type: "attack", rarity: "uncommon", cost: 2,
+    classId: "apache_tracker",
+    effects: ["spiritScaleAcc+0.04"],
+    flavorText: "Night becomes a corridor of moonlight.",
+  },
+  {
+    id: "atk_coyotes_curse", name: "Coyote's Curse", type: "attack", rarity: "uncommon", cost: 2,
+    classId: "apache_tracker",
+    effects: ["spiritScaleEnemyAcc-0.04"],
+    flavorText: "Their hand shakes; they don't know why.",
+  },
+  {
+    id: "atk_eagles_strike", name: "Eagle's Strike", type: "attack", rarity: "rare", cost: 3,
+    classId: "apache_tracker",
+    effects: ["spiritScaleDamage+0.08"],
+    flavorText: "From above, the killing distance.",
+  },
+  {
+    id: "atk_bear_spirit", name: "Bear Spirit", type: "feat", rarity: "uncommon", cost: 2,
+    classId: "apache_tracker",
+    effects: ["spirit+1", "dodgeRecv+0.2"],
+    flavorText: "Old hide, old patience.",
+  },
+  {
+    id: "atk_spirit_walk", name: "Spirit Walk", type: "attack", rarity: "uncommon", cost: 1,
+    classId: "apache_tracker",
+    effects: ["spirit+3", "hpAfterCycle-5"],
+    flavorText: "A piece of you crosses over to know.",
+  },
+  {
+    id: "atk_great_spirit_bond", name: "Great Spirit Bond", type: "attack", rarity: "legendary", cost: 4,
+    classId: "apache_tracker",
+    effects: ["spirit+5", "spiritDoubleNext"],
+    flavorText: "All ancestors at once.",
+    backstory: "The tracker's name forgotten — he becomes only the song the wind has always sung.",
+  },
+
+  // ── BOUNTY HUNTER: BLOOD FOR LEAD ────────────────────────────────────────
+  {
+    id: "atk_blood_for_lead", name: "Blood for Lead", type: "attack", rarity: "common", cost: 1,
+    classId: "bounty_hunter",
+    effects: ["payHp+5", "damage+3"],
+    flavorText: "A pint paid, a coffin earned.",
+  },
+  {
+    id: "atk_vendetta_shot", name: "Vendetta Shot", type: "attack", rarity: "uncommon", cost: 1,
+    classId: "bounty_hunter",
+    effects: ["payHp+10", "damage+5", "accShootout+0.1", "bullets+1"],
+    flavorText: "He owes you in blood. Pay first.",
+  },
+  {
+    id: "atk_reckless_aim", name: "Reckless Aim", type: "attack", rarity: "uncommon", cost: 2,
+    classId: "bounty_hunter",
+    effects: ["payHp+10", "bullets+2"],
+    flavorText: "Eyes open, ribs bare.",
+  },
+  {
+    id: "atk_last_bullet", name: "Last Bullet", type: "attack", rarity: "rare", cost: 2,
+    classId: "bounty_hunter",
+    effects: ["payHp+15", "firstHitsAuto+2"],
+    flavorText: "If it's the last one, it lands.",
+  },
+  {
+    id: "atk_bloodlust", name: "Bloodlust", type: "attack", rarity: "uncommon", cost: 2,
+    classId: "bounty_hunter",
+    effects: ["damageShootout+0.4", "bullets+2"],
+    flavorText: "The closer he is to death, the louder he laughs.",
+  },
+  {
+    id: "atk_no_tomorrow", name: "No Tomorrow", type: "attack", rarity: "rare", cost: 3,
+    classId: "bounty_hunter",
+    effects: ["payHp+20", "damageShootout+0.5", "accShootout+0.3"],
+    flavorText: "Tomorrow is a problem for someone else.",
+  },
+  {
+    id: "atk_quickdraw_master", name: "Quickdraw Master", type: "attack", rarity: "legendary", cost: 4,
+    classId: "bounty_hunter",
+    effects: ["payHp+25", "firstHitsAuto+5", "accShootout+0.4"],
+    flavorText: "First, last, only.",
+    backstory: "He's never drawn second. He's never drawn third. He doesn't know how it ends.",
+  },
+
+  // ── OUTLAW: TWIN COMBOS ───────────────────────────────────────────────────
+  {
+    id: "atk_pistol_whip", name: "Pistol Whip", type: "attack", rarity: "common", cost: 1,
+    classId: "outlaw", outlawCombo: true,
+    effects: ["damage+2", "comboBonus:damage+2"],
+    flavorText: "Steel kisses cheek.",
+  },
+  {
+    id: "atk_roll_the_dice", name: "Roll the Dice", type: "attack", rarity: "common", cost: 1,
+    classId: "outlaw", outlawCombo: true,
+    effects: ["accShootout+0.1", "comboBonus:accShootout+0.2"],
+    flavorText: "Double or nothing.",
+  },
+  {
+    id: "atk_dust_em_up", name: "Dust 'em Up", type: "attack", rarity: "common", cost: 1,
+    classId: "outlaw", outlawCombo: true,
+    effects: ["enemyAccNext-0.1", "comboBonus:enemyAccNext-0.1"],
+    flavorText: "A dirty trick is still a trick.",
+  },
+  {
+    id: "atk_wild_volley", name: "Wild Volley", type: "attack", rarity: "uncommon", cost: 2,
+    classId: "outlaw", outlawCombo: true,
+    effects: ["bullets+2", "comboBonus:bullets+1"],
+    flavorText: "Empty the chamber. Apologize never.",
+  },
+  {
+    id: "atk_crooked_smile", name: "Crooked Smile", type: "attack", rarity: "uncommon", cost: 2,
+    classId: "outlaw", outlawCombo: true,
+    effects: ["enemyBullets-2", "comboBonus:enemyBullets-1"],
+    flavorText: "He laughs while he steals your shells.",
+  },
+  {
+    id: "atk_hot_lead", name: "Hot Lead", type: "attack", rarity: "uncommon", cost: 2,
+    classId: "outlaw", outlawCombo: true,
+    effects: ["damage+1", "comboBonus:damage+2"],
+    flavorText: "The barrel still smokes from the last one.",
+  },
+  {
+    id: "atk_outlaws_pact", name: "Outlaw's Pact", type: "attack", rarity: "uncommon", cost: 1,
+    classId: "outlaw", outlawCombo: true,
+    effects: ["nextComboFree"],
+    flavorText: "Spit on your palm. Shake.",
+  },
+  {
+    id: "atk_gunslingers_tempo", name: "Gunslinger's Tempo", type: "attack", rarity: "common", cost: 1,
+    classId: "outlaw", outlawCombo: true,
+    effects: ["accShootout+0.05", "comboBonus:bullets+1"],
+    flavorText: "One-two. Two-one. Always two.",
+  },
+  {
+    id: "atk_no_honor", name: "No Honor Among Thieves", type: "attack", rarity: "legendary", cost: 4,
+    classId: "outlaw", outlawCombo: true,
+    effects: ["extraVolleyShots+1"],
+    flavorText: "Every betrayal earns a bullet.",
+    backstory: "The outlaw code was written by the fastest gun. Rewritten by the next one.",
+  },
+
   // ── STARE-DOWN CARDS ──────────────────────────────────────────────────────
+  // Marshal stare-downs
+  {
+    id: "std_federal_stare", name: "Federal Stare", type: "attack", rarity: "rare", cost: 0,
+    classId: "marshal",
+    effects: ["markEnemy+3", "staredownOnly"],
+    flavorText: "He's on a list before he draws.",
+  },
+  {
+    id: "std_cold_stare", name: "Cold Stare", type: "feat", rarity: "uncommon", cost: 0,
+    classId: "marshal",
+    effects: ["accShootout+0.20", "staredownOnly"],
+    flavorText: "No badge needed for that look.",
+  },
+  // Vaquero stare-downs
+  {
+    id: "std_twin_stance", name: "Twin Stance", type: "feat", rarity: "uncommon", cost: 0,
+    classId: "vaquero",
+    effects: ["accShootout+0.15", "staredownOnly"],
+    flavorText: "Two pistols, one breath.",
+  },
+  {
+    id: "std_hot_blood", name: "Hot Blood", type: "feat", rarity: "rare", cost: 0,
+    classId: "vaquero",
+    effects: ["damageShootout+0.25", "staredownOnly"],
+    flavorText: "Mescal in the veins.",
+  },
+  // Sheriff stare-downs
+  {
+    id: "std_last_stand_eye", name: "Last Stand Stare", type: "feat", rarity: "rare", cost: 0,
+    classId: "sheriff",
+    effects: ["firstHitsAuto+2", "staredownOnly"],
+    flavorText: "The badge does not blink.",
+  },
+  {
+    id: "std_tin_star", name: "Tin Star", type: "feat", rarity: "uncommon", cost: 0,
+    classId: "sheriff",
+    effects: ["healNow+10", "staredownOnly"],
+    flavorText: "It catches the sun. It catches the eye.",
+  },
+  // Apache stare-downs
+  {
+    id: "std_spirit_stare", name: "Spirit Stare", type: "attack", rarity: "uncommon", cost: 0,
+    classId: "apache_tracker",
+    effects: ["spirit+2", "staredownOnly"],
+    flavorText: "Eyes that see two worlds.",
+  },
+  {
+    id: "std_wind_read", name: "Wind Read", type: "feat", rarity: "rare", cost: 0,
+    classId: "apache_tracker",
+    effects: ["enemyAccNext-0.20", "staredownOnly"],
+    flavorText: "He reads the air. The air tells him.",
+  },
+  // Bounty Hunter stare-downs
+  {
+    id: "std_quickdraw_eye", name: "Quickdraw Stare", type: "feat", rarity: "rare", cost: 0,
+    classId: "bounty_hunter",
+    effects: ["firstHitsAuto+1", "staredownOnly"],
+    flavorText: "First, fast, final.",
+  },
+  {
+    id: "std_vendetta_eye", name: "Vendetta Eye", type: "feat", rarity: "rare", cost: 0,
+    classId: "bounty_hunter",
+    effects: ["damageShootout+0.30", "staredownOnly"],
+    flavorText: "He remembers your face. All of it.",
+  },
+  // Outlaw stare-downs
+  {
+    id: "std_outlaw_stare", name: "Outlaw Stare", type: "feat", rarity: "rare", cost: 0,
+    classId: "outlaw",
+    effects: ["bullets+1", "accShootout+0.10", "staredownOnly"],
+    flavorText: "He won't say his name. Doesn't have to.",
+  },
+  {
+    id: "std_dirty_stare", name: "Dirty Stare", type: "feat", rarity: "uncommon", cost: 0,
+    classId: "outlaw",
+    effects: ["enemyBullets-2", "staredownOnly"],
+    flavorText: "He knows where you keep your shells.",
+  },
+
   {
     id: "std_dead_eye",
     name: "Dead Eye",
@@ -671,6 +885,23 @@ export const CARD_DEFINITIONS = [
     flavorText: "They've been dead since you laid eyes on them.",
   },
 ];
+
+// Append derived gun cards to CARD_DEFINITIONS so the rest of the system
+// (deck building, card rendering, getCardDef, etc.) treats guns uniformly.
+for (const g of GUNS_LIST) {
+  CARD_DEFINITIONS.push({
+    id: g.id,
+    name: g.name,
+    type: "gun",
+    rarity: g.rarity,
+    cost: g.cost,
+    effects: g.effects ?? [],
+    flavorText: g.flavor,
+    backstory: g.backstory ?? null,
+    classId: g.classId ?? null,
+    gunStats: { mag: g.mag, damage: g.damage, accuracy: g.accuracy },
+  });
+}
 
 const byId = new Map(CARD_DEFINITIONS.map((c) => [c.id, c]));
 

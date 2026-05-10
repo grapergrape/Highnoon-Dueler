@@ -7,13 +7,13 @@ import { getGun } from "./guns.js";
  * @property {string} title
  * @property {string} backstory
  * @property {number} maxHp
- * @property {string} gunId
+ * @property {string} gunId        — id from new GUNS pool; sets the opponent's starting active gun
  * @property {number} focus
  * @property {number} prepAggression — 0-1, chance to play another card
- * @property {string} bgKey — render palette
+ * @property {string} bgKey         — render palette
  * @property {string[]} deckTemplate — card ids for prep draws (weighted pool)
  * @property {string} [selectFlavor] — line shown when player picks this opponent
- * @property {string} [winFlavor] — line shown when this opponent is defeated
+ * @property {string} [winFlavor]    — line shown when this opponent is defeated
  */
 
 /** @type {Opponent[]} */
@@ -25,19 +25,18 @@ export const OPPONENTS = [
     backstory:
       "A fat bearded outlaw who robbed three counties. Slow draw, but he soaks lead like a rain barrel.",
     maxHp: 140,
-    gunId: "mare_leg",
+    gunId: "gun_knuckle_revolver",
     focus: 6,
     prepAggression: 0.35,
     bgKey: "saloon",
     deckTemplate: [
-      "gun_heavy_slugger",
-      "gun_heavy_slugger",
+      "gun_trappers_carbine",
       "atk_fan_hammer",
       "atk_devils_due",
       "feat_whiskey",
       "atk_sand_chamber",
-      "gun_quick_draw",
       "atk_rust_bullet",
+      "atk_showboat",
     ],
   },
   {
@@ -47,16 +46,15 @@ export const OPPONENTS = [
     backstory:
       "Black leather, colder eyes. She does not talk in duels — her Schofield does the speaking.",
     maxHp: 95,
-    gunId: "schofield",
+    gunId: "gun_long_barrel_colt",
     focus: 7,
     prepAggression: 0.55,
     bgKey: "night",
     deckTemplate: [
-      "gun_oiled_chamber",
+      "gun_marksmans_iron",
       "atk_trick_shot",
       "atk_rattlesnake",
       "feat_steady_hand",
-      "gun_quick_draw",
       "atk_rust_bullet",
       "feat_tumbleweed",
       "atk_dead_mans_volley",
@@ -69,19 +67,18 @@ export const OPPONENTS = [
     backstory:
       "Skinny, twitchy, too many teeth. Charges the noon sun like it owes him money.",
     maxHp: 105,
-    gunId: "peacemaker",
+    gunId: "gun_pocket_pistol",
     focus: 8,
     prepAggression: 0.72,
     bgKey: "mine",
     deckTemplate: [
-      "gun_bandit_gambit",
+      "gun_quickdraw_iron",
       "atk_fan_hammer",
       "feat_adrenaline",
-      "gun_quick_draw",
       "atk_trick_shot",
-      "gun_heavy_slugger",
       "atk_devils_due",
       "feat_adrenaline",
+      "atk_showboat",
     ],
   },
   {
@@ -93,7 +90,7 @@ export const OPPONENTS = [
     selectFlavor: "I do this slow because I do it once.",
     winFlavor: "Town's a little quieter tonight.",
     maxHp: 120,
-    gunId: "peacemaker",
+    gunId: "gun_peacemaker",
     focus: 7,
     prepAggression: 0.3,
     bgKey: "street",
@@ -101,7 +98,6 @@ export const OPPONENTS = [
       "feat_steady_hand",
       "feat_dead_eye_focus",
       "atk_leg_shot",
-      "gun_crosshairs",
       "feat_snipers_breath",
       "atk_trick_shot",
       "feat_steady_aim",

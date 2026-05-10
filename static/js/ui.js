@@ -1,7 +1,62 @@
 import { OPPONENTS } from "./opponents.js";
 import { getCardDef } from "./cards.js";
 import { CARD_DEFINITIONS } from "./cards.js";
-import { getClass } from "./classes.js";
+import { getClass, CLASSES } from "./classes.js";
+import { GUNS_LIST, gunsForClass, getGun } from "./guns.js";
+
+const RARITY_PRICE = { common: 25, uncommon: 40, rare: 65, epic: 110, legendary: 180 };
+
+/** Hover-friendly description for an effect token. Used by .card-eff tooltips. */
+const EFFECT_TOOLTIPS = {
+  bullets: "Adds bullets to your shootout volley. More shots fired in High Noon.",
+  damage: "Flat damage added to every successful hit.",
+  accShootout: "Accuracy modifier applied during the shootout.",
+  accGlobal: "Permanent accuracy modifier carried for the rest of the run.",
+  enemyAccNext: "Reduces the enemy's accuracy on the next shootout only.",
+  enemyBullets: "Reduces the enemy's bullet count on the next shootout only.",
+  pierce: "Shots ignore enemy damage reduction (pierce armor).",
+  ricochet: "30% chance per hit for a half-damage ricochet.",
+  healNow: "Heal HP immediately.",
+  hpAfterShootout: "HP change applied after every volley while this gun is equipped.",
+  hpAfterCycle: "HP change applied when you Lock In this prep round.",
+  focusCycle: "Bonus focus on the next prep round only.",
+  gainFocused: "Enter the Focused state for the next shootout (synergy bonuses).",
+  markEnemy: "Place mark tokens on the enemy. Marks amplify markBurst damage.",
+  markBurst: "Each enemy mark adds this much damage to your hits.",
+  focusBonusBullets: "While Focused: extra bullets in the next volley.",
+  focusBonusAcc: "While Focused: extra accuracy in the next volley.",
+  firstHitsAuto: "The first N shots of your volley automatically hit.",
+  dodgeRecv: "Chance to dodge each incoming shot.",
+  returnBulletOnHit: "Each hit returns this many bullets to your volley.",
+  damageShootout: "Volley damage multiplier (additive percent).",
+  maxHp: "Increases your maximum HP for the rest of the run.",
+  healPerDuel: "Heal at the start of each duel.",
+  deadeye: "Critical hits: ~15% of hits deal 30% bonus damage.",
+  damageTaken: "Reduce incoming damage from each enemy hit.",
+  focusPerRound: "Extra focus available each prep round.",
+  staminaPerRound: "Extra focus each prep round (legacy term).",
+  extraMarkPerApply: "When you apply marks, add this many extra marks.",
+  markBulletPerMark: "At shootout, add this many bullets per mark on the enemy.",
+  damagePerHp: "At shootout, gain +1 damage per N current HP.",
+  spirit: "Gain Spirit (cap 10). Spirit scales spirit-based effects.",
+  spiritScaleAcc: "At shootout, +acc per Spirit point.",
+  spiritScaleDamage: "At shootout, +volley damage per Spirit point.",
+  spiritScaleEnemyAcc: "Reduce enemy accuracy on next volley scaled by Spirit.",
+  payHp: "Spend HP to play this card. Refused if it would be lethal.",
+  comboBonus: "Bonus effect — triggers if 2+ outlaw cards play in the same prep round.",
+  nextComboFree: "The next outlaw card you play this round costs 0 focus.",
+  elDoble: "Mirror your active gun into the off-hand. Triple-stack if already dual.",
+  removeDualPenalty: "Removes the dual-wield accuracy penalty for this duel.",
+  spiritDoubleNext: "All Spirit-scaling effects double for the next shootout.",
+  extraVolleyShots: "Per combo trigger this duel, +N bonus shootout shots.",
+  dualWieldAccPenaltyReduce: "Reduce the dual-wield accuracy penalty.",
+};
+
+function tooltipForEffect(raw) {
+  const m = raw.match(/^([a-zA-Z_]+)/);
+  if (!m) return null;
+  return EFFECT_TOOLTIPS[m[1]] ?? null;
+}
 
 const panel = () => document.getElementById("panel");
 const hudRun = () => document.getElementById("hud-run");
@@ -19,6 +74,10 @@ const RIBBON_LABEL = {
 function pct(v) { return `${Math.round((v ?? 0) * 100)}%`; }
 
 function effectToText(raw) {
+  if (raw.startsWith("comboBonus:")) {
+    const inner = effectToText(raw.slice("comboBonus:".length));
+    return inner ? `Combo: ${inner}` : null;
+  }
   const m = raw.match(/^([a-zA-Z_]+)([+-]\d+(?:\.\d+)?)?$/);
   if (!m) return null;
   const kind = m[1];
@@ -53,7 +112,23 @@ function effectToText(raw) {
     case 'focusPerRound': return `+${v} focus/round`;
     case 'staminaPerRound': return `+${v} focus/round`;
     case 'extraMarkPerApply': return `+${v} mark per Mark apply`;
+    case 'markBulletPerMark': return `+${v} bullet per mark`;
+    case 'damagePerHp': return `+1 dmg per ${v} HP`;
+    case 'spirit': return v > 0 ? `+${v} Spirit ✦` : `${v} Spirit`;
+    case 'spiritScaleAcc': return `+${pct(v)} acc / Spirit`;
+    case 'spiritScaleDamage': return `+${pct(v)} dmg / Spirit`;
+    case 'spiritScaleEnemyAcc': return `Foe ${pct(v)} acc / Spirit`;
+    case 'payHp': return `Pay ${v} HP`;
+    case 'extraVolleyShots': return `+${v} shot / combo`;
     case 'staredownOnly': return null;
+    case 'nextComboFree': return 'Next combo card free';
+    case 'elDoble': return 'El Doble: mirror or triple-stack';
+    case 'removeDualPenalty': return 'Clears dual-wield penalty';
+    case 'spiritDoubleNext': return 'Double Spirit scaling';
+    case 'outlawCombo': return null;
+    case 'dualWieldAccPenaltyReduce': return `−${pct(v)} dual penalty`;
+    case 'firstCycleAccPenalty': return `−${pct(v)} acc on cycle 1`;
+    case 'startGunSchofield': return 'Start with Schofield';
     default: return raw;
   }
 }
@@ -71,24 +146,29 @@ function buildEffectsHtml(def) {
     const text = effectToText(raw);
     if (!text) continue;
     const cls = classifyEffect(raw);
-    lines.push(`<span class="card-eff card-eff-${cls}">${text}</span>`);
+    const tip = tooltipForEffect(raw);
+    const tipAttr = tip ? ` title="${tip.replace(/"/g, '&quot;')}"` : '';
+    lines.push(`<span class="card-eff card-eff-${cls}"${tipAttr}>${text}</span>`);
   }
   if (!lines.length) return '';
   return `<span class="card-effects">${lines.join('')}</span>`;
 }
 
-export function renderClassSelect(game, classes, onPickClass) {
-  const el = panel();
-  el.className = "panel";
-  el.innerHTML = `<h2>Choose Your Path</h2><p>Your class shapes your starting hand and special abilities.</p><div class="class-grid"></div>`;
-  const g = el.querySelector(".class-grid");
-  for (const cls of classes) {
-    const d = document.createElement("div");
-    d.className = "poster class-card";
-    d.innerHTML = `<h3>${cls.name}</h3><p>${cls.desc}</p><ul class="class-perks">${cls.perks.map((p) => `<li>${p}</li>`).join("")}</ul>`;
-    d.onclick = () => onPickClass(cls.id);
-    g.appendChild(d);
+/** Render a compact "Drawn Iron" badge for an active gun. */
+function buildActiveGunBadgeHtml(activeGun, label = "Drawn Iron") {
+  if (!activeGun) {
+    return `<div class="iron-badge iron-badge-empty"><span class="iron-badge-label">${label}</span><span class="iron-badge-name">— no iron drawn —</span></div>`;
   }
+  const effHtml = buildEffectsHtml({ effects: activeGun.effects });
+  const titleParts = [];
+  if (activeGun.flavor) titleParts.push(activeGun.flavor);
+  if (activeGun.backstory) titleParts.push(activeGun.backstory);
+  const tipAttr = titleParts.length ? ` title="${titleParts.join(' — ').replace(/"/g, '&quot;')}"` : '';
+  return `<div class="iron-badge iron-rarity-${activeGun.rarity}"${tipAttr}>
+    <span class="iron-badge-label">${label}</span>
+    <span class="iron-badge-name">${activeGun.name}</span>
+    ${effHtml}
+  </div>`;
 }
 
 export function updateHud(game) {
@@ -113,59 +193,6 @@ export function updateHud(game) {
   }
 }
 
-export function renderClassSelect(onPick) {
-  const el = panel();
-  el.className = "panel panel-class-select";
-  el.innerHTML = `<h2>Choose Your Path</h2><p>Your class shapes your starting deck and abilities. Choose wisely — the desert forgives no one.</p><div class="class-grid"></div>`;
-  const g = el.querySelector(".class-grid");
-  for (const cls of PLAYER_CLASSES) {
-    const d = document.createElement("div");
-    d.className = "class-card";
-    d.innerHTML = `
-      <h3 class="class-name">${cls.name}</h3>
-      <p class="class-tagline"><em>${cls.tagline}</em></p>
-      <p class="class-backstory">${cls.backstory}</p>
-      <p class="class-ability"><strong>★ ${cls.ability}</strong></p>
-      <p class="class-deck-count">${cls.starterDeck.length}-card starting deck${cls.bonusMoney ? ` · +$${cls.bonusMoney}` : ''}</p>
-      <button class="btn btn-pick-class">Ride as ${cls.name}</button>`;
-    d.querySelector(".btn-pick-class").onclick = () => onPick(cls.id);
-    g.appendChild(d);
-  }
-}
-
-export function renderClassSelect(onPick) {
-  const el = panel();
-  el.className = "panel";
-  el.innerHTML = `
-    <h2>Choose Your Class</h2>
-    <p>Your legend begins here. Pick your path.</p>
-    <div class="wanted-grid" id="class-grid"></div>`;
-  const g = el.querySelector("#class-grid");
-
-  const classes = [
-    {
-      id: "default",
-      name: "Drifter",
-      tagline: "No badge, no allegiance — just survival.",
-      details: "100 HP · Peacemaker · Standard starter deck",
-    },
-    {
-      id: "sheriff",
-      name: "Sheriff",
-      tagline: "Law and lead — durability and accuracy.",
-      details: "115 HP · Schofield · +5 HP per duel · Steady-hand deck",
-    },
-  ];
-
-  for (const c of classes) {
-    const d = document.createElement("div");
-    d.className = "poster";
-    d.innerHTML = `<h3>${c.name}</h3><p><em>${c.tagline}</em></p><p>${c.details}</p>`;
-    d.onclick = () => onPick(c.id);
-    g.appendChild(d);
-  }
-}
-
 export function renderWanted(game, onPick) {
   const el = panel();
   el.className = "panel";
@@ -186,27 +213,86 @@ export function renderWanted(game, onPick) {
   }
 }
 
-function shopPool(game) {
+function shopCardPool(game) {
   const owned = new Set(game.run.deckIds);
-  return CARD_DEFINITIONS.filter((c) => c.type !== "gun" && !owned.has(c.id)).slice(0, 24);
+  const classId = game.run.classId;
+  return CARD_DEFINITIONS.filter((c) =>
+    c.type !== "gun" &&
+    !owned.has(c.id) &&
+    (!c.classId || c.classId === classId)
+  );
 }
 
-export function renderShop(game, onBuyCard, onHeal, onGun, onContinue) {
+function shopGunPool(game) {
+  const owned = new Set(game.run.deckIds);
+  const classId = game.run.classId;
+  return gunsForClass(classId).filter((g) => !owned.has(g.id));
+}
+
+function priceForCard(c) {
+  return 8 + (c.cost || 0) * 3;
+}
+
+function priceForGun(g) {
+  return RARITY_PRICE[g.rarity] ?? 40;
+}
+
+function ownedGunIdsInDeck(deckIds) {
+  return deckIds.filter((id) => id.startsWith("gun_"));
+}
+
+export function renderShop(game, onBuyCard, onHeal, onContinue) {
   const el = panel();
   el.className = "panel";
-  const pool = shuffle([...shopPool(game)]).slice(0, 5);
-  const schofieldOwned = game.run.ownedGuns?.includes("schofield");
+  const cardPool = shuffle([...shopCardPool(game)]).slice(0, 5);
+  const gunPool = shuffle([...shopGunPool(game)]).slice(0, 4);
+
   el.innerHTML = `<h2>Merchant</h2><p>Spend your bounty. Health does not refill between fights.</p>
     <p>Wallet: <strong>$${game.run.money}</strong></p>
+    <h3 class="shop-section-title">Iron <span class="shop-section-sub">(deck holds up to 3 guns)</span></h3>
+    <div class="shop-list" id="shop-guns"></div>
+    <h3 class="shop-section-title">Cards & Tricks</h3>
     <div class="shop-list" id="shop-cards"></div>
     <button class="btn" id="heal">Whiskey ($12) +20 HP</button>
-    <button class="btn${schofieldOwned ? " disabled" : ""}" id="gun" ${schofieldOwned ? "disabled" : ""}>Schofield ($45)${schofieldOwned ? " ✓" : ""}</button>
     <button class="btn" id="done">Ride On</button>`;
 
+  const ironRow = el.querySelector("#shop-guns");
+  for (const g of gunPool) {
+    const price = priceForGun(g);
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = `shop-card hand-card-gun iron-rarity-${g.rarity}`;
+    const cardDef = getCardDef(g.id);
+    const back = g.backstory ? `<span class="card-flavor card-backstory">${g.backstory}</span>` : '';
+    card.innerHTML = `
+      <span class="shop-card-inner hand-card-inner">
+        <span class="card-ribbon">${g.rarity.toUpperCase()} IRON — $${price}</span>
+        <span class="card-cost">${g.cost}</span>
+        <span class="card-name-text">${g.name}</span>
+        <span class="card-flavor">${g.flavor ?? ''}</span>
+        ${back}
+        ${buildEffectsHtml(cardDef ?? { effects: g.effects })}
+      </span>`;
+    card.onclick = () => {
+      const ownedGuns = ownedGunIdsInDeck(game.run.deckIds);
+      if (ownedGuns.length >= 3) {
+        promptReplaceGun(game, ownedGuns, (replaceId) => {
+          if (replaceId) onBuyCard(g.id, price, { replaceGunId: replaceId });
+        });
+      } else {
+        onBuyCard(g.id, price);
+      }
+    };
+    ironRow.appendChild(card);
+  }
+  if (gunPool.length === 0) {
+    ironRow.innerHTML = `<p class="shop-empty"><em>The blacksmith is out of iron today.</em></p>`;
+  }
+
   const sc = el.querySelector("#shop-cards");
-  for (const c of pool) {
+  for (const c of cardPool) {
     const b = document.createElement("button");
-    const price = 8 + (c.cost || 0) * 3;
+    const price = priceForCard(c);
     b.type = "button";
     b.className = `shop-card hand-card-${c.type}`;
     b.innerHTML = `
@@ -220,8 +306,35 @@ export function renderShop(game, onBuyCard, onHeal, onGun, onContinue) {
     sc.appendChild(b);
   }
   el.querySelector("#heal").onclick = onHeal;
-  el.querySelector("#gun").onclick = onGun;
   el.querySelector("#done").onclick = onContinue;
+}
+
+/** Modal-ish in-panel prompt for picking which gun to replace when at the 3-gun cap. */
+function promptReplaceGun(game, ownedGunIds, cb) {
+  const el = panel();
+  const owned = ownedGunIds.map((id) => getGun(id)).filter(Boolean);
+  el.innerHTML = `<h2>Holster One</h2>
+    <p>Your deck already carries three irons. Choose one to leave behind:</p>
+    <div class="shop-list" id="replace-guns"></div>
+    <button class="btn" id="cancel-replace">Cancel</button>`;
+  const row = el.querySelector("#replace-guns");
+  for (const g of owned) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = `shop-card hand-card-gun iron-rarity-${g.rarity}`;
+    const cardDef = getCardDef(g.id);
+    b.innerHTML = `
+      <span class="shop-card-inner hand-card-inner">
+        <span class="card-ribbon">${g.rarity.toUpperCase()} IRON</span>
+        <span class="card-cost">${g.cost}</span>
+        <span class="card-name-text">${g.name}</span>
+        <span class="card-flavor">${g.flavor ?? ''}</span>
+        ${buildEffectsHtml(cardDef ?? { effects: g.effects })}
+      </span>`;
+    b.onclick = () => cb(g.id);
+    row.appendChild(b);
+  }
+  el.querySelector("#cancel-replace").onclick = () => cb(null);
 }
 
 function shuffle(a) {
@@ -265,7 +378,47 @@ function buildCardHtml(def, costLabel = 'free') {
     </span>`;
 }
 
-export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown) {
+function buildShootoutSummaryHtml(d) {
+  const s = d.shootoutSummary;
+  if (!s) return "";
+  const youName = "You";
+  const foeName = d.opponentDef?.name ?? "Outlaw";
+  const sideHtml = (label, side) => {
+    const shotsStr = side.shots.length
+      ? side.shots.map(sh => {
+          if (sh.outcome === "hit") {
+            const extra = sh.ricochet ? ` <span class="shot-rico">+${sh.ricochet} rico</span>` : "";
+            return `<li class="shot shot-hit"><span class="shot-i">#${sh.i}</span><span class="shot-out">HIT</span><span class="shot-dmg">${sh.dmg} dmg</span>${extra}</li>`;
+          }
+          if (sh.outcome === "dodged") {
+            return `<li class="shot shot-dodge"><span class="shot-i">#${sh.i}</span><span class="shot-out">DODGED</span><span class="shot-dmg">—</span></li>`;
+          }
+          return `<li class="shot shot-miss"><span class="shot-i">#${sh.i}</span><span class="shot-out">MISS</span><span class="shot-dmg">—</span></li>`;
+        }).join("")
+      : `<li class="shot shot-empty"><em>No shots fired.</em></li>`;
+    return `<div class="duel-summary-side">
+      <h4>${label}</h4>
+      <div class="duel-summary-stats">
+        <span><strong>${side.bullets}</strong> bullets</span>
+        <span class="stat-hit">${side.hits} hit</span>
+        <span class="stat-miss">${side.misses} miss</span>
+        ${side.dodged ? `<span class="stat-dodge">${side.dodged} dodged</span>` : ""}
+        <span><strong>${side.damage}</strong> total dmg</span>
+        <span class="stat-acc">${pct(side.accuracy)} acc</span>
+      </div>
+      <ul class="shot-list">${shotsStr}</ul>
+    </div>`;
+  };
+  return `<div class="duel-summary">
+    <div class="duel-summary-grid">
+      ${sideHtml(youName, s.player)}
+      ${sideHtml(foeName, s.enemy)}
+    </div>
+    <button class="btn" id="duel-continue">Continue</button>
+  </div>`;
+}
+
+export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, onContinueDuel) {
   const el = panel();
   const d = game.duel;
   if (!d) return;
@@ -301,21 +454,34 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown) {
     const markStr = d.enemyMarked > 0 ? `<span class="status-tag status-mark">◆ Marked ×${d.enemyMarked}</span>` : "";
     const focStr = d.playerFocused ? `<span class="status-tag status-focused">✦ Focused</span>` : "";
     const freeStr = d.freeCardAvailable ? `<span class="status-tag status-free">★ Free Card</span>` : "";
+    const spiritStr = (d.spirit > 0) ? `<span class="status-tag status-spirit" title="Spirit scales spirit-based effects.">✦ Spirit ${d.spirit}${d.spiritDoubleNext ? " ×2" : ""}</span>` : "";
+    const dualStr = d.playerSecondaryGun ? `<span class="status-tag status-dual" title="Dual-wielding: mag stacks, damage averages, ${d.dualWieldPenaltyRemoved ? 'no acc penalty' : '−10% acc'}.">⚔ Dual Wield${d.dualWieldPenaltyRemoved ? '' : ' −10%'}</span>` : "";
+    const comboStr = (d.roundOutlawCount > 0) ? `<span class="status-tag status-combo" title="Outlaw cards played this round.">↻ Combo ${d.roundOutlawCount}${d.roundOutlawCount >= 2 ? '!' : ''}</span>` : "";
+    const comboFreeStr = d.nextComboFree ? `<span class="status-tag status-free" title="Next outlaw card costs 0.">★ Free Combo</span>` : "";
     const focPips = Array.from({ length: d.playerMaxFocus }, (_, i) =>
       `<span class="focus-pip${i < d.playerFocus ? ' filled' : ''}"></span>`
     ).join('');
+    const secondaryHtml = d.playerSecondaryGun
+      ? buildActiveGunBadgeHtml(d.playerSecondaryGun, "Off-Hand")
+      : "";
+    html += `<div class="iron-row">
+      ${buildActiveGunBadgeHtml(d.playerActiveGun, "Your Iron")}
+      ${secondaryHtml}
+      ${buildActiveGunBadgeHtml(d.enemy?.activeGun, `${d.opponentDef?.name ?? 'Foe'}'s Iron`)}
+    </div>`;
     html += `<div class="prep-bar">
       <span class="prep-round">Round ${d.prepRound}/3</span>
       <span class="focus-bar" title="Focus: ${d.playerFocus}/${d.playerMaxFocus}">${focPips}</span>
       <span class="focus-label">${d.playerFocus}/${d.playerMaxFocus} focus</span>
-      ${markStr}${focStr}${freeStr}
+      ${markStr}${focStr}${freeStr}${spiritStr}${dualStr}${comboStr}${comboFreeStr}
       <button class="btn btn-lockin" id="lock" ${d.playerLocked ? "disabled" : ""}>Lock In</button>
     </div>`;
     html += `<div class="card-row" id="hand"></div>`;
   } else if (d.phase === "highnoon") {
     html += `<p>Steel sings across the dust…</p>`;
   } else if (d.phase === "ended") {
-    html += `<p><strong>${d.winner === "player" ? "You survived." : "You died."}</strong></p>`;
+    html += `<p class="duel-end-headline"><strong>${d.winner === "player" ? "You survived." : "You died."}</strong></p>`;
+    html += buildShootoutSummaryHtml(d);
   }
 
   el.innerHTML = html;
@@ -341,7 +507,13 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown) {
       if (!def) continue;
       const card = document.createElement("div");
       const isFreeEligible = d.freeCardAvailable && def.type !== "gun" && def.type !== "character";
-      const affordable = def.cost <= d.playerFocus || isFreeEligible;
+      let payHpAmount = 0;
+      for (const raw of def.effects ?? []) {
+        const m = raw.match(/^payHp([+-]?\d+)/);
+        if (m) payHpAmount += Math.abs(parseInt(m[1], 10) || 0);
+      }
+      const wouldBeLethal = payHpAmount > 0 && (game.run.hp - payHpAmount <= 0);
+      const affordable = (def.cost <= d.playerFocus || isFreeEligible) && !wouldBeLethal;
       const costLabel = isFreeEligible && def.cost > d.playerFocus ? "★ free" : def.cost;
       card.className = `hand-card hand-card-${def.type}${affordable ? "" : " disabled"}`;
       card.innerHTML = buildCardHtml(def, costLabel);
@@ -352,6 +524,9 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown) {
     }
     const lock = el.querySelector("#lock");
     if (lock) lock.onclick = () => onLockIn();
+  } else if (d.phase === "ended") {
+    const cont = el.querySelector("#duel-continue");
+    if (cont && onContinueDuel) cont.onclick = () => onContinueDuel();
   }
 }
 
@@ -364,39 +539,20 @@ export function renderGameOver(game, onRestart) {
   el.querySelector("#rs").onclick = onRestart;
 }
 
-export function renderClassSelect(game, onPickClass) {
+export function renderClassSelect(onPick) {
   const el = panel();
-  el.className = "panel";
-  el.innerHTML = `<h2>Choose Your Path</h2><p>Who are you riding as?</p><div class="wanted-grid" id="class-grid"></div>`;
-  const g = el.querySelector("#class-grid");
-
-  const classes = [
-    {
-      id: "outlaw",
-      name: "Outlaw",
-      subtitle: "Wanted Dead or Alive",
-      description: "A hardened criminal with a price on their head. Balanced deck and no quarter given.",
-      traits: "Standard loadout · No special perk",
-    },
-    {
-      id: "apache_tracker",
-      name: "Apache Tracker",
-      subtitle: "Ghost of the High Desert",
-      description: "A master tracker schooled in patience and precision. Accuracy-first deck built around the free-first-card perk each round.",
-      traits: "+5% accuracy · First card free each prep round",
-    },
-  ];
-
-  for (const cls of classes) {
+  el.className = "panel panel-class-select";
+  el.innerHTML = `<h2>Choose Your Path</h2><p>Your class shapes your starting deck and abilities.</p><div class="class-grid"></div>`;
+  const g = el.querySelector(".class-grid");
+  for (const cls of CLASSES) {
     const d = document.createElement("div");
-    d.className = "poster";
+    d.className = "poster class-card";
+    d.style.setProperty("--tint", cls.portraitTint);
     d.innerHTML = `
-      <h3>${cls.name}</h3>
-      <p><em>${cls.subtitle}</em></p>
-      <p>${cls.description}</p>
-      <p><strong>${cls.traits}</strong></p>
-    `;
-    d.onclick = () => onPickClass(cls.id);
+      <h3 style="color:${cls.portraitTint}">${cls.name}</h3>
+      <p><em>${cls.title}</em></p>
+      <p>${cls.abilityBlurb}</p>`;
+    d.onclick = () => onPick(cls.id);
     g.appendChild(d);
   }
 }

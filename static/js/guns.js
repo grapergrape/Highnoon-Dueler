@@ -1,33 +1,355 @@
-/** @type {Record<string, { id: string; name: string; mag: number; damage: number; accuracy: number; blurb: string }>} */
-export const GUNS = {
-  peacemaker: {
-    id: "peacemaker",
-    name: "Colt Peacemaker",
-    mag: 6,
-    damage: 10,
-    accuracy: 0.62,
-    blurb: "Balanced iron — the lawman's choice.",
-  },
-  mare_leg: {
-    id: "mare_leg",
-    name: "Mare's Leg",
-    mag: 5,
-    damage: 14,
-    accuracy: 0.55,
-    blurb: "Cut-down rifle. Hits like a mule.",
-  },
-  schofield: {
-    id: "schofield",
-    name: "Schofield Top-Break",
-    mag: 6,
-    damage: 9,
-    accuracy: 0.68,
-    blurb: "Fast reload, steady aim.",
-  },
-};
+/**
+ * Unified gun system.
+ *
+ * A gun is a persistent in-duel equipment that lives in the deck as a "gun"
+ * card. Playing it during a duel sets the player's active gun (replacing any
+ * previous one). Effects persist for the rest of the duel until swapped.
+ *
+ * @typedef {'common'|'uncommon'|'rare'|'epic'|'legendary'} GunRarity
+ *
+ * @typedef {Object} Gun
+ * @property {string} id
+ * @property {string} name
+ * @property {GunRarity} rarity
+ * @property {string|null} classId   // null = generic, available to any class
+ * @property {number} mag
+ * @property {number} damage
+ * @property {number} accuracy
+ * @property {number} cost            // focus cost to play
+ * @property {string[]} effects       // tokens parsed by cards.js parseEffect
+ * @property {string} flavor          // always shown
+ * @property {string} [backstory]     // only on epic/legendary
+ */
 
-export const DEFAULT_GUN_ID = "peacemaker";
+/** @type {Gun[]} */
+export const GUNS_LIST = [
+  // ── OUTLAW (dirty / sawn-off) ─────────────────────────────────────────────
+  {
+    id: "gun_volcanic_pistol",
+    name: "Volcanic Pistol",
+    rarity: "uncommon",
+    classId: "outlaw",
+    mag: 7, damage: 8, accuracy: 0.55, cost: 2,
+    effects: ["bullets+1", "damage-1"],
+    flavor: "More lead, less aim.",
+  },
+  {
+    id: "gun_sawed_off_coach",
+    name: "Sawed-Off Coach Gun",
+    rarity: "epic",
+    classId: "outlaw",
+    mag: 4, damage: 16, accuracy: 0.50, cost: 3,
+    effects: ["damage+3", "accShootout-0.05", "ricochet"],
+    flavor: "Two barrels, one decision.",
+    backstory: "Wells Fargo coach guns lifted off the express line and chopped down at the campfire. The blast pattern apologizes for nothing.",
+  },
+  {
+    id: "gun_jesse_schofield",
+    name: "Jesse James' Schofield",
+    rarity: "legendary",
+    classId: "outlaw",
+    mag: 6, damage: 12, accuracy: 0.66, cost: 4,
+    effects: ["bullets+1", "damage+2", "accShootout+0.10"],
+    flavor: "The James gang's hand cannon.",
+    backstory: "Recovered from the floorboards of 1318 Lafayette Street, St. Joseph, Missouri, the morning Bob Ford put a bullet behind Jesse's ear, April 3rd, 1882.",
+  },
+
+  // ── APACHE TRACKER (rifles / bows) ────────────────────────────────────────
+  {
+    id: "gun_henry_repeater",
+    name: "Henry Repeater",
+    rarity: "uncommon",
+    classId: "apache_tracker",
+    mag: 8, damage: 9, accuracy: 0.60, cost: 2,
+    effects: ["bullets+2", "accShootout+0.05"],
+    flavor: "Loaded on Sunday, fires all week.",
+  },
+  {
+    id: "gun_sharps_buffalo",
+    name: "Sharps Buffalo Rifle",
+    rarity: "epic",
+    classId: "apache_tracker",
+    mag: 3, damage: 22, accuracy: 0.70, cost: 3,
+    effects: ["damage+5", "accShootout+0.10", "pierce"],
+    flavor: "One shot, one carcass.",
+    backstory: "Sharps Rifle Manufacturing Co., 1874 — the .50-caliber that buried the buffalo herd in a single decade. Its boom carries a mile.",
+  },
+  {
+    id: "gun_cochise_bow",
+    name: "Cochise's War Bow",
+    rarity: "legendary",
+    classId: "apache_tracker",
+    mag: 5, damage: 11, accuracy: 0.75, cost: 3,
+    effects: ["accShootout+0.15", "firstHitsAuto+1", "markBurst+2"],
+    flavor: "Silent, certain, never traded.",
+    backstory: "Sinew-strung yew of the Chiricahua war chief. Carried through every parley with the bluecoats, drawn at none — and never surrendered.",
+  },
+
+  // ── U.S. MARSHAL (fancy pistols) ──────────────────────────────────────────
+  {
+    id: "gun_colt_saa",
+    name: "Colt Single Action Army",
+    rarity: "uncommon",
+    classId: "marshal",
+    mag: 6, damage: 10, accuracy: 0.65, cost: 2,
+    effects: ["accShootout+0.08"],
+    flavor: "The Peacemaker, factory-fresh.",
+  },
+  {
+    id: "gun_sw_schofield_3",
+    name: "Smith & Wesson Schofield No. 3",
+    rarity: "epic",
+    classId: "marshal",
+    mag: 6, damage: 11, accuracy: 0.68, cost: 3,
+    effects: ["bullets+1", "accShootout+0.10", "focusBonusAcc+0.10"],
+    flavor: "Top-break, top-shelf.",
+    backstory: "Smith & Wesson Model 3, 1875, modified to Major George Schofield's specifications. The U.S. Cavalry's iron of choice — until the .45 Long Colt won the contract.",
+  },
+  {
+    id: "gun_hickok_navy",
+    name: "Wild Bill's Navy Colt",
+    rarity: "legendary",
+    classId: "marshal",
+    mag: 6, damage: 13, accuracy: 0.72, cost: 4,
+    effects: ["accShootout+0.15", "damage+2", "markBurst+3"],
+    flavor: "Aces and eights.",
+    backstory: "James Butler Hickok's 1851 Navy, ivory-gripped, butt-forward. He carried it the afternoon of August 2nd, 1876, in Saloon No. 10, Deadwood — the day the dead man's hand was named.",
+  },
+
+  // ── VAQUERO (ornate pistols) ──────────────────────────────────────────────
+  {
+    id: "gun_remington_1875",
+    name: "Remington Model 1875",
+    rarity: "uncommon",
+    classId: "vaquero",
+    mag: 6, damage: 11, accuracy: 0.60, cost: 2,
+    effects: ["damage+1", "accShootout+0.05"],
+    flavor: "Brass-fitted, kept oiled.",
+  },
+  {
+    id: "gun_lemat",
+    name: "LeMat Revolver",
+    rarity: "epic",
+    classId: "vaquero",
+    mag: 9, damage: 10, accuracy: 0.55, cost: 3,
+    effects: ["bullets+3", "damage+1"],
+    flavor: "Nine shots and a shotgun shell.",
+    backstory: "Dr. Jean Alexandre LeMat's grapeshot revolver, born in New Orleans 1855. Nine pistol rounds around a central .60 smoothbore — the Confederate cavalry officer's last argument.",
+  },
+  {
+    id: "gun_villa_mauser",
+    name: "Villa's Mauser C96",
+    rarity: "legendary",
+    classId: "vaquero",
+    mag: 10, damage: 12, accuracy: 0.62, cost: 4,
+    effects: ["bullets+4", "accShootout+0.05", "damageShootout+0.15"],
+    flavor: "El broomhandle del general.",
+    backstory: "Pancho Villa's Mauser C96, the broomhandle that crossed the Rio Grande at Columbus, New Mexico, March 9th, 1916. It came back. He didn't.",
+  },
+
+  // Vaquero off-hand iron — paired with primary for dual-wield builds
+  {
+    id: "gun_offhand_iron",
+    name: "Off-Hand Iron",
+    rarity: "common",
+    classId: "vaquero",
+    mag: 4, damage: 6, accuracy: 0.55, cost: 2,
+    effects: [],
+    flavor: "Lighter, looser, leftward.",
+    dualWield: true,
+  },
+
+  // ── BOUNTY HUNTER (small / concealed) ─────────────────────────────────────
+  {
+    id: "gun_derringer_41",
+    name: ".41 Derringer",
+    rarity: "uncommon",
+    classId: "bounty_hunter",
+    mag: 2, damage: 14, accuracy: 0.72, cost: 2,
+    effects: ["pierce", "firstHitsAuto+1"],
+    flavor: "Two shots from a sleeve.",
+  },
+  {
+    id: "gun_pepperbox",
+    name: "Pepperbox Revolver",
+    rarity: "epic",
+    classId: "bounty_hunter",
+    mag: 6, damage: 8, accuracy: 0.62, cost: 3,
+    effects: ["bullets+2", "firstHitsAuto+2"],
+    flavor: "Six barrels, six chances.",
+    backstory: "Allen & Thurber of Worcester, Massachusetts, patented 1837. No need to aim long when the whole front of the gun is the muzzle.",
+  },
+  {
+    id: "gun_doc_hideout",
+    name: "Doc Holliday's Hideout",
+    rarity: "legendary",
+    classId: "bounty_hunter",
+    mag: 2, damage: 18, accuracy: 0.80, cost: 4,
+    effects: ["pierce", "firstHitsAuto+2", "accShootout+0.10"],
+    flavor: "Drawn from a dentist's vest.",
+    backstory: "John Henry Holliday's nickel-plated Colt House Pistol, palmed from his waistcoat at the O.K. Corral, October 26th, 1881. Tubercular cough, steady hand.",
+  },
+
+  // ── SHERIFF (lawman irons / shotguns) ─────────────────────────────────────
+  {
+    id: "gun_peacemaker",
+    name: "Colt Peacemaker",
+    rarity: "uncommon",
+    classId: "sheriff",
+    mag: 6, damage: 10, accuracy: 0.62, cost: 2,
+    effects: ["accShootout+0.05"],
+    flavor: "Balanced iron — the lawman's choice.",
+  },
+  {
+    id: "gun_winchester_1887",
+    name: "Winchester 1887",
+    rarity: "epic",
+    classId: "sheriff",
+    mag: 5, damage: 16, accuracy: 0.55, cost: 3,
+    effects: ["damage+4", "ricochet"],
+    flavor: "Lever-action argument-ender.",
+    backstory: "John Moses Browning's lever-action shotgun, 1887, made for Winchester at Oliver Winchester's request. The clack of its action ended more saloon arguments than any judge.",
+  },
+  {
+    id: "gun_masterson_colt",
+    name: "Bat Masterson's Colt",
+    rarity: "legendary",
+    classId: "sheriff",
+    mag: 6, damage: 11, accuracy: 0.70, cost: 4,
+    effects: ["accShootout+0.15", "damage+2", "hpAfterShootout+5"],
+    flavor: "Special order, Hartford.",
+    backstory: "Bartholomew W. Masterson wrote to Colt's Hartford works, July 1885: 'a special grip of gutta-percha, easy on the trigger.' Dodge City, Tombstone, and finally a desk at the New York Morning Telegraph.",
+  },
+
+  // ── GENERIC POOL (12 guns: 3/3/3/2/1) ─────────────────────────────────────
+
+  // common (3)
+  {
+    id: "gun_pocket_pistol",
+    name: "Pocket Pistol",
+    rarity: "common", classId: null,
+    mag: 4, damage: 8, accuracy: 0.58, cost: 1,
+    effects: ["bullets+1"],
+    flavor: "Cheap iron — two shots better than none.",
+  },
+  {
+    id: "gun_service_revolver",
+    name: "Service Revolver",
+    rarity: "common", classId: null,
+    mag: 6, damage: 9, accuracy: 0.60, cost: 1,
+    effects: [],
+    flavor: "Issued, oiled, forgotten.",
+  },
+  {
+    id: "gun_trappers_carbine",
+    name: "Trapper's Carbine",
+    rarity: "common", classId: null,
+    mag: 5, damage: 11, accuracy: 0.55, cost: 1,
+    effects: ["damage+1"],
+    flavor: "Smells of pine pitch and powder.",
+  },
+
+  // uncommon (3)
+  {
+    id: "gun_long_barrel_colt",
+    name: "Long-Barrel Colt",
+    rarity: "uncommon", classId: null,
+    mag: 6, damage: 10, accuracy: 0.68, cost: 2,
+    effects: ["accShootout+0.10", "bullets-1"],
+    flavor: "Slow to draw, sure to land.",
+  },
+  {
+    id: "gun_twin_barrel_derringer",
+    name: "Twin-Barrel Derringer",
+    rarity: "uncommon", classId: null,
+    mag: 2, damage: 13, accuracy: 0.65, cost: 2,
+    effects: ["firstHitsAuto+1", "damage+1"],
+    flavor: "Two chances. That's the wager.",
+  },
+  {
+    id: "gun_cavalry_pistol",
+    name: "Cavalry Pistol",
+    rarity: "uncommon", classId: null,
+    mag: 5, damage: 10, accuracy: 0.60, cost: 2,
+    effects: ["bullets+1", "damage+1"],
+    flavor: "Saber bracket still bolted under the barrel.",
+  },
+
+  // rare (3)
+  {
+    id: "gun_marksmans_iron",
+    name: "Marksman's Iron",
+    rarity: "rare", classId: null,
+    mag: 5, damage: 11, accuracy: 0.72, cost: 3,
+    effects: ["accShootout+0.20", "focusBonusAcc+0.10"],
+    flavor: "Crosshair etched by a watchmaker's hand.",
+  },
+  {
+    id: "gun_knuckle_revolver",
+    name: "Knuckle Revolver",
+    rarity: "rare", classId: null,
+    mag: 5, damage: 13, accuracy: 0.58, cost: 3,
+    effects: ["damage+3", "accShootout-0.05"],
+    flavor: "Pistol-whip if it jams.",
+  },
+  {
+    id: "gun_quickdraw_iron",
+    name: "Quick-Draw Iron",
+    rarity: "rare", classId: null,
+    mag: 6, damage: 9, accuracy: 0.62, cost: 3,
+    effects: ["bullets+2", "firstHitsAuto+1"],
+    flavor: "Greased leather, hair trigger.",
+  },
+
+  // epic (2)
+  {
+    id: "gun_gatling_sidearm",
+    name: "Gatling Sidearm",
+    rarity: "epic", classId: null,
+    mag: 12, damage: 7, accuracy: 0.50, cost: 4,
+    effects: ["bullets+5", "accShootout-0.05", "damage-1"],
+    flavor: "Hand-cranked storm of lead.",
+    backstory: "Dr. Richard Jordan Gatling's 1862 patent, shrunk to fit a holster by an Indianapolis machinist who never sold a legal one.",
+  },
+  {
+    id: "gun_volcanic_repeater",
+    name: "Volcanic Repeating Pistol",
+    rarity: "epic", classId: null,
+    mag: 10, damage: 9, accuracy: 0.60, cost: 4,
+    effects: ["bullets+3", "accShootout+0.05"],
+    flavor: "Rocket Ball ammunition, lever-fed.",
+    backstory: "Volcanic Repeating Arms Co., 1855. Horace Smith and Daniel B. Wesson's first venture, before they put rims on the cartridges and changed the world.",
+  },
+
+  // legendary (1)
+  {
+    id: "gun_high_noon",
+    name: "The High Noon",
+    rarity: "legendary", classId: null,
+    mag: 6, damage: 14, accuracy: 0.75, cost: 5,
+    effects: ["damage+3", "accShootout+0.15", "markBurst+2", "pierce"],
+    flavor: "The gun the corridos sing of.",
+    backstory: "Forged at the Brazos River from a single ingot of meteor iron, or so the corrido goes. They say it was the gun that shot the sun down at noon, leaving only midday and midnight.",
+  },
+];
+
+/** id → Gun lookup. */
+export const GUNS = Object.fromEntries(GUNS_LIST.map((g) => [g.id, g]));
+
+/** Default-ish fallback used by old save data; first generic common. */
+export const FALLBACK_GUN_ID = "gun_service_revolver";
 
 export function getGun(id) {
-  return GUNS[id] ?? GUNS[DEFAULT_GUN_ID];
+  return GUNS[id] ?? GUNS[FALLBACK_GUN_ID];
+}
+
+/** Guns playable by a given class id (class-locked + generic). */
+export function gunsForClass(classId) {
+  return GUNS_LIST.filter((g) => g.classId === null || g.classId === classId);
+}
+
+/** Returns the uncommon class-locked starter gun id for a class. */
+export function starterGunIdForClass(classId) {
+  const g = GUNS_LIST.find((g) => g.classId === classId && g.rarity === "uncommon");
+  return g ? g.id : FALLBACK_GUN_ID;
 }

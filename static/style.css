@@ -253,6 +253,7 @@ button.shop-card.hand-card-character {
   color: var(--ink);
   letter-spacing: 0.02em;
   margin-bottom: 0.2rem;
+  padding-right: 1.9rem;
 }
 
 .card-flavor {
@@ -531,6 +532,24 @@ button.shop-card:active {
   color: #b8f4c0;
 }
 
+.status-spirit {
+  background: rgba(120, 90, 160, 0.55);
+  border: 1px solid rgba(160, 120, 200, 0.5);
+  color: #e0c8f4;
+}
+
+.status-dual {
+  background: rgba(170, 100, 50, 0.55);
+  border: 1px solid rgba(210, 140, 80, 0.5);
+  color: #f4d4b0;
+}
+
+.status-combo {
+  background: rgba(140, 60, 30, 0.55);
+  border: 1px solid rgba(200, 90, 50, 0.5);
+  color: #f4c8a0;
+}
+
 .btn-lockin {
   margin: 0;
   padding: 0.35rem 0.85rem;
@@ -643,3 +662,185 @@ button.shop-card:active {
   border-bottom: 2px solid var(--tint, var(--sand));
   padding-bottom: 0.3rem;
 }
+
+.duel-end-headline {
+  font-size: 1.2rem;
+  text-align: center;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.duel-summary {
+  margin-top: 0.5rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 6px;
+}
+
+.duel-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.duel-summary-side h4 {
+  margin: 0 0 0.4rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding-bottom: 0.25rem;
+}
+
+.duel-summary-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.duel-summary-stats .stat-hit { color: #8ad27a; }
+.duel-summary-stats .stat-miss { color: #c98a8a; }
+.duel-summary-stats .stat-dodge { color: #8ab4d2; }
+.duel-summary-stats .stat-acc { opacity: 0.75; }
+
+.shot-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 0.82rem;
+  font-family: monospace;
+}
+
+.shot-list .shot {
+  display: grid;
+  grid-template-columns: 2.4rem 4.5rem 1fr auto;
+  gap: 0.4rem;
+  padding: 0.15rem 0.35rem;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+.shot-list .shot-i { opacity: 0.6; }
+.shot-list .shot-hit .shot-out { color: #8ad27a; font-weight: bold; }
+.shot-list .shot-miss .shot-out { color: #c98a8a; }
+.shot-list .shot-dodge .shot-out { color: #8ab4d2; }
+.shot-list .shot-rico { color: #d2b46a; font-size: 0.75rem; }
+.shot-list .shot-empty { opacity: 0.6; text-align: center; }
+
+.duel-summary .btn {
+  display: block;
+  margin: 0 auto;
+}
+
+/* ── Active gun ("Drawn Iron") badges ─────────────────────────────────────── */
+.iron-row {
+  display: flex;
+  gap: 0.6rem;
+  margin: 0.3rem 0 0.5rem 0;
+  flex-wrap: wrap;
+}
+
+.iron-badge {
+  flex: 1 1 240px;
+  min-width: 200px;
+  max-width: 360px;
+  border: 2px solid var(--iron-color, #6b5340);
+  background: linear-gradient(180deg, rgba(40, 32, 24, 0.85), rgba(28, 22, 18, 0.92));
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem 0.45rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  position: relative;
+  cursor: help;
+}
+
+.iron-badge-empty {
+  --iron-color: #4a3e30;
+  opacity: 0.6;
+}
+
+.iron-badge-label {
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(232, 218, 196, 0.55);
+  font-weight: 700;
+}
+
+.iron-badge-name {
+  font-family: Georgia, serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--iron-color, #e8c87a);
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+}
+
+.iron-badge .card-effects {
+  border-top: 1px dashed rgba(255, 220, 170, 0.18);
+  padding-top: 0.25rem;
+  margin-top: 0.15rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.iron-badge .card-eff {
+  font-size: 0.62rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 220, 170, 0.18);
+  padding: 0.08rem 0.34rem;
+  border-radius: 3px;
+}
+.iron-badge .card-eff-pos { color: #b9e29a; }
+.iron-badge .card-eff-neg { color: #f0a4a4; }
+.iron-badge .card-eff-enemy { color: #f1c987; }
+
+/* Rarity colors used by both shop iron cards and active-gun badges. */
+.iron-rarity-common    { --iron-color: #b8b0a0; }
+.iron-rarity-uncommon  { --iron-color: #5fa56a; }
+.iron-rarity-rare      { --iron-color: #5b8fd6; }
+.iron-rarity-epic      { --iron-color: #b269d2; }
+.iron-rarity-legendary { --iron-color: #e8a73a; }
+
+button.shop-card.iron-rarity-epic,
+.hand-card.iron-rarity-epic { --card-accent: #6c3a86; }
+button.shop-card.iron-rarity-legendary,
+.hand-card.iron-rarity-legendary { --card-accent: #b07a25; }
+
+/* Shop section headers */
+.shop-section-title {
+  font-family: Georgia, serif;
+  margin: 0.6rem 0 0.25rem 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  color: #e8c87a;
+  border-bottom: 1px dashed rgba(232, 200, 122, 0.25);
+  padding-bottom: 0.15rem;
+}
+.shop-section-sub {
+  font-size: 0.7rem;
+  color: rgba(232, 218, 196, 0.55);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+.shop-empty {
+  color: rgba(232, 218, 196, 0.5);
+  font-size: 0.85rem;
+  padding: 0.4rem 0.2rem;
+}
+
+.card-backstory {
+  font-size: 0.45rem !important;
+  color: rgba(26, 18, 12, 0.5) !important;
+  font-style: italic;
+  border-top: 1px dotted rgba(42, 33, 24, 0.25);
+  padding-top: 0.18rem;
+  margin-top: 0.15rem;
+}
+
+/* Effect chips: visible cursor cue for tooltip-on-hover. */
+.card-eff[title] { cursor: help; }
