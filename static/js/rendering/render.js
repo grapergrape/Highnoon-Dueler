@@ -1,4 +1,4 @@
-import { duelDisplayedVolleyPreview } from "./duel.js";
+import { duelDisplayedVolleyPreview } from "../duel/duel.js";
 
 /**
  * Quad index in 2×2 sheet (author art):
