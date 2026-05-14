@@ -1,6 +1,6 @@
 import { OPPONENTS } from "../data/opponents.js";
 import { getCardDef } from "../data/cards.js";
-import { CARD_DEFINITIONS } from "../data/cards.js";
+import { CARD_DEFINITIONS, effectsForCardLevel } from "../data/cards.js";
 import { getClass, CLASSES } from "../data/classes.js";
 import { GUNS_LIST, gunsForClass, getGun } from "../data/guns.js";
 
@@ -65,10 +65,10 @@ const hudClass = () => document.getElementById("hud-class");
 
 /** @type {Record<string,string>} */
 const RIBBON_LABEL = {
-  gun: "Iron",
-  attack: "Trick",
-  feat: "Grit",
-  character: "Legend",
+  gun: "Gun",
+  feat: "Feat",
+  stance: "Stance",
+  showdown: "Showdown",
 };
 
 function pct(v) { return `${Math.round((v ?? 0) * 100)}%`; }
@@ -142,7 +142,7 @@ function classifyEffect(raw) {
 
 function buildEffectsHtml(def) {
   const lines = [];
-  for (const raw of def.effects ?? []) {
+  for (const raw of effectsForCardLevel(def, def.showdownLevel || 1)) {
     const text = effectToText(raw);
     if (!text) continue;
     const cls = classifyEffect(raw);
@@ -168,6 +168,20 @@ function buildActiveGunBadgeHtml(activeGun, label = "Drawn Iron") {
     <span class="iron-badge-label">${label}</span>
     <span class="iron-badge-name">${activeGun.name}</span>
     ${effHtml}
+  </div>`;
+}
+
+function buildPersistentRowHtml(d) {
+  const stances = d.playerStances ?? [];
+  const stanceHtml = stances.length
+    ? stances.map((s) => `<span class="persistent-chip persistent-stance">${s.name}</span>`).join("")
+    : `<span class="persistent-empty">No stance held</span>`;
+  const showdown = d.playerShowdown
+    ? `<span class="persistent-chip persistent-showdown">${d.playerShowdown.name} · Level ${d.playerShowdownLevel || 1}</span>`
+    : `<span class="persistent-empty">No showdown</span>`;
+  return `<div class="persistent-row">
+    <div class="persistent-group"><span class="persistent-label">Stances</span>${stanceHtml}</div>
+    <div class="persistent-group"><span class="persistent-label">Showdown</span>${showdown}</div>
   </div>`;
 }
 
@@ -249,7 +263,7 @@ export function renderShop(game, onBuyCard, onHeal, onContinue) {
 
   el.innerHTML = `<h2>Merchant</h2><p>Spend your bounty. Health does not refill between fights.</p>
     <p>Wallet: <strong>$${game.run.money}</strong></p>
-    <h3 class="shop-section-title">Iron <span class="shop-section-sub">(deck holds up to 3 guns)</span></h3>
+    <h3 class="shop-section-title">Guns <span class="shop-section-sub">(deck holds up to 2 extra guns)</span></h3>
     <div class="shop-list" id="shop-guns"></div>
     <h3 class="shop-section-title">Cards & Tricks</h3>
     <div class="shop-list" id="shop-cards"></div>
@@ -266,7 +280,7 @@ export function renderShop(game, onBuyCard, onHeal, onContinue) {
     const back = g.backstory ? `<span class="card-flavor card-backstory">${g.backstory}</span>` : '';
     card.innerHTML = `
       <span class="shop-card-inner hand-card-inner">
-        <span class="card-ribbon">${g.rarity.toUpperCase()} IRON — $${price}</span>
+        <span class="card-ribbon">${g.rarity.toUpperCase()} GUN — $${price}</span>
         <span class="card-cost">${g.cost}</span>
         <span class="card-name-text">${g.name}</span>
         <span class="card-flavor">${g.flavor ?? ''}</span>
@@ -275,7 +289,7 @@ export function renderShop(game, onBuyCard, onHeal, onContinue) {
       </span>`;
     card.onclick = () => {
       const ownedGuns = ownedGunIdsInDeck(game.run.deckIds);
-      if (ownedGuns.length >= 3) {
+      if (ownedGuns.length >= 2) {
         promptReplaceGun(game, ownedGuns, (replaceId) => {
           if (replaceId) onBuyCard(g.id, price, { replaceGunId: replaceId });
         });
@@ -314,7 +328,7 @@ function promptReplaceGun(game, ownedGunIds, cb) {
   const el = panel();
   const owned = ownedGunIds.map((id) => getGun(id)).filter(Boolean);
   el.innerHTML = `<h2>Holster One</h2>
-    <p>Your deck already carries three irons. Choose one to leave behind:</p>
+    <p>Your deck already carries two extra guns. Choose one to leave behind:</p>
     <div class="shop-list" id="replace-guns"></div>
     <button class="btn" id="cancel-replace">Cancel</button>`;
   const row = el.querySelector("#replace-guns");
@@ -325,7 +339,7 @@ function promptReplaceGun(game, ownedGunIds, cb) {
     const cardDef = getCardDef(g.id);
     b.innerHTML = `
       <span class="shop-card-inner hand-card-inner">
-        <span class="card-ribbon">${g.rarity.toUpperCase()} IRON</span>
+        <span class="card-ribbon">${g.rarity.toUpperCase()} GUN</span>
         <span class="card-cost">${g.cost}</span>
         <span class="card-name-text">${g.name}</span>
         <span class="card-flavor">${g.flavor ?? ''}</span>
@@ -469,6 +483,7 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
       ${secondaryHtml}
       ${buildActiveGunBadgeHtml(d.enemy?.activeGun, `${d.opponentDef?.name ?? 'Foe'}'s Iron`)}
     </div>`;
+    html += buildPersistentRowHtml(d);
     html += `<div class="prep-bar">
       <span class="prep-round">Round ${d.prepRound}/3</span>
       <span class="focus-bar" title="Focus: ${d.playerFocus}/${d.playerMaxFocus}">${focPips}</span>
@@ -506,7 +521,7 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
       const def = getCardDef(c.id);
       if (!def) continue;
       const card = document.createElement("div");
-      const isFreeEligible = d.freeCardAvailable && def.type !== "gun" && def.type !== "character";
+      const isFreeEligible = d.freeCardAvailable && def.type !== "gun" && def.type !== "stance" && def.type !== "showdown";
       let payHpAmount = 0;
       for (const raw of def.effects ?? []) {
         const m = raw.match(/^payHp([+-]?\d+)/);

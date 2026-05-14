@@ -1,4 +1,4 @@
-import { parseEffect } from "../data/cards.js";
+import { parseEffect, effectsForCardLevel } from "../data/cards.js";
 
 /**
  * @typedef {{ targetSide: 'player'|'enemy', kind: 'buff'|'debuff'|'neutral', text: string }} FeedbackLine
@@ -17,12 +17,16 @@ function fmtPct(x) {
 export function feedbackLinesForCard(def, playedBy) {
   /** @type {FeedbackLine[]} */
   const lines = [];
-  if (def.type === "character") {
-    lines.push({ targetSide: "player", kind: "buff", text: "LEGEND" });
+  if (def.type === "stance" || def.type === "showdown") {
+    lines.push({
+      targetSide: playedBy === "enemy" ? "enemy" : "player",
+      kind: "buff",
+      text: def.type === "showdown" ? "SHOWDOWN" : "STANCE",
+    });
     return lines;
   }
 
-  for (const raw of def.effects ?? []) {
+  for (const raw of effectsForCardLevel(def, def.showdownLevel || 1)) {
     const e = parseEffect(raw);
     if (playedBy === "player") {
       if (e.kind === "enemyAccNext") {

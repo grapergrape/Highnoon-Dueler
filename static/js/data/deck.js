@@ -34,34 +34,38 @@ export function discardCards(discard, cards) {
   for (const c of cards) discard.push(c);
 }
 
-/** Default starter deck for new runs (Drifter; classes override via classes.js) */
+/** Default 24-card starter deck for new runs (Drifter; classes override via classes.js). */
 export const STARTER_DECK_IDS = [
-  "gun_service_revolver",
-  "atk_rattlesnake",
-  "atk_rattlesnake",
-  "atk_devils_due",
-  "atk_rust_bullet",
-  "atk_fan_hammer",
-  "feat_whiskey",
-  "feat_tumbleweed",
+  "atk_rattlesnake", "atk_rattlesnake",
+  "atk_devils_due", "atk_devils_due",
+  "atk_rust_bullet", "atk_rust_bullet",
+  "atk_fan_hammer", "atk_fan_hammer",
   "atk_trick_shot",
   "atk_sand_chamber",
-  "char_thick_hide",
   "atk_dust_throw",
+  "atk_leg_shot",
+  "atk_showboat",
+  "atk_snakebite",
+  "atk_hail_mary",
+  "feat_quick_reload",
+  "char_thick_hide", "char_iron_will", "char_vulture", "char_quick_hands", "char_gravedigger",
+  "gun_pocket_pistol", "gun_trappers_carbine",
+  "char_legend",
 ];
 
-/** Bounty Hunter alt deck (still referenced by main.js) */
+/** Bounty Hunter alt deck retained for save/debug compatibility. */
 export const BOUNTY_HUNTER_DECK_IDS = [
-  "gun_derringer_41",
-  "atk_iron_nerve",
-  "atk_iron_nerve",
-  "atk_cold_blood",
-  "atk_focused_volley",
-  "atk_apex_predator",
-  "feat_snipers_breath",
-  "feat_second_wind",
-  "char_preacher",
+  "atk_blood_for_lead", "atk_blood_for_lead",
+  "atk_vendetta_shot", "atk_vendetta_shot",
+  "atk_reckless_aim", "atk_reckless_aim",
+  "atk_last_bullet", "atk_last_bullet",
+  "atk_bloodlust", "atk_bloodlust",
+  "atk_no_tomorrow", "atk_no_tomorrow",
   "atk_phantom_round",
-  "atk_rattlesnake",
-  "atk_rattlesnake",
+  "feat_adrenaline",
+  "feat_last_stand",
+  "feat_death_wish",
+  "char_desperado", "char_preacher", "char_bounty_hunter", "char_quick_hands", "char_deadeye",
+  "gun_pepperbox", "gun_doc_hideout",
+  "atk_quickdraw_master",
 ];

@@ -76,7 +76,11 @@ function preloadDuelArt() {
 function syncDeckFromDuel() {
   if (!game.duel) return;
   const d = game.duel;
-  const all = [...d.playerDrawPile, ...d.playerDiscard, ...d.playerHand].map((c) => c.id);
+  const persistent = [
+    ...(d.playerStances ?? []),
+    ...(d.playerShowdown ? [d.playerShowdown] : []),
+  ];
+  const all = [...d.playerDrawPile, ...d.playerDiscard, ...d.playerHand, ...persistent].map((c) => c.id);
   const fallback = game.run?.classId
     ? (getClass(game.run.classId)?.starterDeckIds ?? STARTER_DECK_IDS)
     : STARTER_DECK_IDS;
@@ -183,12 +187,13 @@ function openShop() {
     game,
     (cardId, price, opts) => {
       if (game.run.money < price) return;
-      if (game.run.deckIds.length >= 22) return;
       const isGun = cardId.startsWith("gun_");
+      const replacingGun = isGun && !!opts?.replaceGunId;
+      if (game.run.deckIds.length >= 24 && !replacingGun) return;
       if (isGun) {
         if (game.run.deckIds.includes(cardId)) return; // no duplicate guns
         const owned = gunCountInDeck(game.run.deckIds);
-        if (owned >= 3) {
+        if (owned >= 2) {
           if (!opts?.replaceGunId) return; // shop should re-prompt
           const ix = game.run.deckIds.indexOf(opts.replaceGunId);
           if (ix < 0) return;

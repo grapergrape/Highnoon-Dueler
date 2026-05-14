@@ -236,11 +236,18 @@ button.shop-card.hand-card-attack {
 
 .hand-card.hand-card-feat,
 button.shop-card.hand-card-feat {
+  --card-accent: var(--blood);
+}
+
+.hand-card.hand-card-stance,
+button.shop-card.hand-card-stance,
+.hand-card.hand-card-character,
+button.shop-card.hand-card-character {
   --card-accent: #4d6228;
 }
 
-.hand-card.hand-card-character,
-button.shop-card.hand-card-character {
+.hand-card.hand-card-showdown,
+button.shop-card.hand-card-showdown {
   --card-accent: #3a4868;
 }
 
@@ -548,6 +555,54 @@ button.shop-card:active {
   background: rgba(140, 60, 30, 0.55);
   border: 1px solid rgba(200, 90, 50, 0.5);
   color: #f4c8a0;
+}
+
+.persistent-row {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0;
+  padding: 0.42rem 0.55rem;
+  background: rgba(10, 8, 6, 0.34);
+  border: 1px solid rgba(196, 165, 116, 0.22);
+  border-radius: 3px;
+}
+
+.persistent-group {
+  display: flex;
+  align-items: center;
+  gap: 0.32rem;
+  flex-wrap: wrap;
+}
+
+.persistent-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sand);
+  opacity: 0.78;
+}
+
+.persistent-chip,
+.persistent-empty {
+  font-size: 0.68rem;
+  padding: 0.13rem 0.38rem;
+  border-radius: 2px;
+  border: 1px solid rgba(196, 165, 116, 0.25);
+}
+
+.persistent-chip {
+  color: #f0e6d2;
+  background: rgba(75, 98, 40, 0.5);
+}
+
+.persistent-showdown {
+  background: rgba(58, 72, 104, 0.62);
+}
+
+.persistent-empty {
+  color: rgba(232, 220, 196, 0.56);
+  font-style: italic;
 }
 
 .btn-lockin {
