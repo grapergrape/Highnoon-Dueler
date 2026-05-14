@@ -1,4 +1,4 @@
-import { parseEffect } from "./cards.js";
+import { parseEffect } from "../data/cards.js";
 
 /**
  * @typedef {{ targetSide: 'player'|'enemy', kind: 'buff'|'debuff'|'neutral', text: string }} FeedbackLine

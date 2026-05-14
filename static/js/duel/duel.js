@@ -1,8 +1,8 @@
-import { getCardDef, parseEffect, cloneCardInstance } from "./cards.js";
-import { feedbackLinesForCard } from "./combat-ui.js";
-import { getGun, FALLBACK_GUN_ID, starterGunIdForClass } from "./guns.js";
-import { makeEnemyRuntime } from "./opponents.js";
-import { buildDeckFromIds, drawCards, shuffle } from "./deck.js";
+import { getCardDef, parseEffect, cloneCardInstance } from "../data/cards.js";
+import { feedbackLinesForCard } from "../ui/combat-ui.js";
+import { getGun, FALLBACK_GUN_ID, starterGunIdForClass } from "../data/guns.js";
+import { makeEnemyRuntime } from "../data/opponents.js";
+import { buildDeckFromIds, drawCards, shuffle } from "../data/deck.js";
 
 const STAREDOWN_POOL = ["std_dead_eye", "std_warning_shot", "std_iron_will", "std_marked_man"];
 
@@ -154,7 +154,7 @@ function combinedMods(activeGun, transient, secondaryGun = null) {
 }
 
 /**
- * @param {import('./opponents.js').Opponent} oppDef
+ * @param {import('../data/opponents.js').Opponent} oppDef
  * @param {object} run
  */
 export function createDuel(oppDef, run) {

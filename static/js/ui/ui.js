@@ -1,8 +1,8 @@
-import { OPPONENTS } from "./opponents.js";
-import { getCardDef } from "./cards.js";
-import { CARD_DEFINITIONS } from "./cards.js";
-import { getClass, CLASSES } from "./classes.js";
-import { GUNS_LIST, gunsForClass, getGun } from "./guns.js";
+import { OPPONENTS } from "../data/opponents.js";
+import { getCardDef } from "../data/cards.js";
+import { CARD_DEFINITIONS } from "../data/cards.js";
+import { getClass, CLASSES } from "../data/classes.js";
+import { GUNS_LIST, gunsForClass, getGun } from "../data/guns.js";
 
 const RARITY_PRICE = { common: 25, uncommon: 40, rare: 65, epic: 110, legendary: 180 };
 
