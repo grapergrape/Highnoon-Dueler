@@ -48,7 +48,7 @@ export function loadRun() {
     const defeatedOpponentIds = Array.isArray(o.defeatedOpponentIds)
       ? [...new Set(o.defeatedOpponentIds.filter((id) => typeof id === "string"))]
       : [];
-    return {
+    const merged = {
       ...base,
       ...o,
       deckIds: o.deckIds?.length ? o.deckIds : base.deckIds,
@@ -58,6 +58,20 @@ export function loadRun() {
       currentTownOrder,
       defeatedOpponentIds,
     };
+    // Sheriff rework compatibility: old saves may still carry removed passive fields.
+    if (merged.classId === "sheriff") {
+      const perm = merged.permanent;
+      if (!Number.isFinite(perm.respect)) perm.respect = 0;
+      if (!Number.isFinite(perm.respectMax) || perm.respectMax <= 0) perm.respectMax = 5;
+      if (!Number.isFinite(perm.respectMaxHpEach) || perm.respectMaxHpEach <= 0) perm.respectMaxHpEach = 2;
+      if (!Number.isFinite(perm.highHpAccThreshold)) perm.highHpAccThreshold = 100;
+      if (!Number.isFinite(perm.highHpAccPerHp)) perm.highHpAccPerHp = 0.03;
+      if (!Number.isFinite(perm.highHpAccMax)) perm.highHpAccMax = 0.35;
+      delete perm.healPerDuel;
+      delete perm.firstCycleAccPenalty;
+      delete perm.respectAccPenaltyReduceEach;
+    }
+    return merged;
   } catch {
     return null;
   }

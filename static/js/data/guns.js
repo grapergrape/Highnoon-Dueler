@@ -16,6 +16,7 @@
  * @property {number} damage
  * @property {number} accuracy
  * @property {number} cost            // focus cost to play
+ * @property {'pistol'|'revolver'|'rifle'|'carbine'|'bow'|'shotgun'|'special'} [weaponType]
  * @property {string[]} effects       // tokens parsed by cards.js parseEffect
  * @property {string} flavor          // always shown
  * @property {string} [backstory]     // only on epic/legendary
@@ -36,13 +37,14 @@ export const GUNS_LIST = [
   },
   {
     id: "gun_sawed_off_coach",
-    name: "Sawed-Off Coach Gun",
+    name: "Coachline Repeater",
     rarity: "epic",
     classId: "outlaw",
-    mag: 4, damage: 16, accuracy: 0.50, cost: 3,
-    effects: ["damage+3", "accShootout-0.05", "ricochet"],
-    flavor: "Two barrels, one decision.",
-    backstory: "Wells Fargo coach guns lifted off the express line and chopped down at the campfire. The blast pattern apologizes for nothing.",
+    weaponType: "carbine",
+    mag: 6, damage: 12, accuracy: 0.56, cost: 3,
+    effects: ["bullets+2", "damage+2", "accShootout-0.05"],
+    flavor: "Stolen repeater, short temper.",
+    backstory: "Lifted from a Wells Fargo escort chest and cut for speed, not spread. Fast lever, dirty work.",
   },
   {
     id: "gun_jesse_schofield",
@@ -129,13 +131,14 @@ export const GUNS_LIST = [
   },
   {
     id: "gun_lemat",
-    name: "LeMat Revolver",
+    name: "LeMat Dragoon",
     rarity: "epic",
     classId: "vaquero",
-    mag: 9, damage: 10, accuracy: 0.55, cost: 3,
-    effects: ["bullets+3", "damage+1"],
-    flavor: "Nine shots and a shotgun shell.",
-    backstory: "Dr. Jean Alexandre LeMat's grapeshot revolver, born in New Orleans 1855. Nine pistol rounds around a central .60 smoothbore — the Confederate cavalry officer's last argument.",
+    weaponType: "revolver",
+    mag: 9, damage: 11, accuracy: 0.57, cost: 3,
+    effects: ["bullets+2", "damage+2"],
+    flavor: "Nine chambers, no hesitation.",
+    backstory: "Dr. Jean Alexandre LeMat's nine-shot cavalry iron, born in New Orleans in 1855 and carried hard through saddle wars.",
   },
   {
     id: "gun_villa_mauser",
@@ -191,34 +194,37 @@ export const GUNS_LIST = [
     backstory: "John Henry Holliday's nickel-plated Colt House Pistol, palmed from his waistcoat at the O.K. Corral, October 26th, 1881. Tubercular cough, steady hand.",
   },
 
-  // ── SHERIFF (lawman irons / shotguns) ─────────────────────────────────────
+  // ── SHERIFF (shotgun specialist) ───────────────────────────────────────────
   {
     id: "gun_peacemaker",
-    name: "Colt Peacemaker",
+    name: "Town Guard Scattergun",
     rarity: "uncommon",
     classId: "sheriff",
-    mag: 6, damage: 10, accuracy: 0.62, cost: 2,
-    effects: ["accShootout+0.05"],
-    flavor: "Balanced iron — the lawman's choice.",
+    weaponType: "shotgun",
+    mag: 2, damage: 24, accuracy: 0.40, cost: 2,
+    effects: ["damage+4"],
+    flavor: "Short barrel, long consequences.",
   },
   {
     id: "gun_winchester_1887",
     name: "Winchester 1887",
     rarity: "epic",
     classId: "sheriff",
-    mag: 5, damage: 16, accuracy: 0.55, cost: 3,
-    effects: ["damage+4", "ricochet"],
-    flavor: "Lever-action argument-ender.",
+    weaponType: "shotgun",
+    mag: 3, damage: 32, accuracy: 0.40, cost: 3,
+    effects: ["damage+6", "ricochet"],
+    flavor: "The lever clacks. The street ducks.",
     backstory: "John Moses Browning's lever-action shotgun, 1887, made for Winchester at Oliver Winchester's request. The clack of its action ended more saloon arguments than any judge.",
   },
   {
     id: "gun_masterson_colt",
-    name: "Bat Masterson's Colt",
+    name: "Masterson's Thunderer",
     rarity: "legendary",
     classId: "sheriff",
-    mag: 6, damage: 11, accuracy: 0.70, cost: 4,
-    effects: ["accShootout+0.15", "damage+2", "hpAfterShootout+5"],
-    flavor: "Special order, Hartford.",
+    weaponType: "shotgun",
+    mag: 4, damage: 38, accuracy: 0.40, cost: 4,
+    effects: ["damage+8", "firstHitsAuto+1", "hpAfterShootout+5"],
+    flavor: "Special order. Final warning.",
     backstory: "Bartholomew W. Masterson wrote to Colt's Hartford works, July 1885: 'a special grip of gutta-percha, easy on the trigger.' Dodge City, Tombstone, and finally a desk at the New York Morning Telegraph.",
   },
 

@@ -623,10 +623,10 @@ export const CARD_DEFINITIONS = [
 
   // ── VAQUERO: DOS PISTOLAS ────────────────────────────────────────────────
   {
-    id: "atk_both_barrels", name: "Both Barrels", type: "feat", rarity: "uncommon", cost: 2,
+    id: "atk_both_barrels", name: "Crossdraw Burst", type: "feat", rarity: "uncommon", cost: 2,
     classId: "vaquero",
     effects: ["bullets+1", "damageShootout+0.2"],
-    flavorText: "Why pick one when you brought two?",
+    flavorText: "Left hand, right hand, same obituary.",
   },
   {
     id: "atk_crossfire", name: "Crossfire", type: "feat", rarity: "uncommon", cost: 2,
@@ -735,42 +735,42 @@ export const CARD_DEFINITIONS = [
     flavorText: "Both hands, both sure.",
   },
 
-  // ── SHERIFF: IRON WILL ───────────────────────────────────────────────────
+  // ── SHERIFF: RESPECT & SHOTGUN TANK ──────────────────────────────────────
   {
     id: "atk_bulwark", name: "Bulwark", type: "feat", rarity: "common", cost: 1,
     classId: "sheriff",
-    effects: ["healNow+10"],
-    flavorText: "The badge keeps you upright.",
+    effects: ["healNow+8", "dodgeRecv+0.06"],
+    flavorText: "Catch your breath, keep your feet.",
   },
   {
     id: "atk_lawmans_stand", name: "Lawman's Stand", type: "feat", rarity: "uncommon", cost: 2,
     classId: "sheriff",
-    effects: ["hpAfterCycle+10", "accShootout+0.05"],
-    flavorText: "Plant your boots. Don't blink.",
+    effects: ["hpAfterCycle+12", "dodgeRecv+0.08"],
+    flavorText: "Hold the line until noon breaks.",
   },
   {
     id: "atk_towns_strength", name: "Town's Strength", type: "feat", rarity: "uncommon", cost: 2,
     classId: "sheriff",
-    effects: ["damageShootout+0.25"],
-    flavorText: "The street stands behind you.",
+    effects: ["damageShootout+0.20", "accShootout+0.10"],
+    flavorText: "The whole street steadies your aim.",
   },
   {
-    id: "atk_heavy_iron", name: "Heavy Iron", type: "feat", rarity: "common", cost: 2,
+    id: "atk_heavy_iron", name: "Packed Shells", type: "feat", rarity: "common", cost: 2,
     classId: "sheriff",
-    effects: ["damage+3"],
-    flavorText: "Weight in the hand. Weight in the shot.",
+    effects: ["bullets+1", "damage+2"],
+    flavorText: "One more shell. One more answer.",
   },
   {
     id: "atk_iron_resolve", name: "Iron Resolve", type: "feat", rarity: "uncommon", cost: 2,
     classId: "sheriff",
-    effects: ["healNow+5", "accShootout+0.05"],
+    effects: ["healNow+8", "accShootout+0.08"],
     flavorText: "He bleeds. He keeps walking.",
   },
   {
-    id: "atk_bullet_proof", name: "Bullet-Proof", type: "feat", rarity: "rare", cost: 3,
+    id: "atk_bullet_proof", name: "Bullet-Stopping Badge", type: "feat", rarity: "rare", cost: 3,
     classId: "sheriff",
-    effects: ["dodgeRecv+0.3"],
-    flavorText: "Lead finds the air around him, not him.",
+    effects: ["dodgeRecv+0.18", "healNow+8"],
+    flavorText: "Flash the star, slip the shot, keep marching.",
   },
   {
     id: "atk_star_of_justice", name: "Star of Justice", type: "showdown", rarity: "legendary", cost: 4,
@@ -829,18 +829,18 @@ export const CARD_DEFINITIONS = [
     backstory: "He nailed every window shut and stood in the only exit.",
   },
   {
-    id: "atk_gallows_sunrise", name: "Gallows Sunrise", type: "showdown", rarity: "legendary", cost: 4,
+    id: "atk_gallows_sunrise", name: "Legend Never Dies", type: "showdown", rarity: "legendary", cost: 4,
     classId: "sheriff",
     showdownSlot: 5,
     unlockTownOrder: 4,
-    effects: ["firstHitsAuto+1", "accShootout+0.05"],
+    effects: ["respectCapSet+10", "accShootout+0.05"],
     showdownLevels: [
-      ["firstHitsAuto+1", "accShootout+0.05"],
-      ["firstHitsAuto+2", "accShootout+0.08", "damage+1"],
-      ["firstHitsAuto+3", "accShootout+0.10", "damage+2", "pierce"],
+      ["respectCapSet+10", "accShootout+0.05"],
+      ["respectCapSet+10", "accShootout+0.08", "damagePerHp+20"],
+      ["respectCapSet+10", "accShootout+0.10", "damagePerHp+16", "firstHitsAuto+1"],
     ],
-    flavorText: "Dawn comes with rope and gun smoke.",
-    backstory: "By sunrise, every verdict in town is already loaded.",
+    flavorText: "The town keeps your name alive. Your Respect keeps growing.",
+    backstory: "A badge can outlive its bearer when every win writes another line in town history.",
   },
 
   // ── APACHE TRACKER: SPIRIT WALKER ────────────────────────────────────────

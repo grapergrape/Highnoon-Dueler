@@ -87,6 +87,8 @@ export function feedbackLinesForCard(def, playedBy) {
         lines.push({ targetSide: "player", kind: "buff", text: `+${fmtPct(e.value)} acc if focused` });
       } else if (e.kind === "healNow") {
         lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} HP` });
+      } else if (e.kind === "respectCapSet") {
+        lines.push({ targetSide: "player", kind: "buff", text: `Respect cap ${e.value}` });
       }
     } else {
       if (e.kind === "enemyAccNext") {

@@ -405,6 +405,13 @@ function applyPersistentEffects(duel, run, def, targetMods, playedBy, level = 1)
       } else if (e.kind === "maxHp") {
         run.maxHp += e.value || 0;
         run.hp = Math.min(run.maxHp, run.hp + (e.value || 0));
+      } else if (e.kind === "respectCapSet") {
+        const nextCap = Math.max(0, Math.round(e.value || 0));
+        if (nextCap > 0) {
+          if (!run.permanent || typeof run.permanent !== "object") run.permanent = {};
+          const curCap = Number.isFinite(run.permanent.respectMax) ? run.permanent.respectMax : 5;
+          run.permanent.respectMax = Math.max(curCap, nextCap);
+        }
       } else if (e.kind === "gainFocused") {
         duel.playerFocused = true;
       } else if (e.kind === "removeDualPenalty") {
@@ -685,6 +692,7 @@ function applyPermanentFromCharacter(run, def) {
     if (e.kind === "bountyMult") run.permanent.bountyMult = (run.permanent.bountyMult ?? 1) + (e.value || 0);
     if (e.kind === "dualWieldAccPenaltyReduce") run.permanent.dualWieldAccPenaltyReduce = (run.permanent.dualWieldAccPenaltyReduce || 0) + (e.value || 0);
     if (e.kind === "spiritMax") run.permanent.spiritMax = (run.permanent.spiritMax || 10) + (e.value || 0);
+    if (e.kind === "respectCapSet") run.permanent.respectMax = Math.max(run.permanent.respectMax || 5, Math.round(e.value || 0));
   }
 }
 
@@ -770,17 +778,17 @@ export function duelDisplayedVolleyPreview(duel, run) {
   };
   if (duel.playerFocused) {
     result.player.bullets = Math.max(1, Math.round(result.player.bullets + (playerMods.focusBonusBullets || 0)));
-    result.player.acc = Math.min(0.96, result.player.acc + (playerMods.focusBonusAcc || 0));
+    result.player.acc += playerMods.focusBonusAcc || 0;
   }
   if (duel.playerSecondaryGun && !duel.dualWieldPenaltyRemoved) {
     let pen = run.permanent?.dualWieldAccPenalty ?? 0.10;
     pen = Math.max(0, pen - (run.permanent?.dualWieldAccPenaltyReduce ?? 0) - (playerMods.dualWieldAccPenaltyReduce || 0));
-    result.player.acc = Math.max(0.08, result.player.acc - pen);
+    result.player.acc -= pen;
   }
   const cyc = duel.cycleNumber ?? 1;
   const fcp = effectiveFirstCycleAccPenalty(run);
   if (cyc === 1 && fcp > 0) {
-    result.player.acc = Math.max(0.08, result.player.acc - fcp);
+    result.player.acc -= fcp;
   }
 
   // Mirror the late-cycle damage bonus so HUD preview matches actual shootout
@@ -789,15 +797,36 @@ export function duelDisplayedVolleyPreview(duel, run) {
     result.player.damageMult = Math.max(0.25, result.player.damageMult * (1 + lateBonus));
   }
 
-  // Apache Tracker floor: player accuracy never drops below accFloor
-  const floor = run.permanent?.accFloor ?? 0;
-  if (floor > 0) {
-    result.player.acc = Math.max(floor, result.player.acc);
-  }
+  // Sheriff passive: current-HP accuracy bonus above threshold.
+  result.player.sheriffHpAccBonus = sheriffHighHpAccBonus(run, run.hp);
+  result.player.acc += result.player.sheriffHpAccBonus;
+
+  // Final player clamp after all modifiers (including sheriff bonus).
+  const floor = Math.max(MIN_VOLLEY_ACC, run.permanent?.accFloor ?? 0);
+  result.player.acc = clampVolleyAcc(result.player.acc, floor);
+  result.enemy.acc = clampVolleyAcc(result.enemy.acc);
+
   return result;
 }
 
-// Sheriff Respect reduces the slow-draw penalty by `respectAccPenaltyReduceEach` per point.
+const MIN_VOLLEY_ACC = 0.08;
+const MAX_VOLLEY_ACC = 0.96;
+
+function clampVolleyAcc(acc, floor = MIN_VOLLEY_ACC) {
+  return Math.min(MAX_VOLLEY_ACC, Math.max(floor, acc));
+}
+
+function sheriffHighHpAccBonus(run, hpNow = run?.hp ?? 0) {
+  if (run?.classId !== "sheriff") return 0;
+  const threshold = run?.permanent?.highHpAccThreshold ?? 100;
+  const perHp = run?.permanent?.highHpAccPerHp ?? 0.03;
+  const cap = run?.permanent?.highHpAccMax ?? 0.35;
+  const above = Math.max(0, Math.floor((hpNow ?? 0) - threshold));
+  if (above <= 0) return 0;
+  return Math.min(Math.max(0, cap), above * Math.max(0, perHp));
+}
+
+// Legacy compatibility: old Sheriff saves can still carry this field.
 function effectiveFirstCycleAccPenalty(run) {
   const base = run.permanent?.firstCycleAccPenalty ?? 0;
   if (base <= 0) return 0;
@@ -806,13 +835,12 @@ function effectiveFirstCycleAccPenalty(run) {
   return Math.max(0, base - respect * each);
 }
 
-function buildVolleySide(gun, mods, debuffs, permAcc, cycleAccPenalty = 0) {
+function buildVolleySide(gun, mods, debuffs, permAcc) {
   let bullets = gun.mag + mods.bulletDelta + (debuffs?.bulletNext ?? 0);
   bullets = Math.max(1, Math.round(bullets));
   let damage = gun.damage + mods.damageDelta;
   damage = Math.max(1, Math.round(damage));
-  let acc = gun.accuracy + mods.accDelta + (permAcc || 0) + (debuffs?.accNext ?? 0) - (cycleAccPenalty || 0);
-  acc = Math.min(0.96, Math.max(0.08, acc));
+  const acc = gun.accuracy + mods.accDelta + (permAcc || 0) + (debuffs?.accNext ?? 0);
   return {
     bullets,
     damage,
@@ -831,12 +859,11 @@ export function resolveShootout(duel, run) {
   const pg = combinedGunStats(duel) ?? getGun(FALLBACK_GUN_ID);
   const eg = duel.enemy.activeGun?.stats ?? duel.enemy.gun;
   const permAcc = run.permanent?.accBonus ?? 0;
-  const cycleAccPenalty = duel.cycleNumber === 1 ? effectiveFirstCycleAccPenalty(run) : 0;
 
   const playerMods = combinedMods(duel.playerActiveGun, duel.playerMods, duel.playerSecondaryGun, persistentModsFor(duel, "player"));
   const enemyMods = combinedMods(duel.enemy.activeGun, duel.enemyMods, null, persistentModsFor(duel, "enemy"));
 
-  const P = buildVolleySide(pg, playerMods, duel.playerDebuffs, permAcc, cycleAccPenalty);
+  const P = buildVolleySide(pg, playerMods, duel.playerDebuffs, permAcc);
   const E = buildVolleySide(eg, enemyMods, duel.enemyDebuffs, 0);
 
   // Apply mark burst: each mark on enemy amplifies damage
@@ -862,7 +889,7 @@ export function resolveShootout(duel, run) {
   const spiritMult = duel.spiritDoubleNext ? 2 : 1;
   if ((duel.spirit || 0) > 0 && spiritMult > 0) {
     if (playerMods.spiritScaleAcc > 0) {
-      P.acc = Math.min(0.96, P.acc + duel.spirit * playerMods.spiritScaleAcc * spiritMult);
+      P.acc += duel.spirit * playerMods.spiritScaleAcc * spiritMult;
     }
     if (playerMods.spiritScaleDamage > 0) {
       P.damageMult = Math.max(0.25, P.damageMult * (1 + duel.spirit * playerMods.spiritScaleDamage * spiritMult));
@@ -872,7 +899,7 @@ export function resolveShootout(duel, run) {
   if (duel.playerSecondaryGun && !duel.dualWieldPenaltyRemoved) {
     let pen = run.permanent?.dualWieldAccPenalty ?? 0.10;
     pen = Math.max(0, pen - (run.permanent?.dualWieldAccPenaltyReduce ?? 0) - (playerMods.dualWieldAccPenaltyReduce || 0));
-    P.acc = Math.max(0.08, P.acc - pen);
+    P.acc -= pen;
   }
   // Outlaw legendary: +1 volley shot per combo trigger this duel
   if (playerMods.extraVolleyShots > 0) {
@@ -886,23 +913,31 @@ export function resolveShootout(duel, run) {
   // Apply focus bonuses if player is focused this cycle
   if (duel.playerFocused) {
     P.bullets = Math.max(1, Math.round(P.bullets + playerMods.focusBonusBullets));
-    P.acc = Math.min(0.96, P.acc + playerMods.focusBonusAcc);
+    P.acc += playerMods.focusBonusAcc;
     const focBonus = run.permanent?.focusedAccBonus ?? 0;
     if (focBonus > 0) {
-      P.acc = Math.min(0.96, P.acc + focBonus);
+      P.acc += focBonus;
     }
   }
 
   const cyc = duel.cycleNumber ?? 1;
   const firstCycleAccPenalty = effectiveFirstCycleAccPenalty(run);
   if (cyc === 1 && firstCycleAccPenalty > 0) {
-    P.acc = Math.max(0.08, P.acc - firstCycleAccPenalty);
+    P.acc -= firstCycleAccPenalty;
   }
 
-  // Apache Tracker floor: player accuracy never drops below accFloor
-  const accFloor = run.permanent?.accFloor ?? 0;
-  if (accFloor > 0) {
-    P.acc = Math.max(accFloor, P.acc);
+  // Final clamp floor for the player (e.g. Apache Tracker floor).
+  const accFloor = Math.max(MIN_VOLLEY_ACC, run.permanent?.accFloor ?? 0);
+  E.acc = clampVolleyAcc(E.acc);
+
+  // Sheriff passive scales off current HP and can change inside the same volley.
+  const currentPlayerAcc = () => {
+    const sheriffBonus = sheriffHighHpAccBonus(run, run.hp);
+    return clampVolleyAcc(P.acc + sheriffBonus, accFloor);
+  };
+  let lastSheriffBonus = sheriffHighHpAccBonus(run, run.hp);
+  if (lastSheriffBonus > 0) {
+    pushPlayLogBulletin(duel, `Respect steadying your aim: +${Math.round(lastSheriffBonus * 100)}% accuracy while above 100 HP.`);
   }
 
   // Apply late-cycle damage bonus (Vaquero: cycles 3+)
@@ -916,10 +951,11 @@ export function resolveShootout(duel, run) {
   let ei = 0;
   const reduce = (run.permanent?.damageReduce ?? 0) + (playerMods.damageReduce || 0);
   const deadeye = !!(run.permanent?.deadeye || playerMods.deadeye);
+  const playerAccSamples = [];
 
   const volley = { P, E };
   const summary = {
-    player: { hits: 0, misses: 0, dodged: 0, damage: 0, accuracy: P.acc, baseDamage: P.damage, shots: [] },
+    player: { hits: 0, misses: 0, dodged: 0, damage: 0, accuracy: currentPlayerAcc(), baseDamage: P.damage, shots: [] },
     enemy: { hits: 0, misses: 0, dodged: 0, damage: 0, accuracy: E.acc, baseDamage: E.damage, shots: [] },
   };
 
@@ -935,9 +971,23 @@ export function resolveShootout(duel, run) {
       side.shots.push(shot);
       return;
     }
+    const shotAcc = tag === "player" ? currentPlayerAcc() : att.acc;
+    if (tag === "player") {
+      const sheriffBonusNow = sheriffHighHpAccBonus(run, run.hp);
+      if (sheriffBonusNow !== lastSheriffBonus) {
+        const pct = Math.round(sheriffBonusNow * 100);
+        if (pct > 0) {
+          pushPlayLogBulletin(duel, `HP check: Sheriff accuracy bonus now +${pct}% (${Math.max(0, Math.round(run.hp))} HP).`);
+        } else {
+          pushPlayLogBulletin(duel, "HP check: dropped to 100 HP or lower — Sheriff accuracy bonus lost.");
+        }
+        lastSheriffBonus = sheriffBonusNow;
+      }
+      playerAccSamples.push(shotAcc);
+    }
     const roll = Math.random();
     const auto = att.firstHitsAuto > bulletIndex;
-    const hit = auto || roll < att.acc;
+    const hit = auto || roll < shotAcc;
     if (!hit) {
       log.push({ kind: "miss", by: tag });
       side.misses++;
@@ -1026,6 +1076,9 @@ export function resolveShootout(duel, run) {
   }
 
   duel.shootoutLog = log;
+  if (playerAccSamples.length) {
+    summary.player.accuracy = playerAccSamples.reduce((sum, v) => sum + v, 0) / playerAccSamples.length;
+  }
   summary.player.bullets = summary.player.shots.length;
   summary.enemy.bullets = summary.enemy.shots.length;
   duel.shootoutSummary = summary;

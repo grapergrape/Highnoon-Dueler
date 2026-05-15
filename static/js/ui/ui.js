@@ -50,6 +50,7 @@ const EFFECT_TOOLTIPS = {
   spiritDoubleNext: "All Spirit-scaling effects double for the next shootout.",
   extraVolleyShots: "Per combo trigger this duel, +N bonus shootout shots.",
   dualWieldAccPenaltyReduce: "Reduce the dual-wield accuracy penalty.",
+  respectCapSet: "Set your Respect cap to at least this value for the run.",
 };
 
 function tooltipForEffect(raw) {
@@ -78,6 +79,16 @@ const ROLE_LABEL = {
 };
 
 function pct(v) { return `${Math.round((v ?? 0) * 100)}%`; }
+
+function sheriffCurrentHpAccBonus(run) {
+  if (run?.classId !== "sheriff") return 0;
+  const threshold = run?.permanent?.highHpAccThreshold ?? 100;
+  const perHp = run?.permanent?.highHpAccPerHp ?? 0.03;
+  const cap = run?.permanent?.highHpAccMax ?? 0.35;
+  const above = Math.max(0, Math.floor((run?.hp ?? 0) - threshold));
+  if (above <= 0) return 0;
+  return Math.min(Math.max(0, cap), above * Math.max(0, perHp));
+}
 
 function effectToText(raw) {
   if (raw.startsWith("comboBonus:")) {
@@ -134,6 +145,7 @@ function effectToText(raw) {
     case 'outlawCombo': return null;
     case 'dualWieldAccPenaltyReduce': return `−${pct(v)} dual penalty`;
     case 'firstCycleAccPenalty': return `−${pct(v)} acc on cycle 1`;
+    case 'respectCapSet': return `Respect cap set to ${v}`;
     case 'startGunSchofield': return 'Start with Schofield';
     default: return raw;
   }
@@ -707,6 +719,10 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
     const dualStr = d.playerSecondaryGun ? `<span class="status-tag status-dual" title="Dual-wielding: mag stacks, damage averages, ${d.dualWieldPenaltyRemoved ? 'no acc penalty' : '−10% acc'}.">⚔ Dual Wield${d.dualWieldPenaltyRemoved ? '' : ' −10%'}</span>` : "";
     const comboStr = (d.roundOutlawCount > 0) ? `<span class="status-tag status-combo" title="Outlaw cards played this round.">↻ Combo ${d.roundOutlawCount}${d.roundOutlawCount >= 2 ? '!' : ''}</span>` : "";
     const comboFreeStr = d.nextComboFree ? `<span class="status-tag status-free" title="Next outlaw combo card costs 0 until used.">★ Free Combo</span>` : "";
+    const sheriffBonus = sheriffCurrentHpAccBonus(game.run);
+    const sheriffStr = game.run.classId === "sheriff"
+      ? `<span class="status-tag status-respect" title="Above 100 current HP grants +3% shotgun accuracy per HP, up to +35%.">${sheriffBonus > 0 ? `★ Respect Aim +${Math.round(sheriffBonus * 100)}%` : "★ Respect Aim inactive"}</span>`
+      : "";
     const focPips = Array.from({ length: d.playerMaxFocus }, (_, i) =>
       `<span class="focus-pip${i < d.playerFocus ? ' filled' : ''}"></span>`
     ).join('');
@@ -723,7 +739,7 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
       <span class="prep-round">Round ${d.prepRound}/3</span>
       <span class="focus-bar" title="Focus: ${d.playerFocus}/${d.playerMaxFocus}">${focPips}</span>
       <span class="focus-label">${d.playerFocus}/${d.playerMaxFocus} focus</span>
-      ${markStr}${focStr}${freeStr}${spiritStr}${dualStr}${comboStr}${comboFreeStr}
+      ${markStr}${focStr}${freeStr}${spiritStr}${dualStr}${comboStr}${comboFreeStr}${sheriffStr}
       <button class="btn btn-lockin" id="lock" ${d.playerLocked ? "disabled" : ""}>Lock In</button>
     </div>`;
     html += `<div class="card-row" id="hand"></div>`;

@@ -435,7 +435,7 @@ function endDuelFlow() {
       game.run.permanent.bountyMult = Math.min(3.0, mult + growth);
     }
 
-    // Sheriff Respect: each kill earns 1 point (cap respectMax), each point grants +respectMaxHpEach max HP.
+    // Sheriff Respect: each duel win earns +1 (up to respectMax), each point grants +respectMaxHpEach max HP.
     const perm = game.run.permanent;
     if (perm && Number.isFinite(perm.respectMax) && perm.respectMax > 0) {
       const cap = perm.respectMax;
