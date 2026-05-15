@@ -554,7 +554,6 @@ export function renderPostDuelReward(game, reward, onTakeCard, onSkip) {
   }
   el.querySelector("#skip-reward").onclick = onSkip;
 }
-
 function shuffle(a) {
   const x = [...a];
   for (let i = x.length - 1; i > 0; i--) {
