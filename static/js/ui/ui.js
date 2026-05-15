@@ -357,17 +357,24 @@ function ownedGunIdsInDeck(deckIds) {
   return deckIds.filter((id) => id.startsWith("gun_"));
 }
 
+function ownedNonGunIdsInDeck(deckIds) {
+  return deckIds.filter((id) => !id.startsWith("gun_"));
+}
+
 export function renderShop(game, onBuyCard, onHeal, onContinue) {
   const el = panel();
   el.className = "panel";
   const cardPool = shuffle([...shopCardPool(game)]).slice(0, 5);
   const gunPool = shuffle([...shopGunPool(game)]).slice(0, 4);
+  const deckSize = game.run.deckIds.length;
+  const atDeckCap = deckSize >= 24;
 
   el.innerHTML = `<h2>Merchant</h2><p>Spend your bounty. Health does not refill between fights.</p>
     <p>Wallet: <strong>$${game.run.money}</strong></p>
     <h3 class="shop-section-title">Guns <span class="shop-section-sub">(deck holds up to 2 extra guns)</span></h3>
     <div class="shop-list" id="shop-guns"></div>
-    <h3 class="shop-section-title">Cards & Tricks</h3>
+    <h3 class="shop-section-title">Cards & Tricks <span class="shop-section-sub">(deck cap 24)</span></h3>
+    ${atDeckCap ? `<p class="shop-empty"><em>Deck is full (${deckSize}/24). Buy a card to replace one non-gun card.</em></p>` : ''}
     <div class="shop-list" id="shop-cards"></div>
     <button class="btn" id="heal">Whiskey ($12) +20 HP</button>
     <button class="btn" id="done">Ride On</button>`;
@@ -418,7 +425,17 @@ export function renderShop(game, onBuyCard, onHeal, onContinue) {
         <span class="card-name-text">${c.name}</span>
         ${buildEffectsHtml(c)}
       </span>`;
-    b.onclick = () => onBuyCard(c.id, price);
+    b.onclick = () => {
+      if (atDeckCap) {
+        const ownedCards = ownedNonGunIdsInDeck(game.run.deckIds);
+        if (!ownedCards.length) return;
+        promptReplaceCard(game, ownedCards, (replaceId) => {
+          if (replaceId) onBuyCard(c.id, price, { replaceCardId: replaceId });
+        });
+        return;
+      }
+      onBuyCard(c.id, price);
+    };
     sc.appendChild(b);
   }
   el.querySelector("#heal").onclick = onHeal;
@@ -448,6 +465,32 @@ function promptReplaceGun(game, ownedGunIds, cb) {
         ${buildEffectsHtml(cardDef ?? { effects: g.effects })}
       </span>`;
     b.onclick = () => cb(g.id);
+    row.appendChild(b);
+  }
+  el.querySelector("#cancel-replace").onclick = () => cb(null);
+}
+
+function promptReplaceCard(game, ownedCardIds, cb) {
+  const el = panel();
+  el.innerHTML = `<h2>Deck Full</h2>
+    <p>Your deck is at the 24-card cap. Choose one non-gun card to leave behind:</p>
+    <div class="shop-list" id="replace-cards"></div>
+    <button class="btn" id="cancel-replace">Cancel</button>`;
+  const row = el.querySelector("#replace-cards");
+  for (const cardId of ownedCardIds) {
+    const c = getCardDef(cardId);
+    if (!c || c.type === "gun") continue;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = `shop-card hand-card-${c.type}`;
+    b.innerHTML = `
+      <span class="shop-card-inner hand-card-inner">
+        <span class="card-ribbon">${RIBBON_LABEL[c.type] ?? c.type}</span>
+        <span class="card-cost">${c.cost}</span>
+        <span class="card-name-text">${c.name}</span>
+        ${buildEffectsHtml(c)}
+      </span>`;
+    b.onclick = () => cb(cardId);
     row.appendChild(b);
   }
   el.querySelector("#cancel-replace").onclick = () => cb(null);

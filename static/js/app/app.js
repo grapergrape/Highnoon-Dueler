@@ -217,7 +217,8 @@ function openShop() {
       if (game.run.money < price) return;
       const isGun = cardId.startsWith("gun_");
       const replacingGun = isGun && !!opts?.replaceGunId;
-      if (game.run.deckIds.length >= 24 && !replacingGun) return;
+      const replacingCard = !isGun && !!opts?.replaceCardId;
+      if (game.run.deckIds.length >= 24 && !replacingGun && !replacingCard) return;
       if (isGun) {
         if (game.run.deckIds.includes(cardId)) return; // no duplicate guns
         const owned = gunCountInDeck(game.run.deckIds);
@@ -227,6 +228,11 @@ function openShop() {
           if (ix < 0) return;
           game.run.deckIds.splice(ix, 1);
         }
+      } else if (opts?.replaceCardId) {
+        if (opts.replaceCardId.startsWith("gun_")) return;
+        const ix = game.run.deckIds.indexOf(opts.replaceCardId);
+        if (ix < 0) return;
+        game.run.deckIds.splice(ix, 1);
       }
       game.run.money -= price;
       game.run.deckIds.push(cardId);
