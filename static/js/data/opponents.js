@@ -62,6 +62,13 @@ export const ROLE_ORDER = ["easy", "medium", "boss"];
 // Balance note: difficultyTier is deliberately not a strict 1-15 ladder.
 // Each town climbs easy < medium < boss, while each next town's easy opponent
 // is tuned below the previous boss but above the previous medium.
+// prepAggression follows the same ladder so town boundaries do not present a
+// sudden pressure drop: every next-town easy is strictly above the previous
+// town's medium and strictly below its boss, and Dead Man's Creek / Devil's
+// Saloon values stay above the Den of Bandits boss to avoid late-game relief.
+// HP, focus, gun, and deck strength already climb monotonically across the
+// roster; aggression here is the lever that smooths the curve without
+// disturbing identities or kits.
 /** @type {Opponent[]} */
 export const OPPONENTS = [
   {
@@ -165,7 +172,7 @@ export const OPPONENTS = [
     maxHp: 96,
     gunId: "gun_enemy_barrel_guard_blunder",
     focus: 5,
-    prepAggression: 0.36,
+    prepAggression: 0.46,
     bgKey: "saloon",
     bounty: 55,
     deckTemplate: [
@@ -252,7 +259,7 @@ export const OPPONENTS = [
     maxHp: 118,
     gunId: "gun_enemy_lookout_carbine",
     focus: 6,
-    prepAggression: 0.5,
+    prepAggression: 0.58,
     bgKey: "mine",
     bounty: 85,
     deckTemplate: [
@@ -339,7 +346,7 @@ export const OPPONENTS = [
     maxHp: 142,
     gunId: "gun_enemy_hollow_hank_rusted_iron",
     focus: 6,
-    prepAggression: 0.44,
+    prepAggression: 0.7,
     bgKey: "night",
     bounty: 120,
     deckTemplate: [
@@ -368,7 +375,7 @@ export const OPPONENTS = [
     maxHp: 160,
     gunId: "gun_enemy_marrow_duelist_navy",
     focus: 7,
-    prepAggression: 0.58,
+    prepAggression: 0.78,
     bgKey: "night",
     bounty: 150,
     deckTemplate: [
@@ -397,7 +404,7 @@ export const OPPONENTS = [
     maxHp: 186,
     gunId: "gun_enemy_gravesmoke_remington",
     focus: 8,
-    prepAggression: 0.66,
+    prepAggression: 0.82,
     bgKey: "night",
     bounty: 190,
     deckTemplate: [
@@ -426,7 +433,7 @@ export const OPPONENTS = [
     maxHp: 170,
     gunId: "gun_enemy_velvet_ace_dueling_colt",
     focus: 8,
-    prepAggression: 0.62,
+    prepAggression: 0.8,
     bgKey: "saloon",
     bounty: 175,
     deckTemplate: [
@@ -455,7 +462,7 @@ export const OPPONENTS = [
     maxHp: 188,
     gunId: "gun_enemy_ace_high_schofield",
     focus: 8,
-    prepAggression: 0.78,
+    prepAggression: 0.83,
     bgKey: "street",
     bounty: 220,
     deckTemplate: [
