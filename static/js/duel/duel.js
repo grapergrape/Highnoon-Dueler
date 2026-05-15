@@ -542,7 +542,7 @@ export function tryPlayCard(duel, run, cardUid) {
   }
   if (isComboFree) {
     duel.nextComboFree = false;
-    pushPlayLogBulletin(duel, "Outlaw's Pact — that one was on the house.");
+    pushPlayLogBulletin(duel, "Free combo spent - that one was on the house.");
   }
   duel.playerHand.splice(idx, 1);
 
@@ -625,6 +625,7 @@ export function tryPlayCard(duel, run, cardUid) {
     }
     if ((def.effects || []).includes("nextComboFree")) {
       duel.nextComboFree = true;
+      pushPlayLogBulletin(duel, "Your next outlaw combo card is free until used.");
     }
   }
 

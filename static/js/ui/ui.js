@@ -44,7 +44,7 @@ const EFFECT_TOOLTIPS = {
   spiritScaleEnemyAcc: "Reduce enemy accuracy on next volley scaled by Spirit.",
   payHp: "Spend HP to play this card. Refused if it would be lethal.",
   comboBonus: "Bonus effect — triggers if 2+ outlaw cards play in the same prep round.",
-  nextComboFree: "The next outlaw card you play this round costs 0 focus.",
+  nextComboFree: "Your next outlaw combo card costs 0 focus until you play one.",
   elDoble: "Mirror your active gun into the off-hand. Triple-stack if already dual.",
   removeDualPenalty: "Removes the dual-wield accuracy penalty for this duel.",
   spiritDoubleNext: "All Spirit-scaling effects double for the next shootout.",
@@ -127,7 +127,7 @@ function effectToText(raw) {
     case 'payHp': return `Pay ${v} HP`;
     case 'extraVolleyShots': return `+${v} shot / combo`;
     case 'staredownOnly': return null;
-    case 'nextComboFree': return 'Next combo card free';
+    case 'nextComboFree': return 'Next combo card free until played';
     case 'elDoble': return 'El Doble: mirror or triple-stack';
     case 'removeDualPenalty': return 'Clears dual-wield penalty';
     case 'spiritDoubleNext': return 'Double Spirit scaling';
@@ -706,7 +706,7 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
     const spiritStr = (d.spirit > 0) ? `<span class="status-tag status-spirit" title="Spirit scales spirit-based effects.">✦ Spirit ${d.spirit}${d.spiritDoubleNext ? " ×2" : ""}</span>` : "";
     const dualStr = d.playerSecondaryGun ? `<span class="status-tag status-dual" title="Dual-wielding: mag stacks, damage averages, ${d.dualWieldPenaltyRemoved ? 'no acc penalty' : '−10% acc'}.">⚔ Dual Wield${d.dualWieldPenaltyRemoved ? '' : ' −10%'}</span>` : "";
     const comboStr = (d.roundOutlawCount > 0) ? `<span class="status-tag status-combo" title="Outlaw cards played this round.">↻ Combo ${d.roundOutlawCount}${d.roundOutlawCount >= 2 ? '!' : ''}</span>` : "";
-    const comboFreeStr = d.nextComboFree ? `<span class="status-tag status-free" title="Next outlaw card costs 0.">★ Free Combo</span>` : "";
+    const comboFreeStr = d.nextComboFree ? `<span class="status-tag status-free" title="Next outlaw combo card costs 0 until used.">★ Free Combo</span>` : "";
     const focPips = Array.from({ length: d.playerMaxFocus }, (_, i) =>
       `<span class="focus-pip${i < d.playerFocus ? ' filled' : ''}"></span>`
     ).join('');
