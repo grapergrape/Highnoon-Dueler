@@ -123,9 +123,16 @@ function pickClass(classId) {
   goWanted();
 }
 
+function normalizeTownOrder(order) {
+  return Math.min(TOWNS.length, Math.max(1, Math.round(order || 1)));
+}
+
+function unlockedTownOrder() {
+  return normalizeTownOrder(game.run.currentTownOrder);
+}
+
 function setCurrentTown(order) {
-  const safeOrder = Math.min(TOWNS.length, Math.max(1, Math.round(order || 1)));
-  game.run.currentTownOrder = safeOrder;
+  game.run.currentTownOrder = normalizeTownOrder(order);
 }
 
 function recordOpponentWin(opp) {
@@ -142,7 +149,9 @@ function recordOpponentWin(opp) {
 function startDuel(oppId) {
   resetCombatUi(game);
   const opp = getOpponent(oppId);
-  setCurrentTown(opp.townOrder);
+  const highestUnlockedTown = unlockedTownOrder();
+  if (opp.townOrder > highestUnlockedTown) return;
+  setCurrentTown(highestUnlockedTown);
   game.lastBounty = bountyFor(oppId);
   game.run.hp = Math.min(game.run.maxHp, Math.max(1, game.run.hp));
   saveRun(game.run);

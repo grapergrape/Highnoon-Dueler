@@ -222,6 +222,15 @@ export function renderWanted(game, onPick) {
     : 1;
   const currentTown = TOWNS.find((t) => t.order === currentTownOrder) ?? TOWNS[0];
   const defeated = new Set(Array.isArray(game.run.defeatedOpponentIds) ? game.run.defeatedOpponentIds : []);
+  const bossByTownOrder = new Map(
+    OPPONENTS.filter((o) => o.role === "boss").map((o) => [o.townOrder, o])
+  );
+  const lockReasonForTown = (townOrder) => {
+    const previousBoss = bossByTownOrder.get(townOrder - 1);
+    return previousBoss
+      ? `Defeat ${previousBoss.name}, the Town ${townOrder - 1} boss, to unlock this town`
+      : "Defeat the previous town boss to unlock this town";
+  };
   const defeatedBossOrders = new Set(
     OPPONENTS.filter((o) => o.role === "boss" && defeated.has(o.id)).map((o) => o.townOrder)
   );
@@ -233,10 +242,12 @@ export function renderWanted(game, onPick) {
   const townTrack = TOWNS.map((town) => {
     const townOpps = OPPONENTS.filter((o) => o.townOrder === town.order);
     const defeatedCount = townOpps.filter((o) => defeated.has(o.id)).length;
+    const isLockedTown = town.order > currentTownOrder;
     const clsNames = [
       "town-node",
       town.order === currentTownOrder ? "town-node-current" : "",
       defeatedBossOrders.has(town.order) ? "town-node-cleared" : "",
+      isLockedTown ? "town-node-locked" : "",
     ].filter(Boolean).join(" ");
     return `<div class="${clsNames}">
       <span class="town-node-order">${town.order}</span>
@@ -257,16 +268,26 @@ export function renderWanted(game, onPick) {
 
   const roster = el.querySelector(".town-roster");
   for (const town of TOWNS) {
+    const isLockedTown = town.order > currentTownOrder;
+    const lockReason = isLockedTown ? lockReasonForTown(town.order) : "";
+    const townStatus = isLockedTown
+      ? `Locked — ${lockReason}`
+      : town.order === currentTownOrder
+        ? "Current trail stop"
+        : defeatedBossOrders.has(town.order)
+          ? "Boss defeated"
+          : "Open bounty board";
     const townWrap = document.createElement("section");
     townWrap.className = [
       "town-group",
       town.order === currentTownOrder ? "town-group-current" : "",
       defeatedBossOrders.has(town.order) ? "town-group-cleared" : "",
+      isLockedTown ? "town-group-locked" : "",
     ].filter(Boolean).join(" ");
     townWrap.innerHTML = `<header class="town-header">
       <div>
         <h3>${town.name}</h3>
-        <p>${town.order === currentTownOrder ? "Current trail stop" : defeatedBossOrders.has(town.order) ? "Boss defeated" : "Open bounty board"}</p>
+        <p>${townStatus}</p>
       </div>
       <span class="town-order">Town ${town.order}</span>
     </header>
@@ -281,12 +302,16 @@ export function renderWanted(game, onPick) {
       const isDefeated = defeated.has(o.id);
       const d = document.createElement("button");
       d.type = "button";
-      d.className = `poster wanted-poster role-${o.role}${isDefeated ? " poster-defeated" : ""}`;
+      d.className = `poster wanted-poster role-${o.role}${isDefeated ? " poster-defeated" : ""}${isLockedTown ? " poster-locked" : ""}`;
+      d.disabled = isLockedTown;
+      if (isLockedTown) d.title = lockReason;
       d.innerHTML = `
         <span class="role-badge">${ROLE_LABEL[o.role]}</span>
+        ${isLockedTown ? `<span class="locked-badge">Locked</span>` : ""}
         ${isDefeated ? `<span class="defeated-badge">Defeated</span>` : ""}
         <h3>${o.name}</h3>
         <p><em>${o.title}</em></p>
+        ${isLockedTown ? `<p class="poster-lock-note">${lockReason}</p>` : ""}
         <p class="wanted-backstory">${o.backstory.slice(0, 150)}...</p>
         <div class="wanted-stat-row">
           <span><strong>HP</strong> ${o.maxHp}</span>
@@ -296,7 +321,7 @@ export function renderWanted(game, onPick) {
           <span><strong>Focus</strong> ${o.focus}</span>
           <span><strong>Iron</strong> ${gun.name}</span>
         </div>`;
-      d.onclick = () => onPick(o.id);
+      if (!isLockedTown) d.onclick = () => onPick(o.id);
       g.appendChild(d);
     }
     roster.appendChild(townWrap);
