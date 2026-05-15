@@ -361,6 +361,9 @@ function openShop() {
   if (!game.shopVisitInventory) {
     game.shopVisitInventory = rollShopInventory(game);
   }
+  if (typeof game.shopVisitInventory.healUsed !== "boolean") {
+    game.shopVisitInventory.healUsed = false;
+  }
   game.screen = "shop";
   renderShop(
     game,
@@ -401,8 +404,10 @@ function openShop() {
     },
     () => {
       if (game.run.money < 12) return;
+      if (game.shopVisitInventory?.healUsed) return;
       game.run.money -= 12;
       game.run.hp = Math.min(game.run.maxHp, game.run.hp + 20);
+      if (game.shopVisitInventory) game.shopVisitInventory.healUsed = true;
       saveRun(game.run);
       updateHud(game);
       openShop();

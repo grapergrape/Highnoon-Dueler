@@ -358,6 +358,7 @@ export function rollShopInventory(game) {
   return {
     cardIds: shuffle([...shopCardPool(game)]).slice(0, 5).map((c) => c.id),
     gunIds: shuffle([...shopGunPool(game)]).slice(0, 4).map((g) => g.id),
+    healUsed: false,
   };
 }
 
@@ -381,6 +382,7 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
   const el = panel();
   el.className = "panel";
   const offers = shopInventory ?? rollShopInventory(game);
+  const healUsed = !!offers.healUsed;
   const cardPool = (offers.cardIds ?? [])
     .map((id) => getCardDef(id))
     .filter((c) => !!c && c.type !== "gun");
@@ -397,7 +399,8 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
     <h3 class="shop-section-title">Cards & Tricks <span class="shop-section-sub">(deck cap 24)</span></h3>
     ${atDeckCap ? `<p class="shop-empty"><em>Deck is full (${deckSize}/24). Buy a card to replace one non-gun card.</em></p>` : ''}
     <div class="shop-list" id="shop-cards"></div>
-    <button class="btn" id="heal">Whiskey ($12) +20 HP</button>
+    <button class="btn" id="heal" ${healUsed ? "disabled" : ""}>${healUsed ? "Whiskey (Used)" : "Whiskey ($12) +20 HP"}</button>
+    ${healUsed ? `<p class="hint">You can only buy whiskey once per merchant visit.</p>` : ""}
     <button class="btn" id="done">Ride On</button>`;
 
   const ironRow = el.querySelector("#shop-guns");
