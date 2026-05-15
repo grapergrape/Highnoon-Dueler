@@ -1,8 +1,8 @@
-import { OPPONENTS } from "../data/opponents.js";
+import { OPPONENTS, TOWNS } from "../data/opponents.js";
 import { getCardDef } from "../data/cards.js";
 import { CARD_DEFINITIONS, effectsForCardLevel } from "../data/cards.js";
 import { getClass, CLASSES } from "../data/classes.js";
-import { GUNS_LIST, gunsForClass, getGun } from "../data/guns.js";
+import { gunsForClass, getGun } from "../data/guns.js";
 
 const RARITY_PRICE = { common: 25, uncommon: 40, rare: 65, epic: 110, legendary: 180 };
 
@@ -69,6 +69,12 @@ const RIBBON_LABEL = {
   feat: "Feat",
   stance: "Stance",
   showdown: "Showdown",
+};
+
+const ROLE_LABEL = {
+  easy: "Easy",
+  medium: "Medium",
+  boss: "Boss",
 };
 
 function pct(v) { return `${Math.round((v ?? 0) * 100)}%`; }
@@ -211,19 +217,89 @@ export function renderWanted(game, onPick) {
   const el = panel();
   el.className = "panel";
   const cls = getClass(game.run.classId);
+  const currentTownOrder = Number.isFinite(game.run.currentTownOrder)
+    ? Math.min(TOWNS.length, Math.max(1, Math.round(game.run.currentTownOrder)))
+    : 1;
+  const currentTown = TOWNS.find((t) => t.order === currentTownOrder) ?? TOWNS[0];
+  const defeated = new Set(Array.isArray(game.run.defeatedOpponentIds) ? game.run.defeatedOpponentIds : []);
+  const defeatedBossOrders = new Set(
+    OPPONENTS.filter((o) => o.role === "boss" && defeated.has(o.id)).map((o) => o.townOrder)
+  );
   const head = cls
     ? `<div class="wanted-class-summary" style="--tint:${cls.portraitTint}">
         <strong>${cls.name}</strong> · <em>${cls.title}</em>
         <span>${cls.abilityBlurb}</span>
       </div>` : "";
-  el.innerHTML = `${head}<h2>Wanted Board</h2><p>Pick a soul to send to judgment.</p><div class="wanted-grid"></div>`;
-  const g = el.querySelector(".wanted-grid");
-  for (const o of OPPONENTS) {
-    const d = document.createElement("div");
-    d.className = "poster";
-    d.innerHTML = `<h3>${o.name}</h3><p><em>${o.title}</em></p><p>${o.backstory.slice(0, 120)}…</p><p><strong>HP</strong> ${o.maxHp}</p>`;
-    d.onclick = () => onPick(o.id);
-    g.appendChild(d);
+  const townTrack = TOWNS.map((town) => {
+    const townOpps = OPPONENTS.filter((o) => o.townOrder === town.order);
+    const defeatedCount = townOpps.filter((o) => defeated.has(o.id)).length;
+    const clsNames = [
+      "town-node",
+      town.order === currentTownOrder ? "town-node-current" : "",
+      defeatedBossOrders.has(town.order) ? "town-node-cleared" : "",
+    ].filter(Boolean).join(" ");
+    return `<div class="${clsNames}">
+      <span class="town-node-order">${town.order}</span>
+      <span class="town-node-name">${town.name}</span>
+      <span class="town-node-count">${defeatedCount}/3</span>
+    </div>`;
+  }).join("");
+  el.innerHTML = `${head}
+    <h2>Wanted Board</h2>
+    <p>Pick a soul to send to judgment.</p>
+    <div class="wanted-map">
+      <div class="wanted-map-image">
+        <img src="${currentTown.mapImage}" alt="${currentTown.name} trail map">
+      </div>
+      <div class="town-track">${townTrack}</div>
+    </div>
+    <div class="town-roster"></div>`;
+
+  const roster = el.querySelector(".town-roster");
+  for (const town of TOWNS) {
+    const townWrap = document.createElement("section");
+    townWrap.className = [
+      "town-group",
+      town.order === currentTownOrder ? "town-group-current" : "",
+      defeatedBossOrders.has(town.order) ? "town-group-cleared" : "",
+    ].filter(Boolean).join(" ");
+    townWrap.innerHTML = `<header class="town-header">
+      <div>
+        <h3>${town.name}</h3>
+        <p>${town.order === currentTownOrder ? "Current trail stop" : defeatedBossOrders.has(town.order) ? "Boss defeated" : "Open bounty board"}</p>
+      </div>
+      <span class="town-order">Town ${town.order}</span>
+    </header>
+    <div class="wanted-grid"></div>`;
+
+    const g = townWrap.querySelector(".wanted-grid");
+    const townOpps = OPPONENTS
+      .filter((o) => o.townOrder === town.order)
+      .sort((a, b) => a.roleOrder - b.roleOrder);
+    for (const o of townOpps) {
+      const gun = getGun(o.gunId);
+      const isDefeated = defeated.has(o.id);
+      const d = document.createElement("button");
+      d.type = "button";
+      d.className = `poster wanted-poster role-${o.role}${isDefeated ? " poster-defeated" : ""}`;
+      d.innerHTML = `
+        <span class="role-badge">${ROLE_LABEL[o.role]}</span>
+        ${isDefeated ? `<span class="defeated-badge">Defeated</span>` : ""}
+        <h3>${o.name}</h3>
+        <p><em>${o.title}</em></p>
+        <p class="wanted-backstory">${o.backstory.slice(0, 150)}...</p>
+        <div class="wanted-stat-row">
+          <span><strong>HP</strong> ${o.maxHp}</span>
+          <span><strong>Tier</strong> ${o.difficultyTier}</span>
+        </div>
+        <div class="wanted-stat-row">
+          <span><strong>Focus</strong> ${o.focus}</span>
+          <span><strong>Iron</strong> ${gun.name}</span>
+        </div>`;
+      d.onclick = () => onPick(o.id);
+      g.appendChild(d);
+    }
+    roster.appendChild(townWrap);
   }
 }
 
@@ -232,6 +308,7 @@ function shopCardPool(game) {
   const classId = game.run.classId;
   return CARD_DEFINITIONS.filter((c) =>
     c.type !== "gun" &&
+    !c.opponentOnly &&
     !owned.has(c.id) &&
     (!c.classId || c.classId === classId)
   );

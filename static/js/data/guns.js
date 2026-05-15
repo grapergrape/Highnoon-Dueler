@@ -19,6 +19,7 @@
  * @property {string[]} effects       // tokens parsed by cards.js parseEffect
  * @property {string} flavor          // always shown
  * @property {string} [backstory]     // only on epic/legendary
+ * @property {boolean} [opponentOnly] // true = never offered to the player
  */
 
 /** @type {Gun[]} */
@@ -221,6 +222,134 @@ export const GUNS_LIST = [
     backstory: "Bartholomew W. Masterson wrote to Colt's Hartford works, July 1885: 'a special grip of gutta-percha, easy on the trigger.' Dodge City, Tombstone, and finally a desk at the New York Morning Telegraph.",
   },
 
+  // ── ENEMY-ONLY ROSTER GUNS ───────────────────────────────────────────────
+  {
+    id: "gun_enemy_deputy_peashooter",
+    name: "Deputy's Peashooter",
+    rarity: "common", classId: null, opponentOnly: true,
+    mag: 4, damage: 7, accuracy: 0.48, cost: 1,
+    effects: [],
+    flavor: "Issued with a badge still warmer than the hand that wears it.",
+  },
+  {
+    id: "gun_enemy_quickstep_colt",
+    name: "Quickstep Colt",
+    rarity: "common", classId: null, opponentOnly: true,
+    mag: 5, damage: 8, accuracy: 0.56, cost: 1,
+    effects: ["accShootout+0.04"],
+    flavor: "Polished for the stage, drawn for the alley.",
+  },
+  {
+    id: "gun_enemy_marshal_graves_iron",
+    name: "Graves' Town Iron",
+    rarity: "uncommon", classId: null, opponentOnly: true,
+    mag: 6, damage: 9, accuracy: 0.58, cost: 2,
+    effects: ["damage+1", "accShootout+0.04"],
+    flavor: "Heavy enough to settle ordinances.",
+  },
+  {
+    id: "gun_enemy_barrel_guard_blunder",
+    name: "Barrel Guard Blunderbuss",
+    rarity: "common", classId: null, opponentOnly: true,
+    mag: 4, damage: 11, accuracy: 0.45, cost: 1,
+    effects: ["damage+2", "accShootout-0.04"],
+    flavor: "A sawed mouth of iron and spilled mash.",
+  },
+  {
+    id: "gun_enemy_moonshine_pistol",
+    name: "Moonshine Runner's Pistol",
+    rarity: "uncommon", classId: null, opponentOnly: true,
+    mag: 6, damage: 9, accuracy: 0.60, cost: 2,
+    effects: ["bullets+1"],
+    flavor: "Wrapped in flour sack cloth to keep the still smoke off.",
+  },
+  {
+    id: "gun_enemy_stillhouse_repeater",
+    name: "Stillhouse Repeater",
+    rarity: "rare", classId: null, opponentOnly: true,
+    mag: 7, damage: 10, accuracy: 0.58, cost: 3,
+    effects: ["bullets+2", "damage+1"],
+    flavor: "Its lever clacks like a tax collector's knuckles.",
+  },
+  {
+    id: "gun_enemy_lookout_carbine",
+    name: "Lookout's Carbine",
+    rarity: "uncommon", classId: null, opponentOnly: true,
+    mag: 5, damage: 10, accuracy: 0.62, cost: 2,
+    effects: ["accShootout+0.05"],
+    flavor: "Short barrel, long canyon.",
+  },
+  {
+    id: "gun_enemy_switchback_schofield",
+    name: "Switchback Schofield",
+    rarity: "rare", classId: null, opponentOnly: true,
+    mag: 6, damage: 11, accuracy: 0.64, cost: 3,
+    effects: ["damage+1", "accShootout+0.06"],
+    flavor: "The cylinder opens as neatly as a trap.",
+  },
+  {
+    id: "gun_enemy_red_jack_dragoon",
+    name: "Red Jack's Dragoon",
+    rarity: "epic", classId: null, opponentOnly: true,
+    mag: 7, damage: 12, accuracy: 0.63, cost: 4,
+    effects: ["bullets+2", "damage+2"],
+    flavor: "Too large for grace, too loud for mercy.",
+    backstory: "Cut down from an old Colt Dragoon and inlaid with teeth Red Jack swears were already loose.",
+  },
+  {
+    id: "gun_enemy_hollow_hank_rusted_iron",
+    name: "Hollow Hank's Rusted Iron",
+    rarity: "rare", classId: null, opponentOnly: true,
+    mag: 5, damage: 13, accuracy: 0.42, cost: 3,
+    effects: ["damage+3", "accShootout-0.08"],
+    flavor: "The barrel smells like creek mud and coffin nails.",
+  },
+  {
+    id: "gun_enemy_marrow_duelist_navy",
+    name: "Marrow Navy",
+    rarity: "epic", classId: null, opponentOnly: true,
+    mag: 6, damage: 12, accuracy: 0.57, cost: 4,
+    effects: ["dodgeRecv+0.05", "returnBulletOnHit+1"],
+    flavor: "It clicks once for the living and twice for the dead.",
+    backstory: "A Navy Colt pried from a flooded grave, its ivory grip yellowed like old bone.",
+  },
+  {
+    id: "gun_enemy_gravesmoke_remington",
+    name: "Gravesmoke Remington",
+    rarity: "legendary", classId: null, opponentOnly: true,
+    mag: 7, damage: 13, accuracy: 0.60, cost: 5,
+    effects: ["damage+2", "returnBulletOnHit+1", "pierce"],
+    flavor: "Black powder rolls from it even before the trigger moves.",
+    backstory: "Silas carried it into the grave. The grave gave it back with interest.",
+  },
+  {
+    id: "gun_enemy_velvet_ace_dueling_colt",
+    name: "Velvet Ace Dueling Colt",
+    rarity: "epic", classId: null, opponentOnly: true,
+    mag: 6, damage: 12, accuracy: 0.72, cost: 4,
+    effects: ["accShootout+0.10", "firstHitsAuto+1"],
+    flavor: "Soft holster, hard manners.",
+    backstory: "Dahlia's table stake, won from a railroad heir who learned not to call a lady's bluff.",
+  },
+  {
+    id: "gun_enemy_ace_high_schofield",
+    name: "Ace-High Schofield",
+    rarity: "legendary", classId: null, opponentOnly: true,
+    mag: 7, damage: 13, accuracy: 0.76, cost: 5,
+    effects: ["accShootout+0.12", "bullets+1", "firstHitsAuto+1"],
+    flavor: "Famous enough to have its own obituary column.",
+    backstory: "The nickel Schofield Caleb raises for portraits and lowers for funerals.",
+  },
+  {
+    id: "gun_enemy_blackthorn_last_word",
+    name: "Blackthorn's Last Word",
+    rarity: "legendary", classId: null, opponentOnly: true,
+    mag: 8, damage: 15, accuracy: 0.78, cost: 5,
+    effects: ["accShootout+0.15", "damage+3", "firstHitsAuto+2", "pierce"],
+    flavor: "The verdict arrives before the report.",
+    backstory: "A custom revolver with a judge's gavel carved into the grip and a hangman's knot etched under the barrel.",
+  },
+
   // ── GENERIC POOL (12 guns: 3/3/3/2/1) ─────────────────────────────────────
 
   // common (3)
@@ -345,7 +474,7 @@ export function getGun(id) {
 
 /** Guns playable by a given class id (class-locked + generic). */
 export function gunsForClass(classId) {
-  return GUNS_LIST.filter((g) => g.classId === null || g.classId === classId);
+  return GUNS_LIST.filter((g) => !g.opponentOnly && (g.classId === null || g.classId === classId));
 }
 
 /** Returns the uncommon class-locked starter gun id for a class. */

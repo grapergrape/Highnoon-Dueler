@@ -1,6 +1,6 @@
 import { STARTER_DECK_IDS, shuffle } from "../data/deck.js";
 import { starterGunIdForClass } from "../data/guns.js";
-import { getOpponent } from "../data/opponents.js";
+import { getOpponent, TOWNS } from "../data/opponents.js";
 import {
   createDuel,
   tryPlayCard,
@@ -27,9 +27,8 @@ import { LS_KEY, defaultRun, loadRun, saveRun } from "./run-state.js";
 const GAMEOVER_AUTO_RETURN_MS = 10000;
 
 function bountyFor(oppId) {
-  const base = oppId === "blackjack_riley" ? 55 : oppId === "silent_rose" ? 70 : 50;
-  const mult = game.run.permanent?.bountyMult ?? 1;
-  return Math.round(base * mult);
+  const opp = getOpponent(oppId);
+  return opp.bounty ?? (35 + opp.difficultyTier * 12);
 }
 
 const _savedRun = loadRun();
@@ -117,16 +116,36 @@ function goClassSelect() {
 function pickClass(classId) {
   applyClassToRun(game.run, classId);
   game.run.activeGunId = starterGunIdForClass(classId);
+  game.run.currentTownOrder = 1;
+  game.run.defeatedOpponentIds = [];
   saveRun(game.run);
   updateHud(game);
   goWanted();
 }
 
+function setCurrentTown(order) {
+  const safeOrder = Math.min(TOWNS.length, Math.max(1, Math.round(order || 1)));
+  game.run.currentTownOrder = safeOrder;
+}
+
+function recordOpponentWin(opp) {
+  if (!opp) return;
+  if (!Array.isArray(game.run.defeatedOpponentIds)) game.run.defeatedOpponentIds = [];
+  if (!game.run.defeatedOpponentIds.includes(opp.id)) {
+    game.run.defeatedOpponentIds.push(opp.id);
+  }
+  if (opp.role === "boss" && (game.run.currentTownOrder ?? 1) <= opp.townOrder) {
+    setCurrentTown(Math.min(TOWNS.length, opp.townOrder + 1));
+  }
+}
+
 function startDuel(oppId) {
   resetCombatUi(game);
   const opp = getOpponent(oppId);
-  game.lastBounty = Math.round(bountyFor(oppId) * (game.run.permanent.bountyMult ?? 1));
+  setCurrentTown(opp.townOrder);
+  game.lastBounty = bountyFor(oppId);
   game.run.hp = Math.min(game.run.maxHp, Math.max(1, game.run.hp));
+  saveRun(game.run);
   game.duel = createDuel(opp, game.run);
   dealStaredownChoices(game.duel, game.run);
   game.screen = "duel";
@@ -228,6 +247,7 @@ function endDuelFlow() {
   if (d.winner === "player") {
     const mult = game.run.permanent?.bountyMult ?? 1;
     game.run.money += Math.round(game.lastBounty * mult);
+    recordOpponentWin(d.opponentDef);
 
     // Apply cumulative growth for next time (Outlaw class: bountyGrowthPerWin = 0.25, cap 3.0)
     const growth = game.run.permanent?.bountyGrowthPerWin ?? 0;
