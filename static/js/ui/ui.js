@@ -1,8 +1,8 @@
 import { OPPONENTS, TOWNS } from "../data/opponents.js";
-import { getCardDef } from "../data/cards.js";
-import { CARD_DEFINITIONS, effectsForCardLevel } from "../data/cards.js";
+import { CARD_DEFINITIONS, effectsForCardLevel, getCardDef } from "../data/cards.js";
 import { getClass, CLASSES } from "../data/classes.js";
 import { gunsForClass, getGun } from "../data/guns.js";
+import { getClassShowdownProgress, isShowdownUnlockedForClass } from "../app/unlock-state.js";
 
 const RARITY_PRICE = { common: 25, uncommon: 40, rare: 65, epic: 110, legendary: 180 };
 
@@ -331,11 +331,20 @@ export function renderWanted(game, onPick) {
 function shopCardPool(game) {
   const owned = new Set(game.run.deckIds);
   const classId = game.run.classId;
+  const unlockState = game.unlocks;
   return CARD_DEFINITIONS.filter((c) =>
     c.type !== "gun" &&
     !c.opponentOnly &&
     !owned.has(c.id) &&
-    (!c.classId || c.classId === classId)
+    (!c.classId || c.classId === classId) &&
+    (
+      c.type !== "showdown"
+      || (
+        !!c.classId
+        && c.classId === classId
+        && isShowdownUnlockedForClass(unlockState, classId, c.id)
+      )
+    )
   );
 }
 
@@ -748,28 +757,66 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
   }
 }
 
-export function renderGameOver(game, onRestart) {
+export function renderGameOver(game, onRestart, opts = {}) {
+  const recentUnlocks = Array.isArray(opts.recentUnlocks) ? opts.recentUnlocks : [];
+  const unlockItems = recentUnlocks.map((entry) =>
+    `<li><strong>${entry.cardName}</strong> (${entry.className}) — Town ${entry.townOrder} boss clear (${entry.townName})</li>`
+  ).join("");
+  const unlockReport = unlockItems
+    ? `<div class="gameover-unlock-report">
+        <h3>Showdown Catalog Updated</h3>
+        <ul>${unlockItems}</ul>
+      </div>`
+    : "";
   const el = panel();
   el.className = "panel panel-gameover";
   el.innerHTML = `<h2>Game Over</h2><p>The desert keeps your coin.</p>
     <p class="game-over-wait">Back to class select shortly… Press below to ride now.</p>
+    ${unlockReport}
     <button class="btn" id="rs">Return now</button>`;
   el.querySelector("#rs").onclick = onRestart;
 }
 
-export function renderClassSelect(onPick) {
+export function renderClassSelect(onPick, opts = {}) {
+  const unlockState = opts.unlockState ?? null;
+  const recentUnlocks = Array.isArray(opts.recentUnlocks) ? opts.recentUnlocks : [];
+  const unlockItems = recentUnlocks.map((entry) =>
+    `<li><strong>${entry.cardName}</strong> unlocked for ${entry.className} (Town ${entry.townOrder} boss clear)</li>`
+  ).join("");
+  const unlockBanner = unlockItems
+    ? `<div class="catalog-unlock-banner">
+        <h3>New Showdown Unlocks</h3>
+        <ul>${unlockItems}</ul>
+      </div>`
+    : "";
   const el = panel();
   el.className = "panel panel-class-select";
-  el.innerHTML = `<h2>Choose Your Path</h2><p>Your class shapes your starting deck and abilities.</p><div class="class-grid"></div>`;
+  el.innerHTML = `<h2>Choose Your Path</h2>
+    <p>Your class shapes your starting deck and abilities.</p>
+    ${unlockBanner}
+    <div class="class-grid"></div>`;
   const g = el.querySelector(".class-grid");
   for (const cls of CLASSES) {
+    const progress = getClassShowdownProgress(unlockState, cls.id);
+    const progressLine = progress.totalCount > 0
+      ? `${progress.unlockedCount}/${progress.totalCount} Showdowns unlocked`
+      : "No class Showdown catalog";
+    let nextTarget = "Catalog complete";
+    if (progress.nextLocked) {
+      const townOrder = progress.nextLocked.unlockTownOrder;
+      nextTarget = Number.isFinite(townOrder)
+        ? `Next: Town ${townOrder} boss clear (${progress.nextLocked.name})`
+        : `Next: ${progress.nextLocked.name}`;
+    }
     const d = document.createElement("div");
     d.className = "poster class-card";
     d.style.setProperty("--tint", cls.portraitTint);
     d.innerHTML = `
       <h3 style="color:${cls.portraitTint}">${cls.name}</h3>
       <p><em>${cls.title}</em></p>
-      <p>${cls.abilityBlurb}</p>`;
+      <p>${cls.abilityBlurb}</p>
+      <p class="class-catalog-progress">${progressLine}</p>
+      <p class="class-catalog-next">${nextTarget}</p>`;
     d.onclick = () => onPick(cls.id);
     g.appendChild(d);
   }

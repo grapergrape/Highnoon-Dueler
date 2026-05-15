@@ -23,8 +23,13 @@ import {
   renderPostDuelReward,
   renderGameOver,
 } from "../ui/ui.js";
-import { getClass, applyClassToRun } from "../data/classes.js";
+import { getClass } from "../data/classes.js";
 import { LS_KEY, defaultRun, loadRun, saveRun } from "./run-state.js";
+import {
+  loadUnlockState,
+  saveUnlockState,
+  unlockShowdownsForBossClear,
+} from "./unlock-state.js";
 
 const GAMEOVER_AUTO_RETURN_MS = 10000;
 const MAX_DECK_SIZE = 24;
@@ -42,6 +47,7 @@ function bountyFor(oppId) {
 }
 
 const _savedRun = loadRun();
+const _savedUnlocks = loadUnlockState();
 
 const game = {
   screen: "wanted",
@@ -65,6 +71,8 @@ const game = {
     playerKind: "buff",
     enemyKind: "buff",
   },
+  unlocks: _savedUnlocks,
+  pendingUnlockAnnouncements: [],
 };
 
 function loadAsset(url) {
@@ -118,16 +126,18 @@ function goClassSelect() {
   resetCombatUi(game);
   game.screen = "class-select";
   game.duel = null;
-  saveRun(game.run);
+  game.run = defaultRun();
   updateHud(game);
-  renderClassSelect(pickClass);
+  renderClassSelect(pickClass, {
+    unlockState: game.unlocks,
+    recentUnlocks: game.pendingUnlockAnnouncements,
+  });
+  game.pendingUnlockAnnouncements = [];
 }
 
 function pickClass(classId) {
-  applyClassToRun(game.run, classId);
+  game.run = defaultRun(classId);
   game.run.activeGunId = starterGunIdForClass(classId);
-  game.run.currentTownOrder = 1;
-  game.run.defeatedOpponentIds = [];
   saveRun(game.run);
   updateHud(game);
   goWanted();
@@ -151,8 +161,35 @@ function recordOpponentWin(opp) {
   if (!game.run.defeatedOpponentIds.includes(opp.id)) {
     game.run.defeatedOpponentIds.push(opp.id);
   }
-  if (opp.role === "boss" && (game.run.currentTownOrder ?? 1) <= opp.townOrder) {
-    setCurrentTown(Math.min(TOWNS.length, opp.townOrder + 1));
+  if (opp.role === "boss") {
+    if (game.run.classId) {
+      const { unlockState, newlyUnlocked, changed } = unlockShowdownsForBossClear(
+        game.unlocks,
+        game.run.classId,
+        opp.townOrder
+      );
+      if (changed) {
+        game.unlocks = unlockState;
+        saveUnlockState(game.unlocks);
+      }
+      if (newlyUnlocked.length) {
+        const className = getClass(game.run.classId)?.name ?? game.run.classId;
+        const town = TOWNS.find((entry) => entry.order === opp.townOrder);
+        for (const card of newlyUnlocked) {
+          game.pendingUnlockAnnouncements.push({
+            classId: game.run.classId,
+            className,
+            cardId: card.id,
+            cardName: card.name,
+            townOrder: opp.townOrder,
+            townName: town?.name ?? `Town ${opp.townOrder}`,
+          });
+        }
+      }
+    }
+    if ((game.run.currentTownOrder ?? 1) <= opp.townOrder) {
+      setCurrentTown(Math.min(TOWNS.length, opp.townOrder + 1));
+    }
   }
 }
 
@@ -391,7 +428,7 @@ function endDuelFlow() {
       clearNavTimers();
       localStorage.removeItem(LS_KEY);
       goClassSelect();
-    });
+    }, { recentUnlocks: game.pendingUnlockAnnouncements });
     game._gameOverReturnTimer = setTimeout(() => {
       game._gameOverReturnTimer = null;
       if (game.screen !== "gameover") return;
@@ -470,6 +507,7 @@ function init() {
   preloadDuelArt();
   game.canvas = document.getElementById("game-canvas");
   game.ctx = game.canvas.getContext("2d");
+  saveUnlockState(game.unlocks);
   updateHud(game);
   if (!game.run.classId) {
     goClassSelect();

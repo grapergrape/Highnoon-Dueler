@@ -13,6 +13,10 @@ import { GUNS_LIST } from "./guns.js";
  * @property {string[]} [effects]
  * @property {string[][]} [showdownLevels]
  * @property {boolean} [opponentOnly]
+ * @property {string|null} [classId]
+ * @property {number} [showdownSlot]
+ * @property {number} [unlockTownOrder]
+ * @property {boolean} [defaultUnlocked]
  */
 
 /** @type {CardDef[]} */
@@ -549,6 +553,8 @@ export const CARD_DEFINITIONS = [
   {
     id: "atk_federal_bounty_program", name: "Federal Bounty Program", type: "showdown", rarity: "legendary", cost: 4,
     classId: "marshal",
+    showdownSlot: 1,
+    defaultUnlocked: true,
     effects: ["markBulletPerMark+1"],
     showdownLevels: [
       ["markBulletPerMark+1"],
@@ -557,6 +563,62 @@ export const CARD_DEFINITIONS = [
     ],
     flavorText: "Every mark is a paycheck.",
     backstory: "The Department of Justice's standing offer: one bullet, one bounty, paid by the head.",
+  },
+  {
+    id: "atk_dead_to_rights_docket", name: "Dead to Rights Docket", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "marshal",
+    showdownSlot: 2,
+    unlockTownOrder: 1,
+    effects: ["markBurst+4", "markEnemy+1"],
+    showdownLevels: [
+      ["markBurst+4", "markEnemy+1"],
+      ["markBurst+6", "markEnemy+1", "accShootout+0.05"],
+      ["markBurst+8", "markEnemy+2", "enemyBullets-1"],
+    ],
+    flavorText: "Every warrant has a body count ledger.",
+    backstory: "Federal clerks call it paperwork; marshals call it a promise.",
+  },
+  {
+    id: "atk_posse_at_sundown", name: "Posse at Sundown", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "marshal",
+    showdownSlot: 3,
+    unlockTownOrder: 2,
+    effects: ["bullets+1", "markBulletPerMark+1"],
+    showdownLevels: [
+      ["bullets+1", "markBulletPerMark+1"],
+      ["bullets+2", "markBulletPerMark+1", "accShootout+0.05"],
+      ["bullets+3", "markBulletPerMark+1", "accShootout+0.10"],
+    ],
+    flavorText: "Badges flood the street at dusk.",
+    backstory: "By sundown, every alley answers to federal lead.",
+  },
+  {
+    id: "atk_no_border_for_the_law", name: "No Border for the Law", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "marshal",
+    showdownSlot: 4,
+    unlockTownOrder: 3,
+    effects: ["markEnemy+2", "enemyAccNext-0.08"],
+    showdownLevels: [
+      ["markEnemy+2", "enemyAccNext-0.08"],
+      ["markEnemy+3", "enemyAccNext-0.10", "damage+1"],
+      ["markEnemy+4", "enemyAccNext-0.12", "damage+2"],
+    ],
+    flavorText: "Jurisdiction ends where your bullets stop.",
+    backstory: "State lines are chalk marks on a map and dust on his boots.",
+  },
+  {
+    id: "atk_warrant_storm", name: "Warrant Storm", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "marshal",
+    showdownSlot: 5,
+    unlockTownOrder: 4,
+    effects: ["markBulletPerMark+1", "bullets+1", "damageShootout+0.10"],
+    showdownLevels: [
+      ["markBulletPerMark+1", "bullets+1", "damageShootout+0.10"],
+      ["markBulletPerMark+1", "bullets+2", "damageShootout+0.20"],
+      ["markBulletPerMark+1", "bullets+3", "damageShootout+0.30", "accShootout+0.10"],
+    ],
+    flavorText: "Ink dries, thunder starts.",
+    backstory: "When every warrant comes due at once, the sky fills with lead.",
   },
 
   // ── VAQUERO: DOS PISTOLAS ────────────────────────────────────────────────
@@ -599,6 +661,8 @@ export const CARD_DEFINITIONS = [
   {
     id: "atk_el_doble", name: "El Doble", type: "showdown", rarity: "legendary", cost: 4,
     classId: "vaquero",
+    showdownSlot: 1,
+    defaultUnlocked: true,
     effects: ["bullets+1"],
     showdownLevels: [
       ["bullets+1"],
@@ -607,6 +671,62 @@ export const CARD_DEFINITIONS = [
     ],
     flavorText: "Dos pistolas se vuelven tres.",
     backstory: "South of the border, a pistolero who counted to two but fought as if to three.",
+  },
+  {
+    id: "atk_cantina_crossfire", name: "Cantina Crossfire", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "vaquero",
+    showdownSlot: 2,
+    unlockTownOrder: 1,
+    effects: ["bullets+2", "ricochet"],
+    showdownLevels: [
+      ["bullets+2", "ricochet"],
+      ["bullets+2", "ricochet", "accShootout+0.05"],
+      ["bullets+3", "ricochet", "accShootout+0.10", "damage+1"],
+    ],
+    flavorText: "The whole cantina starts firing.",
+    backstory: "He turns one duel into a room-wide argument in lead.",
+  },
+  {
+    id: "atk_matadors_step", name: "Matador's Step", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "vaquero",
+    showdownSlot: 3,
+    unlockTownOrder: 2,
+    effects: ["dodgeRecv+0.10", "accShootout+0.05"],
+    showdownLevels: [
+      ["dodgeRecv+0.10", "accShootout+0.05"],
+      ["dodgeRecv+0.15", "accShootout+0.08", "bullets+1"],
+      ["dodgeRecv+0.20", "accShootout+0.10", "bullets+2"],
+    ],
+    flavorText: "A sidestep, a smile, a muzzle flash.",
+    backstory: "He learned from bullrings that timing kills harder than strength.",
+  },
+  {
+    id: "atk_two_suns_draw", name: "Two Suns Draw", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "vaquero",
+    showdownSlot: 4,
+    unlockTownOrder: 3,
+    effects: ["elDoble", "accShootout+0.05"],
+    showdownLevels: [
+      ["elDoble", "accShootout+0.05"],
+      ["elDoble", "accShootout+0.08", "bullets+1"],
+      ["elDoble", "removeDualPenalty", "accShootout+0.10", "bullets+1"],
+    ],
+    flavorText: "One sun for each hand.",
+    backstory: "Under noon heat, his shadow draws with him.",
+  },
+  {
+    id: "atk_revolucion_de_plomo", name: "Revolucion de Plomo", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "vaquero",
+    showdownSlot: 5,
+    unlockTownOrder: 4,
+    effects: ["damageShootout+0.20", "bullets+1"],
+    showdownLevels: [
+      ["damageShootout+0.20", "bullets+1"],
+      ["damageShootout+0.30", "bullets+2", "accShootout+0.05"],
+      ["damageShootout+0.40", "bullets+3", "accShootout+0.10", "ricochet"],
+    ],
+    flavorText: "A revolution written in powder smoke.",
+    backstory: "Old war songs return when his revolvers start to sing.",
   },
   {
     id: "char_ambidextrous", name: "Ambidextrous", type: "stance", rarity: "uncommon", cost: 0,
@@ -655,6 +775,8 @@ export const CARD_DEFINITIONS = [
   {
     id: "atk_star_of_justice", name: "Star of Justice", type: "showdown", rarity: "legendary", cost: 4,
     classId: "sheriff",
+    showdownSlot: 1,
+    defaultUnlocked: true,
     effects: ["damagePerHp+18"],
     showdownLevels: [
       ["damagePerHp+18"],
@@ -663,6 +785,62 @@ export const CARD_DEFINITIONS = [
     ],
     flavorText: "Every breath in him is a bullet.",
     backstory: "The badge a man wears to his last breath shines brightest the longer he holds it.",
+  },
+  {
+    id: "atk_main_street_oath", name: "Main Street Oath", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "sheriff",
+    showdownSlot: 2,
+    unlockTownOrder: 1,
+    effects: ["damagePerHp+16", "damageTaken-1"],
+    showdownLevels: [
+      ["damagePerHp+16", "damageTaken-1"],
+      ["damagePerHp+14", "damageTaken-1", "dodgeRecv+0.05"],
+      ["damagePerHp+12", "damageTaken-2", "dodgeRecv+0.10"],
+    ],
+    flavorText: "The oath was sworn in the dust and kept in blood.",
+    backstory: "He promised Main Street it would see another sunrise.",
+  },
+  {
+    id: "atk_last_badge_standing", name: "Last Badge Standing", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "sheriff",
+    showdownSlot: 3,
+    unlockTownOrder: 2,
+    effects: ["damageTaken-1", "healNow+8"],
+    showdownLevels: [
+      ["damageTaken-1", "healNow+8"],
+      ["damageTaken-2", "healNow+10", "accShootout+0.05"],
+      ["damageTaken-2", "healNow+14", "accShootout+0.10", "firstHitsAuto+1"],
+    ],
+    flavorText: "As long as the badge stays up, the town stands.",
+    backstory: "He outlived every deputy and wore their stars in spirit.",
+  },
+  {
+    id: "atk_every_door_barred", name: "Every Door Barred", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "sheriff",
+    showdownSlot: 4,
+    unlockTownOrder: 3,
+    effects: ["enemyBullets-1", "enemyAccNext-0.08"],
+    showdownLevels: [
+      ["enemyBullets-1", "enemyAccNext-0.08"],
+      ["enemyBullets-2", "enemyAccNext-0.10", "damage+1"],
+      ["enemyBullets-2", "enemyAccNext-0.12", "damage+2"],
+    ],
+    flavorText: "No outlaw leaves this town by choice.",
+    backstory: "He nailed every window shut and stood in the only exit.",
+  },
+  {
+    id: "atk_gallows_sunrise", name: "Gallows Sunrise", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "sheriff",
+    showdownSlot: 5,
+    unlockTownOrder: 4,
+    effects: ["firstHitsAuto+1", "accShootout+0.05"],
+    showdownLevels: [
+      ["firstHitsAuto+1", "accShootout+0.05"],
+      ["firstHitsAuto+2", "accShootout+0.08", "damage+1"],
+      ["firstHitsAuto+3", "accShootout+0.10", "damage+2", "pierce"],
+    ],
+    flavorText: "Dawn comes with rope and gun smoke.",
+    backstory: "By sunrise, every verdict in town is already loaded.",
   },
 
   // ── APACHE TRACKER: SPIRIT WALKER ────────────────────────────────────────
@@ -711,6 +889,8 @@ export const CARD_DEFINITIONS = [
   {
     id: "atk_great_spirit_bond", name: "Great Spirit Bond", type: "showdown", rarity: "legendary", cost: 4,
     classId: "apache_tracker",
+    showdownSlot: 1,
+    defaultUnlocked: true,
     effects: ["spiritScaleDamage+0.03"],
     showdownLevels: [
       ["spiritScaleDamage+0.03"],
@@ -719,6 +899,62 @@ export const CARD_DEFINITIONS = [
     ],
     flavorText: "All ancestors at once.",
     backstory: "The tracker's name forgotten — he becomes only the song the wind has always sung.",
+  },
+  {
+    id: "atk_coyote_moon", name: "Coyote Moon", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "apache_tracker",
+    showdownSlot: 2,
+    unlockTownOrder: 1,
+    effects: ["spiritScaleEnemyAcc-0.03", "spirit+1"],
+    showdownLevels: [
+      ["spiritScaleEnemyAcc-0.03", "spirit+1"],
+      ["spiritScaleEnemyAcc-0.04", "spirit+2"],
+      ["spiritScaleEnemyAcc-0.05", "spirit+3", "enemyBullets-1"],
+    ],
+    flavorText: "Coyote howls and the night aim breaks.",
+    backstory: "The moonlit trickster teaches patience through misdirection.",
+  },
+  {
+    id: "atk_eagle_above_thunder", name: "Eagle Above Thunder", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "apache_tracker",
+    showdownSlot: 3,
+    unlockTownOrder: 2,
+    effects: ["spiritScaleAcc+0.02", "spiritScaleDamage+0.03"],
+    showdownLevels: [
+      ["spiritScaleAcc+0.02", "spiritScaleDamage+0.03"],
+      ["spiritScaleAcc+0.03", "spiritScaleDamage+0.05"],
+      ["spiritScaleAcc+0.04", "spiritScaleDamage+0.07", "firstHitsAuto+1"],
+    ],
+    flavorText: "From above the storm, every shot is clear.",
+    backstory: "The eagle's shadow crosses lightning before the crack arrives.",
+  },
+  {
+    id: "atk_bear_path", name: "Bear Path", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "apache_tracker",
+    showdownSlot: 4,
+    unlockTownOrder: 3,
+    effects: ["spirit+1", "dodgeRecv+0.10", "damageTaken-1"],
+    showdownLevels: [
+      ["spirit+1", "dodgeRecv+0.10", "damageTaken-1"],
+      ["spirit+2", "dodgeRecv+0.12", "damageTaken-1"],
+      ["spirit+3", "dodgeRecv+0.15", "damageTaken-2"],
+    ],
+    flavorText: "Heavy steps. Quiet breath. No fear.",
+    backstory: "The old path favors those who carry weight without haste.",
+  },
+  {
+    id: "atk_ghost_dance", name: "Ghost Dance", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "apache_tracker",
+    showdownSlot: 5,
+    unlockTownOrder: 4,
+    effects: ["spiritDoubleNext", "spirit+2"],
+    showdownLevels: [
+      ["spiritDoubleNext", "spirit+2"],
+      ["spiritDoubleNext", "spirit+3", "accShootout+0.05"],
+      ["spiritDoubleNext", "spirit+4", "accShootout+0.10", "damageShootout+0.15"],
+    ],
+    flavorText: "The dead dance and the living shoot true.",
+    backstory: "Drumbeats under dust call every ancestor into one breath.",
   },
 
   // ── BOUNTY HUNTER: BLOOD FOR LEAD ────────────────────────────────────────
@@ -761,6 +997,8 @@ export const CARD_DEFINITIONS = [
   {
     id: "atk_quickdraw_master", name: "Quickdraw Master", type: "showdown", rarity: "legendary", cost: 4,
     classId: "bounty_hunter",
+    showdownSlot: 1,
+    defaultUnlocked: true,
     effects: ["firstHitsAuto+1"],
     showdownLevels: [
       ["firstHitsAuto+1"],
@@ -769,6 +1007,62 @@ export const CARD_DEFINITIONS = [
     ],
     flavorText: "First, last, only.",
     backstory: "He's never drawn second. He's never drawn third. He doesn't know how it ends.",
+  },
+  {
+    id: "atk_blood_price_ledger", name: "Blood Price Ledger", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "bounty_hunter",
+    showdownSlot: 2,
+    unlockTownOrder: 1,
+    effects: ["payHp+8", "damage+5", "bullets+1"],
+    showdownLevels: [
+      ["payHp+8", "damage+5", "bullets+1"],
+      ["payHp+8", "damage+6", "bullets+1", "accShootout+0.05"],
+      ["payHp+10", "damage+7", "bullets+2", "accShootout+0.10"],
+    ],
+    flavorText: "Every ounce of blood buys lead.",
+    backstory: "His account books never mention money, only wounds owed and paid.",
+  },
+  {
+    id: "atk_queens_writ", name: "Queen's Writ", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "bounty_hunter",
+    showdownSlot: 3,
+    unlockTownOrder: 2,
+    effects: ["payHp+5", "enemyBullets-1", "markEnemy+1"],
+    showdownLevels: [
+      ["payHp+5", "enemyBullets-1", "markEnemy+1"],
+      ["payHp+5", "enemyBullets-2", "markEnemy+1", "enemyAccNext-0.08"],
+      ["payHp+8", "enemyBullets-2", "markEnemy+2", "enemyAccNext-0.10"],
+    ],
+    flavorText: "Signed overseas, enforced at gunpoint.",
+    backstory: "The crown's seal still glitters on the paper in his coat.",
+  },
+  {
+    id: "atk_coffin_contract", name: "Coffin Contract", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "bounty_hunter",
+    showdownSlot: 4,
+    unlockTownOrder: 3,
+    effects: ["payHp+10", "firstHitsAuto+1", "damageShootout+0.15"],
+    showdownLevels: [
+      ["payHp+10", "firstHitsAuto+1", "damageShootout+0.15"],
+      ["payHp+12", "firstHitsAuto+2", "damageShootout+0.20"],
+      ["payHp+15", "firstHitsAuto+2", "damageShootout+0.30", "pierce"],
+    ],
+    flavorText: "The contract pays for pine and nails.",
+    backstory: "He writes your name on the lid before the draw.",
+  },
+  {
+    id: "atk_last_breath_bounty", name: "Last Breath Bounty", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "bounty_hunter",
+    showdownSlot: 5,
+    unlockTownOrder: 4,
+    effects: ["payHp+10", "bullets+2", "accShootout+0.10"],
+    showdownLevels: [
+      ["payHp+10", "bullets+2", "accShootout+0.10"],
+      ["payHp+12", "bullets+3", "accShootout+0.12", "damage+1"],
+      ["payHp+15", "bullets+4", "accShootout+0.15", "damage+2"],
+    ],
+    flavorText: "He cashes in before your lungs do.",
+    backstory: "Some hunters wait for death. He charges interest against it.",
   },
 
   // ── OUTLAW: TWIN COMBOS ───────────────────────────────────────────────────
@@ -823,6 +1117,8 @@ export const CARD_DEFINITIONS = [
   {
     id: "atk_no_honor", name: "No Honor Among Thieves", type: "showdown", rarity: "legendary", cost: 4,
     classId: "outlaw", outlawCombo: true,
+    showdownSlot: 1,
+    defaultUnlocked: true,
     effects: ["extraVolleyShots+1"],
     showdownLevels: [
       ["extraVolleyShots+1"],
@@ -831,6 +1127,62 @@ export const CARD_DEFINITIONS = [
     ],
     flavorText: "Every betrayal earns a bullet.",
     backstory: "The outlaw code was written by the fastest gun. Rewritten by the next one.",
+  },
+  {
+    id: "atk_powder_keg_pact", name: "Powder-Keg Pact", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "outlaw", outlawCombo: true,
+    showdownSlot: 2,
+    unlockTownOrder: 1,
+    effects: ["outlawCombo", "comboBonus:bullets+1", "comboBonus:damage+1"],
+    showdownLevels: [
+      ["outlawCombo", "comboBonus:bullets+1", "comboBonus:damage+1"],
+      ["outlawCombo", "comboBonus:bullets+1", "comboBonus:damage+2", "accShootout+0.05"],
+      ["outlawCombo", "comboBonus:bullets+2", "comboBonus:damage+2", "accShootout+0.10"],
+    ],
+    flavorText: "Shake hands over a lit fuse.",
+    backstory: "Outlaws swear loyalty until the barrel catches fire.",
+  },
+  {
+    id: "atk_snake_eyes_bargain", name: "Snake-Eyes Bargain", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "outlaw", outlawCombo: true,
+    showdownSlot: 3,
+    unlockTownOrder: 2,
+    effects: ["nextComboFree", "outlawCombo"],
+    showdownLevels: [
+      ["nextComboFree", "outlawCombo"],
+      ["nextComboFree", "outlawCombo", "accShootout+0.05"],
+      ["nextComboFree", "outlawCombo", "accShootout+0.10", "bullets+1"],
+    ],
+    flavorText: "Roll low, shoot high.",
+    backstory: "He wins most wagers by changing the odds with lead.",
+  },
+  {
+    id: "atk_black_hat_crescendo", name: "Black Hat Crescendo", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "outlaw", outlawCombo: true,
+    showdownSlot: 4,
+    unlockTownOrder: 3,
+    effects: ["outlawCombo", "comboBonus:extraVolleyShots+1", "damageShootout+0.10"],
+    showdownLevels: [
+      ["outlawCombo", "comboBonus:extraVolleyShots+1", "damageShootout+0.10"],
+      ["outlawCombo", "comboBonus:extraVolleyShots+1", "damageShootout+0.15", "bullets+1"],
+      ["outlawCombo", "comboBonus:extraVolleyShots+2", "damageShootout+0.20", "bullets+2"],
+    ],
+    flavorText: "The louder the crowd, the faster he fires.",
+    backstory: "Every robbery became a performance, every performance a massacre.",
+  },
+  {
+    id: "atk_wanted_forever", name: "Wanted Forever", type: "showdown", rarity: "legendary", cost: 4,
+    classId: "outlaw", outlawCombo: true,
+    showdownSlot: 5,
+    unlockTownOrder: 4,
+    effects: ["outlawCombo", "comboBonus:enemyAccNext-0.10", "comboBonus:bullets+1"],
+    showdownLevels: [
+      ["outlawCombo", "comboBonus:enemyAccNext-0.10", "comboBonus:bullets+1"],
+      ["outlawCombo", "comboBonus:enemyAccNext-0.12", "comboBonus:bullets+1", "damage+1"],
+      ["outlawCombo", "comboBonus:enemyAccNext-0.15", "comboBonus:bullets+2", "damage+2"],
+    ],
+    flavorText: "No pardon. No grave. No end.",
+    backstory: "His bounty outlived sheriffs, states, and every story told about him.",
   },
 
   // ── STARE-DOWN CARDS ──────────────────────────────────────────────────────
@@ -1501,6 +1853,28 @@ for (const g of GUNS_LIST) {
 }
 
 const byId = new Map(CARD_DEFINITIONS.map((c) => [c.id, c]));
+const CLASS_SHOWDOWN_CATALOG_BY_CLASS = new Map();
+
+for (const card of CARD_DEFINITIONS) {
+  if (card.type !== "showdown") continue;
+  if (card.opponentOnly) continue;
+  if (typeof card.classId !== "string") continue;
+  if (!Number.isFinite(card.showdownSlot)) continue;
+  if (!CLASS_SHOWDOWN_CATALOG_BY_CLASS.has(card.classId)) {
+    CLASS_SHOWDOWN_CATALOG_BY_CLASS.set(card.classId, []);
+  }
+  CLASS_SHOWDOWN_CATALOG_BY_CLASS.get(card.classId).push(card);
+}
+
+for (const catalog of CLASS_SHOWDOWN_CATALOG_BY_CLASS.values()) {
+  catalog.sort((a, b) => a.showdownSlot - b.showdownSlot);
+}
+
+export function getClassShowdownCatalog(classId) {
+  if (!classId) return [];
+  const catalog = CLASS_SHOWDOWN_CATALOG_BY_CLASS.get(classId);
+  return catalog ? [...catalog] : [];
+}
 
 export function getCardDef(id) {
   return byId.get(id);
