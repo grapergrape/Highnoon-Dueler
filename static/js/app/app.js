@@ -1,6 +1,7 @@
 import { STARTER_DECK_IDS, shuffle } from "../data/deck.js";
 import { starterGunIdForClass } from "../data/guns.js";
 import { getOpponent, TOWNS } from "../data/opponents.js";
+import { CARD_DEFINITIONS } from "../data/cards.js";
 import {
   createDuel,
   tryPlayCard,
@@ -19,12 +20,21 @@ import {
   renderWanted,
   renderShop,
   renderDuelPanel,
+  renderPostDuelReward,
   renderGameOver,
 } from "../ui/ui.js";
 import { getClass, applyClassToRun } from "../data/classes.js";
 import { LS_KEY, defaultRun, loadRun, saveRun } from "./run-state.js";
 
 const GAMEOVER_AUTO_RETURN_MS = 10000;
+const MAX_DECK_SIZE = 24;
+const REWARD_RARITY_WEIGHTS = {
+  common: 34,
+  uncommon: 40,
+  rare: 18,
+  epic: 6,
+  legendary: 2,
+};
 
 function bountyFor(oppId) {
   const opp = getOpponent(oppId);
@@ -209,6 +219,88 @@ function gunCountInDeck(deckIds) {
   return n;
 }
 
+function rewardCardPool(run) {
+  const classId = run.classId;
+  const owned = new Set(run.deckIds);
+  return CARD_DEFINITIONS.filter((c) =>
+    c.type !== "gun" &&
+    !c.opponentOnly &&
+    !!c.classId &&
+    c.classId === classId &&
+    !owned.has(c.id)
+  );
+}
+
+function drawRewardRarity(pool) {
+  const availableRarities = new Set(pool.map((c) => c.rarity));
+  const weighted = Object.entries(REWARD_RARITY_WEIGHTS).filter(([rarity]) => availableRarities.has(rarity));
+  if (!weighted.length) return null;
+  const total = weighted.reduce((sum, [, weight]) => sum + weight, 0);
+  let roll = Math.random() * total;
+  for (const [rarity, weight] of weighted) {
+    roll -= weight;
+    if (roll <= 0) return rarity;
+  }
+  return weighted[weighted.length - 1][0];
+}
+
+function rollPostDuelRewardCards(run, count = 3) {
+  const pool = rewardCardPool(run);
+  const picks = [];
+  while (pool.length > 0 && picks.length < count) {
+    const rarity = drawRewardRarity(pool);
+    const candidates = rarity
+      ? pool.filter((c) => c.rarity === rarity)
+      : pool;
+    const card = candidates[(Math.random() * candidates.length) | 0];
+    picks.push(card);
+    const poolIx = pool.findIndex((c) => c.id === card.id);
+    if (poolIx >= 0) pool.splice(poolIx, 1);
+  }
+  return picks;
+}
+
+function applyRewardCard(cardId, opts) {
+  if (!cardId || cardId.startsWith("gun_")) return false;
+  if (game.run.deckIds.includes(cardId)) return false;
+  const replacingCard = !!opts?.replaceCardId;
+  if (game.run.deckIds.length >= MAX_DECK_SIZE && !replacingCard) return false;
+  if (opts?.replaceCardId) {
+    if (opts.replaceCardId.startsWith("gun_")) return false;
+    const ix = game.run.deckIds.indexOf(opts.replaceCardId);
+    if (ix < 0) return false;
+    game.run.deckIds.splice(ix, 1);
+  }
+  game.run.deckIds.push(cardId);
+  saveRun(game.run);
+  updateHud(game);
+  return true;
+}
+
+function openPostDuelReward(duel, bountyEarned) {
+  const rewardCards = rollPostDuelRewardCards(game.run, 3);
+  game.screen = "post-duel-reward";
+  renderPostDuelReward(
+    game,
+    {
+      opponentName: duel?.opponentDef?.name ?? "Outlaw",
+      opponentTitle: duel?.opponentDef?.title ?? "",
+      bountyEarned,
+      rewardCards,
+      deckCap: MAX_DECK_SIZE,
+    },
+    (cardId, opts) => {
+      if (!applyRewardCard(cardId, opts)) return;
+      openShop();
+    },
+    () => {
+      saveRun(game.run);
+      updateHud(game);
+      openShop();
+    }
+  );
+}
+
 function openShop() {
   game.screen = "shop";
   renderShop(
@@ -217,7 +309,8 @@ function openShop() {
       if (game.run.money < price) return;
       const isGun = cardId.startsWith("gun_");
       const replacingGun = isGun && !!opts?.replaceGunId;
-      if (game.run.deckIds.length >= 24 && !replacingGun) return;
+      const replacingCard = !isGun && !!opts?.replaceCardId;
+      if (game.run.deckIds.length >= MAX_DECK_SIZE && !replacingGun && !replacingCard) return;
       if (isGun) {
         if (game.run.deckIds.includes(cardId)) return; // no duplicate guns
         const owned = gunCountInDeck(game.run.deckIds);
@@ -227,6 +320,11 @@ function openShop() {
           if (ix < 0) return;
           game.run.deckIds.splice(ix, 1);
         }
+      } else if (opts?.replaceCardId) {
+        if (opts.replaceCardId.startsWith("gun_")) return;
+        const ix = game.run.deckIds.indexOf(opts.replaceCardId);
+        if (ix < 0) return;
+        game.run.deckIds.splice(ix, 1);
       }
       game.run.money -= price;
       game.run.deckIds.push(cardId);
@@ -255,7 +353,8 @@ function endDuelFlow() {
   syncDeckFromDuel();
   if (d.winner === "player") {
     const mult = game.run.permanent?.bountyMult ?? 1;
-    game.run.money += Math.round(game.lastBounty * mult);
+    const bountyEarned = Math.round(game.lastBounty * mult);
+    game.run.money += bountyEarned;
     recordOpponentWin(d.opponentDef);
 
     // Apply cumulative growth for next time (Outlaw class: bountyGrowthPerWin = 0.25, cap 3.0)
@@ -282,7 +381,9 @@ function endDuelFlow() {
 
     saveRun(game.run);
     updateHud(game);
-    openShop();
+    game.duel = null;
+    openPostDuelReward(d, bountyEarned);
+    return;
   } else {
     game.screen = "gameover";
     localStorage.removeItem(LS_KEY);
