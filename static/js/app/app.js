@@ -19,6 +19,7 @@ import {
   renderClassSelect,
   renderWanted,
   renderShop,
+  rollShopInventory,
   renderDuelPanel,
   renderPostDuelReward,
   renderGameOver,
@@ -74,6 +75,7 @@ const game = {
   },
   unlocks: _savedUnlocks,
   pendingUnlockAnnouncements: [],
+  shopVisitInventory: null,
 };
 
 function loadAsset(url) {
@@ -117,6 +119,7 @@ function goWanted() {
   resetCombatUi(game);
   game.screen = "wanted";
   game.duel = null;
+  game.shopVisitInventory = null;
   saveRun(game.run);
   updateHud(game);
   renderWanted(game, startDuel);
@@ -127,6 +130,7 @@ function goClassSelect() {
   resetCombatUi(game);
   game.screen = "class-select";
   game.duel = null;
+  game.shopVisitInventory = null;
   game.run = defaultRun();
   updateHud(game);
   renderClassSelect(pickClass, {
@@ -354,9 +358,13 @@ function openPostDuelReward(duel, bountyEarned) {
 }
 
 function openShop() {
+  if (!game.shopVisitInventory) {
+    game.shopVisitInventory = rollShopInventory(game);
+  }
   game.screen = "shop";
   renderShop(
     game,
+    game.shopVisitInventory,
     (cardId, price, opts) => {
       if (game.run.money < price) return;
       const isGun = cardId.startsWith("gun_");
@@ -380,6 +388,13 @@ function openShop() {
       }
       game.run.money -= price;
       game.run.deckIds.push(cardId);
+      if (game.shopVisitInventory) {
+        if (isGun) {
+          game.shopVisitInventory.gunIds = game.shopVisitInventory.gunIds.filter((id) => id !== cardId);
+        } else {
+          game.shopVisitInventory.cardIds = game.shopVisitInventory.cardIds.filter((id) => id !== cardId);
+        }
+      }
       saveRun(game.run);
       updateHud(game);
       openShop();

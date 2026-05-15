@@ -354,6 +354,13 @@ function shopGunPool(game) {
   return gunsForClass(classId).filter((g) => !owned.has(g.id));
 }
 
+export function rollShopInventory(game) {
+  return {
+    cardIds: shuffle([...shopCardPool(game)]).slice(0, 5).map((c) => c.id),
+    gunIds: shuffle([...shopGunPool(game)]).slice(0, 4).map((g) => g.id),
+  };
+}
+
 function priceForCard(c) {
   return 8 + (c.cost || 0) * 3;
 }
@@ -370,11 +377,16 @@ function ownedNonGunIdsInDeck(deckIds) {
   return deckIds.filter((id) => !id.startsWith("gun_"));
 }
 
-export function renderShop(game, onBuyCard, onHeal, onContinue) {
+export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
   const el = panel();
   el.className = "panel";
-  const cardPool = shuffle([...shopCardPool(game)]).slice(0, 5);
-  const gunPool = shuffle([...shopGunPool(game)]).slice(0, 4);
+  const offers = shopInventory ?? rollShopInventory(game);
+  const cardPool = (offers.cardIds ?? [])
+    .map((id) => getCardDef(id))
+    .filter((c) => !!c && c.type !== "gun");
+  const gunPool = (offers.gunIds ?? [])
+    .map((id) => getGun(id))
+    .filter(Boolean);
   const deckSize = game.run.deckIds.length;
   const atDeckCap = deckSize >= 24;
 
@@ -440,7 +452,7 @@ export function renderShop(game, onBuyCard, onHeal, onContinue) {
         if (!ownedCards.length) return;
         promptReplaceCard(game, ownedCards, (replaceId) => {
           if (!replaceId) {
-            renderShop(game, onBuyCard, onHeal, onContinue);
+            renderShop(game, offers, onBuyCard, onHeal, onContinue);
             return;
           }
           onBuyCard(c.id, price, { replaceCardId: replaceId });
