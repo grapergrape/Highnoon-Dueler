@@ -23,7 +23,7 @@ export const CLASSES = [
     title: "Wanted Dead",
     backstory: "Robbed every coach from El Paso to Cheyenne and slept under stars he couldn't name. The price on his head is what he is worth — and that price climbs with every man he buries. He doesn't fear the rope. He fears being forgotten.",
     abilityName: "Twin Combos",
-    abilityBlurb: "+1 nerve/round. Cards have bonus effects when ≥2 outlaw cards are played in the same prep round.",
+    abilityBlurb: "+1 Nerve per prep cycle (shared across 3 rounds). Cards have bonus effects when ≥2 outlaw cards are played in the same prep round.",
     startingMaxHp: 90,
     starterDeckIds: starterDeckWithSpecials([
       "atk_outlaws_pact",
@@ -78,7 +78,7 @@ export const CLASSES = [
     title: "Federal Iron",
     backstory: "Rides for the Department of Justice across three territories. Knows the trains, the warrants, and which judges take silver. The badge says he can shoot in any state — and he does, with paperwork.",
     abilityName: "Federal Warrant",
-    abilityBlurb: "+5% acc, +1 nerve/round. +1 extra mark whenever you mark.",
+    abilityBlurb: "+5% acc, +1 Nerve per prep cycle (shared across 3 rounds). +1 extra mark whenever you mark.",
     startingMaxHp: 100,
     starterDeckIds: starterDeckWithSpecials([
       "atk_dead_to_rights",

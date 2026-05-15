@@ -312,7 +312,7 @@ export const CARD_DEFINITIONS = [
     type: "stance",
     rarity: "uncommon",
     cost: 0,
-    effects: ["focusPerRound+2"],
+    effects: ["focusPerRound+1"],
   },
   {
     id: "char_gravedigger",
@@ -390,7 +390,7 @@ export const CARD_DEFINITIONS = [
     type: "stance",
     rarity: "legendary",
     cost: 0,
-    effects: ["accShootout+0.10", "focusPerRound+2", "healNow+10"],
+    effects: ["accShootout+0.10", "focusPerRound+1", "healNow+10"],
   },
   {
     id: "char_sheriff",
@@ -424,7 +424,7 @@ export const CARD_DEFINITIONS = [
     type: "feat",
     rarity: "common",
     cost: 2,
-    effects: ["focusCycle+10", "healNow+15"],
+    effects: ["focusCycle+1", "healNow+15"],
   },
   {
     id: "feat_tumbleweed",
@@ -440,7 +440,7 @@ export const CARD_DEFINITIONS = [
     type: "feat",
     rarity: "common",
     cost: 1,
-    effects: ["focusCycle+7"],
+    effects: ["focusCycle+1"],
   },
   {
     id: "feat_steady_aim",

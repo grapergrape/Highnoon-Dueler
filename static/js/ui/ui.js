@@ -19,7 +19,7 @@ const EFFECT_TOOLTIPS = {
   healNow: "Heal HP immediately.",
   hpAfterShootout: "HP change applied after every volley while this gun is equipped.",
   hpAfterCycle: "HP change applied when you Lock In this prep round.",
-  focusCycle: "Bonus Nerve on the next prep round only.",
+  focusCycle: "Bonus Nerve in this 3-round prep cycle.",
   gainFocused: "Enter the Focused state for the next shootout (synergy bonuses).",
   markEnemy: "Place mark tokens on the enemy. Marks amplify markBurst damage.",
   markBurst: "Each enemy mark adds this much damage to your hits.",
@@ -33,8 +33,8 @@ const EFFECT_TOOLTIPS = {
   healPerDuel: "Heal at the start of each duel.",
   deadeye: "Critical hits: ~15% of hits deal 30% bonus damage.",
   damageTaken: "Reduce incoming damage from each enemy hit.",
-  focusPerRound: "Extra Nerve available each prep round.",
-  staminaPerRound: "Extra Nerve each prep round (legacy term).",
+  focusPerRound: "Extra Nerve added when a 3-round prep cycle starts.",
+  staminaPerRound: "Extra Nerve added when a prep cycle starts (legacy term).",
   extraMarkPerApply: "When you apply marks, add this many extra marks.",
   markBulletPerMark: "At shootout, add this many bullets per mark on the enemy.",
   damagePerHp: "At shootout, gain +1 damage per N current HP.",
@@ -112,7 +112,7 @@ function effectToText(raw) {
     case 'healNow': return `Heal +${v} HP now`;
     case 'hpAfterShootout': return v < 0 ? `${v} HP after volley` : `+${v} HP after volley`;
     case 'hpAfterCycle': return v < 0 ? `${v} HP on lock-in` : `+${v} HP on lock-in`;
-    case 'focusCycle': return `+${v} Nerve next cycle`;
+    case 'focusCycle': return `+${v} Nerve this prep cycle`;
     case 'gainFocused': return 'Gain Focused ✦';
     case 'markEnemy': return `Mark foe ×${v}`;
     case 'markBurst': return `+${v} dmg per mark`;
@@ -126,8 +126,8 @@ function effectToText(raw) {
     case 'healPerDuel': return `+${v} HP per duel`;
     case 'deadeye': return 'Crit shots (Deadeye)';
     case 'damageTaken': return `−${Math.abs(v)} dmg taken`;
-    case 'focusPerRound': return `+${v} nerve/round`;
-    case 'staminaPerRound': return `+${v} nerve/round`;
+    case 'focusPerRound': return `+${v} Nerve/prep cycle`;
+    case 'staminaPerRound': return `+${v} Nerve/prep cycle`;
     case 'extraMarkPerApply': return `+${v} mark per Mark apply`;
     case 'markBulletPerMark': return `+${v} bullet per mark`;
     case 'damagePerHp': return `+1 dmg per ${v} HP`;
@@ -737,7 +737,7 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
     html += buildPersistentRowHtml(d);
     html += `<div class="prep-bar">
       <span class="prep-round">Round ${d.prepRound}/3</span>
-      <span class="focus-bar" title="Nerve: ${d.playerFocus}/${d.playerMaxFocus}">${focPips}</span>
+      <span class="focus-bar" title="Nerve pool for this 3-round prep cycle: ${d.playerFocus}/${d.playerMaxFocus}">${focPips}</span>
       <span class="focus-label">${d.playerFocus}/${d.playerMaxFocus} Nerve</span>
       ${markStr}${focStr}${freeStr}${spiritStr}${dualStr}${comboStr}${comboFreeStr}${sheriffStr}
       <button class="btn btn-lockin" id="lock" ${d.playerLocked ? "disabled" : ""}>Lock In</button>

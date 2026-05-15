@@ -46,7 +46,7 @@ export function emptyMods() {
     spiritScaleDamage: 0,  // damageShootout += spirit * value
     spiritScaleEnemyAcc: 0,// enemyAccNext debuff -= spirit * value
     extraVolleyShots: 0,   // bonus shootout shots (Outlaw legendary)
-    focusRoundBonus: 0,    // extra focus each prep round while a stance/showdown is active
+    focusRoundBonus: 0,    // extra focus in each 3-round prep cycle while a stance/showdown is active
     damageReduce: 0,       // flat reduction from each incoming hit
     deadeye: false,
     dualWieldAccPenaltyReduce: 0,
@@ -249,16 +249,31 @@ export function pushPlayLogBulletin(duel, text) {
 }
 
 export function refillFocus(duel, run) {
-  const persistent = persistentModsFor(duel, "player");
-  const base = 5 + (run.permanent?.focusPerRound ?? 0) + (persistent.focusRoundBonus ?? 0);
-  duel.playerMaxFocus = base + duel.focusBonusCycle;
+  syncPlayerNerveCap(duel, run);
   duel.playerFocus = duel.playerMaxFocus;
-  duel.enemy.focus = duel.enemy.maxFocus;
 }
 
 // Legacy alias used by external modules that read run.permanent.staminaPerRound
 // (kept for save-state compatibility)
 export { refillFocus as refillStamina };
+
+function playerCycleNerveCap(duel, run) {
+  const persistent = persistentModsFor(duel, "player");
+  const base = 5 + (run.permanent?.focusPerRound ?? 0) + (persistent.focusRoundBonus ?? 0);
+  return Math.max(0, base + (duel.focusBonusCycle ?? 0));
+}
+
+function syncPlayerNerveCap(duel, run, { topUpOnIncrease = false } = {}) {
+  const prevMax = Number.isFinite(duel.playerMaxFocus) ? duel.playerMaxFocus : 0;
+  const prevCurrent = Number.isFinite(duel.playerFocus) ? duel.playerFocus : 0;
+  const nextMax = playerCycleNerveCap(duel, run);
+  duel.playerMaxFocus = nextMax;
+  if (topUpOnIncrease && nextMax > prevMax) {
+    duel.playerFocus = Math.min(nextMax, prevCurrent + (nextMax - prevMax));
+    return;
+  }
+  duel.playerFocus = Math.min(prevCurrent, nextMax);
+}
 
 export function dealStaredownChoices(duel, run) {
   const classId = run?.classId;
@@ -460,6 +475,7 @@ function playPersistentCard(duel, run, card, def, playedBy) {
       duel.playerShowdownLevel = 1;
       duel.playerShowdown.showdownLevel = 1;
       rebuildShowdownMods(duel, run, "player");
+      syncPlayerNerveCap(duel, run);
       duel.message = `${def.name} — Showdown Level I.`;
     }
     return;
@@ -471,6 +487,7 @@ function playPersistentCard(duel, run, card, def, playedBy) {
   } else {
     duel.playerStances.push(card);
     applyPersistentEffects(duel, run, def, duel.playerStanceMods, "player");
+    syncPlayerNerveCap(duel, run);
     duel.message = `${def.name} — stance held.`;
   }
 }
@@ -480,6 +497,7 @@ function advanceShowdowns(duel, run) {
     duel.playerShowdownLevel += 1;
     duel.playerShowdown.showdownLevel = duel.playerShowdownLevel;
     rebuildShowdownMods(duel, run, "player");
+    syncPlayerNerveCap(duel, run);
     pushPlayLogBulletin(duel, `${duel.playerShowdown.name} advances to Level ${duel.playerShowdownLevel}.`);
   }
   if (duel.enemyShowdown && duel.enemyShowdownLevel < 3) {
@@ -495,9 +513,14 @@ export function startPrepRound(duel, run) {
   duel.freeCardAvailable = !!run.permanent?.freeFirstCardPerRound;
   duel.roundOutlawCount = 0;
   duel.roundOutlawCards = [];
-  duel.message = `Preparation — round ${duel.prepRound} of 3. Play your hand, then Lock In.`;
+  duel.message = `Preparation — round ${duel.prepRound} of 3. Manage one shared Nerve pool.`;
   pushPlayLogBulletin(duel, `Preparation round ${duel.prepRound}/3 — draw and play.`);
-  refillFocus(duel, run);
+  if (duel.prepRound === 1) {
+    refillFocus(duel, run);
+  } else {
+    syncPlayerNerveCap(duel, run);
+  }
+  duel.enemy.focus = duel.enemy.maxFocus;
 
   const drawn = drawCards(duel.playerDrawPile, duel.playerDiscard, 4);
   duel.playerHand.push(...drawn);
@@ -659,8 +682,7 @@ export function tryPlayCard(duel, run, cardUid) {
     const s = def.effects.map(parseEffect).find((e) => e.kind === "focusCycle");
     const add = s?.value || 0;
     duel.focusBonusCycle += add;
-    duel.playerMaxFocus += add;
-    duel.playerFocus += add;
+    syncPlayerNerveCap(duel, run, { topUpOnIncrease: add > 0 });
   }
 
   duel.message = `Played ${def.name}.`;
