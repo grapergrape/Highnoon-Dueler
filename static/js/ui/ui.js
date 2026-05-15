@@ -439,7 +439,11 @@ export function renderShop(game, onBuyCard, onHeal, onContinue) {
         const ownedCards = ownedNonGunIdsInDeck(game.run.deckIds);
         if (!ownedCards.length) return;
         promptReplaceCard(game, ownedCards, (replaceId) => {
-          if (replaceId) onBuyCard(c.id, price, { replaceCardId: replaceId });
+          if (!replaceId) {
+            renderShop(game, onBuyCard, onHeal, onContinue);
+            return;
+          }
+          onBuyCard(c.id, price, { replaceCardId: replaceId });
         });
         return;
       }
@@ -544,7 +548,11 @@ export function renderPostDuelReward(game, reward, onTakeCard, onSkip) {
           game,
           ownedCards,
           (replaceId) => {
-            if (replaceId) onTakeCard(c.id, { replaceCardId: replaceId });
+            if (!replaceId) {
+              renderPostDuelReward(game, reward, onTakeCard, onSkip);
+              return;
+            }
+            onTakeCard(c.id, { replaceCardId: replaceId });
           },
           {
             title: "Deck Full",

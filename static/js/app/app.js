@@ -28,6 +28,7 @@ import { LS_KEY, defaultRun, loadRun, saveRun } from "./run-state.js";
 import {
   loadUnlockState,
   saveUnlockState,
+  isShowdownUnlockedForClass,
   unlockShowdownsForBossClear,
 } from "./unlock-state.js";
 
@@ -256,14 +257,28 @@ function gunCountInDeck(deckIds) {
   return n;
 }
 
-function rewardCardPool(run) {
+function hasStaredownOnlyEffect(cardDef) {
+  return Array.isArray(cardDef?.effects) && cardDef.effects.includes("staredownOnly");
+}
+
+function rewardCardPool(gameState) {
+  const run = gameState.run;
+  const unlockState = gameState.unlocks;
   const classId = run.classId;
   const owned = new Set(run.deckIds);
   return CARD_DEFINITIONS.filter((c) =>
     c.type !== "gun" &&
     !c.opponentOnly &&
-    !!c.classId &&
-    c.classId === classId &&
+    !hasStaredownOnlyEffect(c) &&
+    (!c.classId || c.classId === classId) &&
+    (
+      c.type !== "showdown"
+      || (
+        !!c.classId
+        && c.classId === classId
+        && isShowdownUnlockedForClass(unlockState, classId, c.id)
+      )
+    ) &&
     !owned.has(c.id)
   );
 }
@@ -281,8 +296,8 @@ function drawRewardRarity(pool) {
   return weighted[weighted.length - 1][0];
 }
 
-function rollPostDuelRewardCards(run, count = 3) {
-  const pool = rewardCardPool(run);
+function rollPostDuelRewardCards(gameState, count = 3) {
+  const pool = rewardCardPool(gameState);
   const picks = [];
   while (pool.length > 0 && picks.length < count) {
     const rarity = drawRewardRarity(pool);
@@ -315,7 +330,7 @@ function applyRewardCard(cardId, opts) {
 }
 
 function openPostDuelReward(duel, bountyEarned) {
-  const rewardCards = rollPostDuelRewardCards(game.run, 3);
+  const rewardCards = rollPostDuelRewardCards(game, 3);
   game.screen = "post-duel-reward";
   renderPostDuelReward(
     game,
