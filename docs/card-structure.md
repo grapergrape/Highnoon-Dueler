@@ -9,17 +9,18 @@
 
 ## Baseline Deck
 
-Each starter deck contains 24 cards:
+Each class starter deck contains 12 cards:
 
 | Type | Count |
 | --- | ---: |
-| Feats | 16 |
-| Stances | 5 |
-| Extra Guns | 2 |
-| Showdowns | 1 |
-| Total | 24 |
+| Shared Feats (`One in the Chamber`) | 4 |
+| Shared Feats (`Dodge`) | 4 |
+| Shared Feat (`Beer Heal`) | 1 |
+| Class-Specific Specials | 3 |
+| Total | 12 |
 
-The class starter gun is not counted in the 24 cards.
+The class starter gun is not counted in the starter deck and is equipped separately.
+Deck cap remains 24 cards so rewards and shops can grow the run deck over time.
 
 ## Pool Targets
 
@@ -44,4 +45,4 @@ Recommended shared pool target:
 | Showdowns | 2 |
 | Total | 40 |
 
-Decks should generally run 16-18 class cards and 6-8 shared cards, with 8 shared cards as the hard cap.
+Starter decks begin at 12 cards (9 shared + 3 class-specific) and can grow up to the 24-card cap.

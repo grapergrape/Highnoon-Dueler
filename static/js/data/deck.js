@@ -34,7 +34,7 @@ export function discardCards(discard, cards) {
   for (const c of cards) discard.push(c);
 }
 
-/** Default 24-card starter deck for new runs (Drifter; classes override via classes.js). */
+/** Legacy classless fallback deck (classes define their own 12-card starter decks in classes.js). */
 export const STARTER_DECK_IDS = [
   "atk_rattlesnake", "atk_rattlesnake",
   "atk_devils_due", "atk_devils_due",
