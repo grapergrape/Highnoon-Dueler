@@ -23,7 +23,7 @@ export const CLASSES = [
     title: "Wanted Dead",
     backstory: "Robbed every coach from El Paso to Cheyenne and slept under stars he couldn't name. The price on his head is what he is worth — and that price climbs with every man he buries. He doesn't fear the rope. He fears being forgotten.",
     abilityName: "Twin Combos",
-    abilityBlurb: "+1 focus/round. Cards have bonus effects when ≥2 outlaw cards are played in the same prep round.",
+    abilityBlurb: "+1 nerve/round. Cards have bonus effects when ≥2 outlaw cards are played in the same prep round.",
     startingMaxHp: 90,
     starterDeckIds: starterDeckWithSpecials([
       "atk_outlaws_pact",
@@ -39,7 +39,7 @@ export const CLASSES = [
     title: "Reads the Wind",
     backstory: "Trained by elders who knew the land before the railroad split it. He shoots when the wind agrees, and the wind agrees more often than the bluecoats would like. Carries a single feather in his hatband — earned, not taken.",
     abilityName: "Spirit Walker",
-    abilityBlurb: "+5% acc, never below 50%. First card each prep round costs 0 focus. Build Spirit (cap 10) to scale buffs and debuffs.",
+    abilityBlurb: "+5% acc, never below 50%. First card each prep round costs 0 nerve. Build Spirit (cap 10) to scale buffs and debuffs.",
     startingMaxHp: 100,
     starterDeckIds: starterDeckWithSpecials([
       "atk_wind_whisper",
@@ -78,7 +78,7 @@ export const CLASSES = [
     title: "Federal Iron",
     backstory: "Rides for the Department of Justice across three territories. Knows the trains, the warrants, and which judges take silver. The badge says he can shoot in any state — and he does, with paperwork.",
     abilityName: "Federal Warrant",
-    abilityBlurb: "+5% acc, +1 focus/round. +1 extra mark whenever you mark.",
+    abilityBlurb: "+5% acc, +1 nerve/round. +1 extra mark whenever you mark.",
     startingMaxHp: 100,
     starterDeckIds: starterDeckWithSpecials([
       "atk_dead_to_rights",

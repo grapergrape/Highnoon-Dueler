@@ -74,7 +74,7 @@ export function feedbackLinesForCard(def, playedBy) {
           text: `Next lock ${e.value ?? 0} HP`,
         });
       } else if (e.kind === "focusCycle") {
-        lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} FOC` });
+        lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} NRV` });
       } else if (e.kind === "markEnemy") {
         lines.push({ targetSide: "enemy", kind: "debuff", text: `MARK ×${e.value}` });
       } else if (e.kind === "markBurst") {

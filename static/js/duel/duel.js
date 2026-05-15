@@ -530,7 +530,7 @@ export function tryPlayCard(duel, run, cardUid) {
   const usingFreebie = def.type !== "gun" && !isPersistent && !isComboFree && duel.freeCardAvailable === true;
   const cost = (usingFreebie || isComboFree) ? 0 : def.cost;
 
-  if (cost > duel.playerFocus) return { ok: false, reason: "Not enough focus" };
+  if (cost > duel.playerFocus) return { ok: false, reason: "Not enough nerve" };
 
   // payHp gating: refuse if HP cost would kill caster
   let payHpAmount = 0;

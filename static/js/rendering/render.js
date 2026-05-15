@@ -254,13 +254,13 @@ function drawAtmosphere(ctx, w, h, bgKey, t) {
 }
 
 function focusLine(duel, side) {
-  if (duel.phase !== "prep") return "FOC —";
+  if (duel.phase !== "prep") return "NRV —";
   if (side === "player") {
     const mark = duel.enemyMarked > 0 ? ` ◆×${duel.enemyMarked}` : "";
     const foc = duel.playerFocused ? " ✦" : "";
-    return `FOC ${duel.playerFocus}/${duel.playerMaxFocus}${mark}${foc}`;
+    return `NRV ${duel.playerFocus}/${duel.playerMaxFocus}${mark}${foc}`;
   }
-  return `FOC ${duel.enemy.focus}/${duel.enemy.maxFocus}`;
+  return `NRV ${duel.enemy.focus}/${duel.enemy.maxFocus}`;
 }
 
 function drawHud(ctx, w, h, game) {

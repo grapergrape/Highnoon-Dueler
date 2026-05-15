@@ -172,7 +172,7 @@ Design target: each class should have five Showdowns that create different run f
 | --- | --- | --- | --- |
 | 1 | No Honor Among Thieves | Default | Existing combo identity: every outlaw combo pushes extra volley pressure. |
 | 2 | Powder-Keg Pact | Town 1 boss | Small combo chains become explosive: Level I adds damage after combo turns; Level III adds extra shots and pierce when the chain is rolling. |
-| 3 | Snake-Eyes Bargain | Town 2 boss | High-risk outlaw luck: big accuracy/damage swings, with Level III rewarding low-focus or last-card turns. |
+| 3 | Snake-Eyes Bargain | Town 2 boss | High-risk outlaw luck: big accuracy/damage swings, with Level III rewarding low-nerve or last-card turns. |
 | 4 | Black Hat Crescendo | Town 3 boss | The longer the duel lasts, the louder the outlaw gets: escalating extra volley shots across Showdown levels. |
 | 5 | Wanted Forever | Town 4/final boss | Living on the edge: stronger damage and dodge while hurt, but no starter advantage because the card must be found and played in-run. |
 
