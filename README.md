@@ -13,6 +13,7 @@ A browser-based PvE Western deckbuilding duel roguelite. Pick a class, fight dow
 - Each win has a 20% chance to add a separate class-only gun drop screen after the card reward. Gun drops exclude the class starter/currently equipped gun and can be taken or skipped.
 - Gun cards equip for the current duel only. The next duel starts from the class starter gun again until another gun card is played.
 - Upgraded Outlaw guns scale from combo triggers. Sheriff guns provide a defensive shotgun floor, while Sheriff cards supply most of the late-run sustain and closing power.
+- U.S. Marshal builds around Marks. Marks increase his hit damage and reduce enemy hit damage during High Noon; his premium government handgun upgrades support that mark plan, and the legendary Treasury Gold Schofield adds $5 bounty per successful hit.
 
 ## Run Locally
 

@@ -60,6 +60,7 @@ const EFFECT_TOOLTIPS = {
   extraVolleyShots: "Per combo trigger this duel, +N bonus shootout shots.",
   dualWieldAccPenaltyReduce: "Reduce the dual-wield accuracy penalty.",
   respectCapSet: "Set your Respect cap to at least this value for the run.",
+  bountyOnHit: "Each successful player hit adds this many dollars to the duel bounty.",
 };
 
 function tooltipForEffect(raw) {
@@ -146,6 +147,7 @@ function effectToText(raw) {
     case 'spiritScaleEnemyAcc': return `Foe ${pct(v)} acc / Spirit`;
     case 'payHp': return `Pay ${v} HP`;
     case 'extraVolleyShots': return `+${v} shot / combo`;
+    case 'bountyOnHit': return `+$${v} bounty / hit`;
     case 'staredownOnly': return null;
     case 'nextComboFree': return 'Next combo card free until played';
     case 'extraPlay': return `+${v} card play`;

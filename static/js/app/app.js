@@ -528,7 +528,8 @@ function endDuelFlow() {
   syncDeckFromDuel();
   if (d.winner === "player") {
     const mult = game.run.permanent?.bountyMult ?? 1;
-    const bountyEarned = Math.round(game.lastBounty * mult);
+    const bonusBounty = Math.max(0, Math.round(d.bonusBounty || 0));
+    const bountyEarned = Math.round(game.lastBounty * mult) + bonusBounty;
     game.run.money += bountyEarned;
     recordOpponentWin(d.opponentDef);
 

@@ -49,6 +49,19 @@ Sheriff is also tuned separately because the class uses Respect HP scaling and s
 | `Deputy Cover` | 1 |
 | Total | 12 |
 
+Marshal is tuned separately because marks are both offense and defense:
+
+| Card | Count |
+| --- | ---: |
+| `One in the Chamber` | 3 |
+| `Dodge` | 2 |
+| `Beer Heal` | 1 |
+| `Dead to Rights` | 2 |
+| `Federal Warrant` | 2 |
+| `Deputy Crossfire` | 1 |
+| `Badge Cover` | 1 |
+| Total | 12 |
+
 ## Run Deck Rules
 
 - Rewards and shop card offers are class-only.
@@ -57,7 +70,7 @@ Sheriff is also tuned separately because the class uses Respect HP scaling and s
 - Stances and Showdowns are unique deck cards; once owned, they stop appearing in reward/shop card offers.
 - Guns are class-only in the player shop and gun drop screen. Starter guns begin equipped, do not count against the starter deck, and are not offered as merchant upgrades.
 - Gun cards equip only for the current duel. The next duel starts from the class starter gun again until another gun card is played.
-- Starter guns are baseline equipment and do not give combo bonuses. Upgraded Outlaw guns use combo-trigger shot scaling. Sheriff guns provide the defensive shotgun floor, but Sheriff cards should carry most late-run sustain and closing power.
+- Starter guns are baseline equipment and do not give combo bonuses. Upgraded Outlaw guns use combo-trigger shot scaling. Sheriff guns provide the defensive shotgun floor, but Sheriff cards should carry most late-run sustain and closing power. Marshal guns are premium government handguns that support marks and bounty economy without replacing the mark deck.
 - The merchant offers cards and guns, but the player can buy only 1 card/gun per merchant visit. Whiskey healing is separate.
 
 ## Pool Targets
@@ -81,3 +94,4 @@ Starter decks begin at 12 cards and can grow up to the 24-card cap.
 
 - [Outlaw](outlaw.md) is the baseline for high-tempo combo classes.
 - [Sheriff](sheriff.md) is the baseline for defensive scaling classes.
+- [U.S. Marshal](marshal.md) is the baseline for mark-scaling control classes.

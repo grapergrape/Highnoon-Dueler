@@ -97,6 +97,20 @@ Sheriff is tuned as a high-HP shotgun class for prep rounds ramping from 1 to 3 
 
 The intended feel is not "roll dodge and pray." Sheriff should decide whether a prep round preserves Respect Aim, adds buckshot volume, or sets up a defensive line before High Noon.
 
+## U.S. Marshal Gameplay
+
+U.S. Marshal is tuned as a mark-scaling federal control class.
+
+- Passive: +5% accuracy, +1 Nerve each prep round, and +1 extra mark whenever he marks the enemy.
+- Marks increase Marshal hit damage during High Noon, capped at +14 damage.
+- Marks reduce enemy hit damage during High Noon, capped at 12 damage reduction.
+- Marks clear after each shootout, so every High Noon cycle asks the player to rebuild pressure.
+- `Dead to Rights`, `Federal Warrant`, `Deputy Crossfire`, `Badge Cover`, and `Paper Trail` are the main mark-building tools.
+- `Warrant Served`, `No-Knock Entry`, `Federal Ledger`, and Marshal Showdowns convert marks into better closing power.
+- Marshal guns are premium government handguns only. The legendary `Treasury Gold Schofield` uses golden bullets: each successful player hit adds $5 bounty to the duel reward.
+
+The intended feel is case-building under fire: mark the fugitive, make their shots weaker, then use enough bullets or mark payoffs to finish before the late bosses grind through the mitigation cap.
+
 ## Deckbuilding and Shops
 
 - Starting decks are 12 cards.
@@ -113,6 +127,7 @@ The intended feel is not "roll dodge and pray." Sheriff should decide whether a 
 - Upgraded Outlaw guns turn combo triggers into extra volley shots instead of only giving flat stats.
 - Sheriff guns provide a defensive shotgun floor: modest damage reduction, bullet dodge, and limited sustain.
 - Sheriff scaling should mostly come from class cards such as Badge Line, Town's Strength, Jailhouse Cover, Town Doctor, and Bullet-Stopping Badge.
+- Marshal guns are premium government handguns. They support marks and bounty generation, but the deck should still provide the mark density and defensive control.
 - Each merchant visit allows 1 card/gun purchase.
 - Whiskey healing is separate from the one card/gun purchase.
 - Health carries between duels.
@@ -146,6 +161,20 @@ Outlaw starts with the Volcanic Pistol equipped.
 
 Sheriff starts with the Town Guard Scattergun equipped.
 
+## Current U.S. Marshal Starter Deck
+
+| Card | Count |
+| --- | ---: |
+| One in the Chamber | 3 |
+| Dodge | 2 |
+| Beer Heal | 1 |
+| Dead to Rights | 2 |
+| Federal Warrant | 2 |
+| Deputy Crossfire | 1 |
+| Badge Cover | 1 |
+
+U.S. Marshal starts with the Colt Single Action Army equipped.
+
 ## Progression
 
 - The Wanted Board is the run map.
@@ -171,3 +200,4 @@ Sheriff starts with the Town Guard Scattergun equipped.
 6. Feats can repeat, while stances and Showdowns remain unique.
 7. Wanted Board, rewards, shop, healing, and between-run Showdown unlocks work.
 8. Outlaw can build a real combo deck without relying on random dodge chance.
+9. Marshal can build a mark deck where marks provide both damage and tankiness without turning final bosses into automatic wins.

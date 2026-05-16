@@ -32,6 +32,16 @@ const SHERIFF_STARTER_DECK = [
   "atk_deputy_cover",
 ];
 
+const MARSHAL_STARTER_DECK = [
+  "atk_one_in_the_chamber", "atk_one_in_the_chamber", "atk_one_in_the_chamber",
+  "atk_dodge", "atk_dodge",
+  "atk_beer_heal",
+  "atk_dead_to_rights", "atk_dead_to_rights",
+  "atk_federal_warrant", "atk_federal_warrant",
+  "atk_deputy_crossfire",
+  "atk_badge_cover",
+];
+
 function starterDeckWithSpecials(specials) {
   return [...SHARED_BASIC_STARTER_CORE, ...specials];
 }
@@ -91,14 +101,18 @@ export const CLASSES = [
     title: "Federal Iron",
     backstory: "Rides for the Department of Justice across three territories. Knows the trains, the warrants, and which judges take silver. The badge says he can shoot in any state — and he does, with paperwork.",
     abilityName: "Federal Warrant",
-    abilityBlurb: "+5% acc, +1 Nerve each prep round. +1 extra mark whenever you mark.",
+    abilityBlurb: "+5% acc, +1 Nerve each prep round. Marks stack +damage and reduce enemy hit damage.",
     startingMaxHp: 100,
-    starterDeckIds: starterDeckWithSpecials([
-      "atk_dead_to_rights",
-      "atk_posse_mark",
-      "atk_federal_warrant",
-    ]),
-    permanent: { accBonus: 0.05, focusPerRound: 1, extraMarkPerApply: 1 },
+    starterDeckIds: [...MARSHAL_STARTER_DECK],
+    permanent: {
+      accBonus: 0.05,
+      focusPerRound: 1,
+      extraMarkPerApply: 1,
+      markDamagePerMark: 1,
+      markDamageCap: 14,
+      markDamageReducePerMark: 1,
+      markDamageReduceCap: 12,
+    },
     portraitTint: "#3a5b8e",
   },
   {

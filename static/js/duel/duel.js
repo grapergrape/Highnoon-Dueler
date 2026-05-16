@@ -47,6 +47,7 @@ export function emptyMods() {
     focusBonusBullets: 0,  // extra bullets if player is focused
     focusBonusAcc: 0,      // extra accuracy if player is focused
     gainFocused: false,    // whether playing this card grants focused state
+    bountyOnHit: 0,        // bounty dollars added per player hit while equipped
     // New synergy mods
     markBulletPerMark: 0,  // +N bullets per enemy mark at shootout
     damagePerHp: 0,        // +1 damage per N current HP at shootout (denominator)
@@ -219,6 +220,7 @@ export function createDuel(oppDef, run) {
     roundOutlawCount: 0,
     nextComboFree: false,
     duelComboTriggers: 0,
+    bonusBounty: 0,
     shootoutLog: [],
     message: "STARE-DOWN — commit your hidden card before the prep.",
     winner: null,
@@ -343,6 +345,7 @@ function mergeGunIntoMods(mods, effects, sign = 1) {
     else if (e.kind === "focusBonusBullets") mods.focusBonusBullets += sign * (e.value || 0);
     else if (e.kind === "focusBonusAcc") mods.focusBonusAcc += sign * (e.value || 0);
     else if (e.kind === "gainFocused" && sign > 0) mods.gainFocused = true;
+    else if (e.kind === "bountyOnHit") mods.bountyOnHit += sign * (e.value || 0);
     else if (e.kind === "markBulletPerMark") mods.markBulletPerMark += sign * (e.value || 0);
     else if (e.kind === "damagePerHp") mods.damagePerHp += sign * (e.value || 0);
     else if (e.kind === "spiritScaleAcc") mods.spiritScaleAcc += sign * (e.value || 0);
@@ -906,6 +909,7 @@ function buildVolleySide(gun, mods, debuffs, permAcc) {
     firstHitsAuto: mods.firstHitsAuto,
     dodgeRecv: Math.max(0, Math.round(mods.dodgeRecv || 0)),
     returnBulletOnHit: mods.returnBulletOnHit,
+    bountyOnHit: Math.max(0, Math.round(mods.bountyOnHit || 0)),
     gunName: gun.name,
   };
 }
@@ -921,16 +925,29 @@ export function resolveShootout(duel, run) {
   const P = buildVolleySide(pg, playerMods, duel.playerDebuffs, permAcc);
   const E = buildVolleySide(eg, enemyMods, duel.enemyDebuffs, 0);
 
+  const marks = Math.max(0, Math.round(duel.enemyMarked || 0));
+  const markDamageEach = Math.max(0, run.permanent?.markDamagePerMark ?? 0);
+  const markDamageCap = Number.isFinite(run.permanent?.markDamageCap)
+    ? Math.max(0, run.permanent.markDamageCap)
+    : Infinity;
+  if (marks > 0 && markDamageEach > 0) {
+    const markDamage = Math.min(markDamageCap, marks * markDamageEach);
+    if (markDamage > 0) {
+      P.damage += markDamage;
+      pushPlayLogBulletin(duel, `Federal marks — +${markDamage} damage from ${marks} marks.`);
+    }
+  }
+
   // Apply mark burst: each mark on enemy amplifies damage
-  if (duel.enemyMarked > 0 && playerMods.markBurstDmg > 0) {
-    const markBonus = Math.floor(playerMods.markBurstDmg * duel.enemyMarked);
+  if (marks > 0 && playerMods.markBurstDmg > 0) {
+    const markBonus = Math.floor(playerMods.markBurstDmg * marks);
     P.damage += markBonus;
   }
   // Marshal legendary: +N bullets per enemy mark
-  if (duel.enemyMarked > 0 && playerMods.markBulletPerMark > 0) {
-    const addBullets = playerMods.markBulletPerMark * duel.enemyMarked;
+  if (marks > 0 && playerMods.markBulletPerMark > 0) {
+    const addBullets = playerMods.markBulletPerMark * marks;
     P.bullets += addBullets;
-    pushPlayLogBulletin(duel, `Federal Bounty — +${addBullets} bullets from ${duel.enemyMarked} marks.`);
+    pushPlayLogBulletin(duel, `Federal Bounty — +${addBullets} bullets from ${marks} marks.`);
   }
   // Sheriff: +1 damage per N current HP
   if (playerMods.damagePerHp > 0) {
@@ -1004,9 +1021,20 @@ export function resolveShootout(duel, run) {
   const log = [];
   let pi = 0;
   let ei = 0;
-  const reduce = (run.permanent?.damageReduce ?? 0) + (playerMods.damageReduce || 0);
+  const markReduceEach = Math.max(0, run.permanent?.markDamageReducePerMark ?? 0);
+  const markReduceCap = Number.isFinite(run.permanent?.markDamageReduceCap)
+    ? Math.max(0, run.permanent.markDamageReduceCap)
+    : Infinity;
+  const markReduce = marks > 0 && markReduceEach > 0
+    ? Math.min(markReduceCap, marks * markReduceEach)
+    : 0;
+  if (markReduce > 0) {
+    pushPlayLogBulletin(duel, `Warrant pressure — enemy hits reduced by ${markReduce}.`);
+  }
+  const reduce = (run.permanent?.damageReduce ?? 0) + (playerMods.damageReduce || 0) + markReduce;
   const deadeye = !!(run.permanent?.deadeye || playerMods.deadeye);
   const playerAccSamples = [];
+  const bountyBeforeVolley = Math.max(0, Math.round(duel.bonusBounty || 0));
 
   const volley = { P, E };
   const summary = {
@@ -1073,6 +1101,11 @@ export function resolveShootout(duel, run) {
         log.push({ kind: "return", n: add });
         shot.returnBullet = add;
       }
+      if (att.bountyOnHit > 0) {
+        const addBounty = Math.max(0, Math.round(att.bountyOnHit));
+        duel.bonusBounty = Math.max(0, Math.round(duel.bonusBounty || 0)) + addBounty;
+        shot.bounty = addBounty;
+      }
     } else {
       run.hp -= dmg;
       log.push({ kind: "hit", by: "enemy", dmg });
@@ -1138,6 +1171,10 @@ export function resolveShootout(duel, run) {
   summary.player.bullets = summary.player.shots.length;
   summary.enemy.bullets = summary.enemy.shots.length;
   duel.shootoutSummary = summary;
+  const bountyGained = Math.max(0, Math.round(duel.bonusBounty || 0)) - bountyBeforeVolley;
+  if (bountyGained > 0) {
+    pushPlayLogBulletin(duel, `Golden bullets — +$${bountyGained} bounty filed.`);
+  }
   duel.cycleCount += 1;
   duel.winner = winner;
   if (!winner) {
