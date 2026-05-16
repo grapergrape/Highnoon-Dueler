@@ -62,8 +62,8 @@ export function loadRun() {
     if (merged.classId === "sheriff") {
       const perm = merged.permanent;
       if (!Number.isFinite(perm.respect)) perm.respect = 0;
-      if (!Number.isFinite(perm.respectMax) || perm.respectMax <= 0) perm.respectMax = 5;
-      if (!Number.isFinite(perm.respectMaxHpEach) || perm.respectMaxHpEach <= 0) perm.respectMaxHpEach = 2;
+      if (!Number.isFinite(perm.respectMax) || perm.respectMax < 10) perm.respectMax = 10;
+      if (!Number.isFinite(perm.respectMaxHpEach) || perm.respectMaxHpEach < 5) perm.respectMaxHpEach = 5;
       if (!Number.isFinite(perm.highHpAccThreshold)) perm.highHpAccThreshold = 100;
       if (!Number.isFinite(perm.highHpAccPerHp)) perm.highHpAccPerHp = 0.03;
       if (!Number.isFinite(perm.highHpAccMax)) perm.highHpAccMax = 0.35;

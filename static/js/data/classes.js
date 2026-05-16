@@ -11,6 +11,27 @@ const SHARED_BASIC_STARTER_CORE = [
   "atk_beer_heal",
 ];
 
+const OUTLAW_STARTER_DECK = [
+  "atk_one_in_the_chamber", "atk_one_in_the_chamber", "atk_one_in_the_chamber",
+  "atk_dodge", "atk_dodge",
+  "atk_beer_heal",
+  "atk_gunslingers_tempo", "atk_gunslingers_tempo",
+  "atk_pistol_whip", "atk_pistol_whip",
+  "atk_outlaws_pact",
+  "atk_roll_the_dice",
+];
+
+const SHERIFF_STARTER_DECK = [
+  "atk_one_in_the_chamber", "atk_one_in_the_chamber",
+  "atk_dodge",
+  "atk_beer_heal",
+  "atk_bulwark", "atk_bulwark",
+  "atk_badge_flash", "atk_badge_flash",
+  "atk_heavy_iron", "atk_heavy_iron",
+  "atk_towns_strength",
+  "atk_deputy_cover",
+];
+
 function starterDeckWithSpecials(specials) {
   return [...SHARED_BASIC_STARTER_CORE, ...specials];
 }
@@ -23,13 +44,9 @@ export const CLASSES = [
     title: "Wanted Dead",
     backstory: "Robbed every coach from El Paso to Cheyenne and slept under stars he couldn't name. The price on his head is what he is worth — and that price climbs with every man he buries. He doesn't fear the rope. He fears being forgotten.",
     abilityName: "Twin Combos",
-    abilityBlurb: "+1 Nerve per prep cycle (shared across 3 rounds). Cards have bonus effects when ≥2 outlaw cards are played in the same prep round.",
-    startingMaxHp: 90,
-    starterDeckIds: starterDeckWithSpecials([
-      "atk_outlaws_pact",
-      "atk_gunslingers_tempo",
-      "atk_pistol_whip",
-    ]),
+    abilityBlurb: "+1 Nerve each prep round. Prep rounds ramp from 1 to 3 base plays; extra-play setup cards push combo turns further.",
+    startingMaxHp: 100,
+    starterDeckIds: [...OUTLAW_STARTER_DECK],
     permanent: { focusPerRound: 1, outlawComboTracking: true },
     portraitTint: "#7a2929",
   },
@@ -55,17 +72,13 @@ export const CLASSES = [
     title: "Badge of the Town",
     backstory: "Pinned the star ten years ago when the last sheriff ate dirt in front of the saloon. Knows every drunk, every cheat, and every shallow grave on Main Street. The town calls it grit: stay standing, earn Respect, and answer with thunder.",
     abilityName: "Earned Respect",
-    abilityBlurb: "Each duel win earns Respect (cap 5): +2 max HP per point. While above 100 current HP, shotgun accuracy gains +3% per HP (max +35%).",
-    startingMaxHp: 100,
-    starterDeckIds: starterDeckWithSpecials([
-      "atk_bulwark",
-      "atk_lawmans_stand",
-      "atk_towns_strength",
-    ]),
+    abilityBlurb: "Each duel win earns Respect (cap 10): +5 max HP per point. While above 100 current HP, shotgun accuracy gains +3% per HP (max +35%).",
+    startingMaxHp: 105,
+    starterDeckIds: [...SHERIFF_STARTER_DECK],
     permanent: {
       respect: 0,
-      respectMax: 5,
-      respectMaxHpEach: 2,
+      respectMax: 10,
+      respectMaxHpEach: 5,
       highHpAccThreshold: 100,
       highHpAccPerHp: 0.03,
       highHpAccMax: 0.35,
@@ -78,7 +91,7 @@ export const CLASSES = [
     title: "Federal Iron",
     backstory: "Rides for the Department of Justice across three territories. Knows the trains, the warrants, and which judges take silver. The badge says he can shoot in any state — and he does, with paperwork.",
     abilityName: "Federal Warrant",
-    abilityBlurb: "+5% acc, +1 Nerve per prep cycle (shared across 3 rounds). +1 extra mark whenever you mark.",
+    abilityBlurb: "+5% acc, +1 Nerve each prep round. +1 extra mark whenever you mark.",
     startingMaxHp: 100,
     starterDeckIds: starterDeckWithSpecials([
       "atk_dead_to_rights",

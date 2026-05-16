@@ -5,11 +5,11 @@
 - Feats are immediate tricks, tactics, reactions, and bursts of pressure.
 - Guns are equipped weapons. Each class starter gun sits outside the deck as the active gun.
 - Stances stay in play during a duel and provide ongoing modifiers.
-- Showdowns are one-per-deck build-around cards that start at Level I and advance after each unresolved High Noon until Level III.
+- Showdowns are unique build-around cards. Only one Showdown can be active in a duel at a time; it starts at Level I and advances after each unresolved High Noon until Level III.
 
 ## Baseline Deck
 
-Each class starter deck contains 12 cards:
+Each class starter deck contains 12 cards. Most classes use the shared 9-card core plus 3 class specials:
 
 | Type | Count |
 | --- | ---: |
@@ -21,6 +21,41 @@ Each class starter deck contains 12 cards:
 
 The class starter gun is not counted in the starter deck and is equipped separately.
 Deck cap remains 24 cards so rewards and shops can grow the run deck over time.
+
+Outlaw is tuned separately because the class is built around prep rounds ramping from 1 to 3 base card plays and extra-play combo turns:
+
+| Card | Count |
+| --- | ---: |
+| `One in the Chamber` | 3 |
+| `Dodge` | 2 |
+| `Beer Heal` | 1 |
+| `Gunslinger's Tempo` | 2 |
+| `Pistol Whip` | 2 |
+| `Outlaw's Pact` | 1 |
+| `Roll the Dice` | 1 |
+| Total | 12 |
+
+Sheriff is also tuned separately because the class uses Respect HP scaling and shotgun cards that need enough bullet volume to beat deterministic dodge:
+
+| Card | Count |
+| --- | ---: |
+| `One in the Chamber` | 2 |
+| `Dodge` | 1 |
+| `Beer Heal` | 1 |
+| `Bulwark` | 2 |
+| `Badge Flash` | 2 |
+| `Packed Shells` | 2 |
+| `Town's Strength` | 1 |
+| `Deputy Cover` | 1 |
+| Total | 12 |
+
+## Run Deck Rules
+
+- Rewards and shop card offers are class-only.
+- Feats can repeat, which lets a class build a focused engine.
+- Stances and Showdowns are unique deck cards; once owned, they stop appearing in reward/shop card offers.
+- Guns are class-only in the player shop. Starter guns begin equipped and do not count against the starter deck.
+- The merchant offers cards and guns, but the player can buy only 1 card/gun per merchant visit. Whiskey healing is separate.
 
 ## Pool Targets
 
@@ -35,14 +70,6 @@ Recommended class pool target:
 | Showdowns | 2 |
 | Total | 25 |
 
-Recommended shared pool target:
+Shared cards still exist for starter decks, enemy decks, and legacy content, but player rewards and shop card offers should not use the shared pool during normal class runs.
 
-| Type | Count |
-| --- | ---: |
-| Feats | 24 |
-| Guns | 6 |
-| Stances | 8 |
-| Showdowns | 2 |
-| Total | 40 |
-
-Starter decks begin at 12 cards (9 shared + 3 class-specific) and can grow up to the 24-card cap.
+Starter decks begin at 12 cards and can grow up to the 24-card cap.

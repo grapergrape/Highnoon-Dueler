@@ -1,7 +1,7 @@
 import { STARTER_DECK_IDS, shuffle } from "../data/deck.js";
 import { starterGunIdForClass } from "../data/guns.js";
 import { getOpponent, TOWNS } from "../data/opponents.js";
-import { CARD_DEFINITIONS } from "../data/cards.js";
+import { CARD_DEFINITIONS, getCardDef } from "../data/cards.js";
 import {
   createDuel,
   tryPlayCard,
@@ -265,6 +265,10 @@ function hasStaredownOnlyEffect(cardDef) {
   return Array.isArray(cardDef?.effects) && cardDef.effects.includes("staredownOnly");
 }
 
+function isUniqueDeckCard(cardDef) {
+  return cardDef?.type === "showdown" || cardDef?.type === "stance";
+}
+
 function rewardCardPool(gameState) {
   const run = gameState.run;
   const unlockState = gameState.unlocks;
@@ -274,16 +278,16 @@ function rewardCardPool(gameState) {
     c.type !== "gun" &&
     !c.opponentOnly &&
     !hasStaredownOnlyEffect(c) &&
-    (!c.classId || c.classId === classId) &&
+    !!classId &&
+    c.classId === classId &&
     (
       c.type !== "showdown"
-      || (
-        !!c.classId
-        && c.classId === classId
-        && isShowdownUnlockedForClass(unlockState, classId, c.id)
-      )
+      || isShowdownUnlockedForClass(unlockState, classId, c.id)
     ) &&
-    !owned.has(c.id)
+    (
+      !isUniqueDeckCard(c)
+      || !owned.has(c.id)
+    )
   );
 }
 
@@ -318,7 +322,9 @@ function rollPostDuelRewardCards(gameState, count = 3) {
 
 function applyRewardCard(cardId, opts) {
   if (!cardId || cardId.startsWith("gun_")) return false;
-  if (game.run.deckIds.includes(cardId)) return false;
+  const def = getCardDef(cardId);
+  if (!def || def.classId !== game.run.classId) return false;
+  if (isUniqueDeckCard(def) && game.run.deckIds.includes(cardId)) return false;
   const replacingCard = !!opts?.replaceCardId;
   if (game.run.deckIds.length >= MAX_DECK_SIZE && !replacingCard) return false;
   if (opts?.replaceCardId) {
@@ -364,13 +370,18 @@ function openShop() {
   if (typeof game.shopVisitInventory.healUsed !== "boolean") {
     game.shopVisitInventory.healUsed = false;
   }
+  if (typeof game.shopVisitInventory.purchaseUsed !== "boolean") {
+    game.shopVisitInventory.purchaseUsed = false;
+  }
   game.screen = "shop";
   renderShop(
     game,
     game.shopVisitInventory,
     (cardId, price, opts) => {
+      if (game.shopVisitInventory?.purchaseUsed) return;
       if (game.run.money < price) return;
       const isGun = cardId.startsWith("gun_");
+      const cardDef = getCardDef(cardId);
       const replacingGun = isGun && !!opts?.replaceGunId;
       const replacingCard = !isGun && !!opts?.replaceCardId;
       if (game.run.deckIds.length >= MAX_DECK_SIZE && !replacingGun && !replacingCard) return;
@@ -383,6 +394,10 @@ function openShop() {
           if (ix < 0) return;
           game.run.deckIds.splice(ix, 1);
         }
+      } else if (!cardDef || cardDef.classId !== game.run.classId) {
+        return;
+      } else if (isUniqueDeckCard(cardDef) && game.run.deckIds.includes(cardId)) {
+        return;
       } else if (opts?.replaceCardId) {
         if (opts.replaceCardId.startsWith("gun_")) return;
         const ix = game.run.deckIds.indexOf(opts.replaceCardId);
@@ -392,6 +407,7 @@ function openShop() {
       game.run.money -= price;
       game.run.deckIds.push(cardId);
       if (game.shopVisitInventory) {
+        game.shopVisitInventory.purchaseUsed = true;
         if (isGun) {
           game.shopVisitInventory.gunIds = game.shopVisitInventory.gunIds.filter((id) => id !== cardId);
         } else {

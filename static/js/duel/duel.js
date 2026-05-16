@@ -5,6 +5,9 @@ import { makeEnemyRuntime } from "../data/opponents.js";
 import { buildDeckFromIds, drawCards, shuffle } from "../data/deck.js";
 
 const STAREDOWN_POOL = ["std_dead_eye", "std_warning_shot", "std_iron_will", "std_marked_man"];
+const PLAYER_BASE_NERVE = 4;
+const PLAYER_BASE_PLAYS_PER_ROUND = 1;
+const PLAYER_MAX_BASE_PLAYS_PER_ROUND = 3;
 
 const STAREDOWN_BY_CLASS = {
   marshal:       ["std_marked_man", "std_federal_stare", "std_cold_stare", "std_warning_shot"],
@@ -19,6 +22,11 @@ function isPersistentCardType(type) {
   return type === "stance" || type === "showdown" || type === "character";
 }
 
+function basePlaysForPrepRound(duel) {
+  const prepRound = Number.isFinite(duel?.prepRound) ? Math.max(1, Math.round(duel.prepRound)) : 1;
+  return Math.min(PLAYER_MAX_BASE_PLAYS_PER_ROUND, Math.max(PLAYER_BASE_PLAYS_PER_ROUND, prepRound));
+}
+
 export function emptyMods() {
   return {
     bulletDelta: 0,
@@ -28,7 +36,7 @@ export function emptyMods() {
     pierce: false,
     ricochet: false,
     firstHitsAuto: 0,
-    dodgeRecv: 0,
+    dodgeRecv: 0,        // deterministic incoming bullets dodged per volley
     returnBulletOnHit: 0,
     hpAfterShootout: 0,
     hpAfterCycle: 0,
@@ -46,7 +54,7 @@ export function emptyMods() {
     spiritScaleDamage: 0,  // damageShootout += spirit * value
     spiritScaleEnemyAcc: 0,// enemyAccNext debuff -= spirit * value
     extraVolleyShots: 0,   // bonus shootout shots (Outlaw legendary)
-    focusRoundBonus: 0,    // extra focus in each 3-round prep cycle while a stance/showdown is active
+    focusRoundBonus: 0,    // extra Nerve on each prep-round refill while a stance/showdown is active
     damageReduce: 0,       // flat reduction from each incoming hit
     deadeye: false,
     dualWieldAccPenaltyReduce: 0,
@@ -178,7 +186,9 @@ export function createDuel(oppDef, run) {
     playerDrawPile: buildDeckFromIds(run.deckIds),
     playerDiscard: [],
     playerFocus: 0,
-    playerMaxFocus: 5 + (run.permanent?.focusPerRound ?? 0),
+    playerMaxFocus: PLAYER_BASE_NERVE + (run.permanent?.focusPerRound ?? 0),
+    playerPlaysRemaining: PLAYER_BASE_PLAYS_PER_ROUND,
+    playerMaxPlaysThisRound: PLAYER_BASE_PLAYS_PER_ROUND,
     focusBonusCycle: 0,
     playerActiveGun,
     playerMods: emptyMods(),
@@ -259,7 +269,7 @@ export { refillFocus as refillStamina };
 
 function playerCycleNerveCap(duel, run) {
   const persistent = persistentModsFor(duel, "player");
-  const base = 5 + (run.permanent?.focusPerRound ?? 0) + (persistent.focusRoundBonus ?? 0);
+  const base = PLAYER_BASE_NERVE + (run.permanent?.focusPerRound ?? 0) + (persistent.focusRoundBonus ?? 0);
   return Math.max(0, base + (duel.focusBonusCycle ?? 0));
 }
 
@@ -345,6 +355,16 @@ function mergeGunIntoMods(mods, effects, sign = 1) {
   }
 }
 
+function grantExtraPlays(duel, value = 1) {
+  const add = Math.max(0, Math.round(value || 0));
+  if (add <= 0) return;
+  const basePlays = basePlaysForPrepRound(duel);
+  const currentPlays = Number.isFinite(duel.playerPlaysRemaining) ? duel.playerPlaysRemaining : basePlays;
+  const currentMax = Number.isFinite(duel.playerMaxPlaysThisRound) ? duel.playerMaxPlaysThisRound : basePlays;
+  duel.playerPlaysRemaining = Math.max(0, currentPlays + add);
+  duel.playerMaxPlaysThisRound = currentMax + add;
+}
+
 function applyPlayerCardEffects(duel, run, def) {
   const eff = def.effects ?? [];
   // Spirit-scaled debuffs use the spirit value at play time for next-volley enemy acc
@@ -365,6 +385,8 @@ function applyPlayerCardEffects(duel, run, def) {
     } else if (e.kind === "spiritScaleEnemyAcc") {
       // Apply now using current spirit as a debuff on enemy next volley
       duel.enemyDebuffs.accNext += spiritNow * (e.value || 0);
+    } else if (e.kind === "extraPlay") {
+      grantExtraPlays(duel, e.value || 0);
     } else {
       mergeGunIntoMods(duel.playerMods, [raw], 1);
     }
@@ -431,6 +453,10 @@ function applyPersistentEffects(duel, run, def, targetMods, playedBy, level = 1)
         duel.playerFocused = true;
       } else if (e.kind === "removeDualPenalty") {
         duel.dualWieldPenaltyRemoved = true;
+      } else if (e.kind === "extraPlay") {
+        grantExtraPlays(duel, e.value || 0);
+      } else if (e.kind === "nextComboFree") {
+        duel.nextComboFree = true;
       } else {
         mergeGunIntoMods(targetMods, [raw], 1);
       }
@@ -509,17 +535,17 @@ function advanceShowdowns(duel, run) {
 }
 
 export function startPrepRound(duel, run) {
+  const basePlays = basePlaysForPrepRound(duel);
+  const playText = basePlays === 1 ? "play one card" : `play up to ${basePlays} cards`;
   duel.playerLocked = false;
+  duel.playerPlaysRemaining = basePlays;
+  duel.playerMaxPlaysThisRound = basePlays;
   duel.freeCardAvailable = !!run.permanent?.freeFirstCardPerRound;
   duel.roundOutlawCount = 0;
   duel.roundOutlawCards = [];
-  duel.message = `Preparation — round ${duel.prepRound} of 3. Manage one shared Nerve pool.`;
-  pushPlayLogBulletin(duel, `Preparation round ${duel.prepRound}/3 — draw and play.`);
-  if (duel.prepRound === 1) {
-    refillFocus(duel, run);
-  } else {
-    syncPlayerNerveCap(duel, run);
-  }
+  duel.message = `Preparation — round ${duel.prepRound} of 3. Nerve refills; ${playText}.`;
+  pushPlayLogBulletin(duel, `Preparation round ${duel.prepRound}/3 — draw and ${playText}.`);
+  refillFocus(duel, run);
   duel.enemy.focus = duel.enemy.maxFocus;
 
   const drawn = drawCards(duel.playerDrawPile, duel.playerDiscard, 4);
@@ -552,7 +578,11 @@ export function tryPlayCard(duel, run, cardUid) {
   const isComboFree = !isPersistent && isOutlawCombo && duel.nextComboFree;
   const usingFreebie = def.type !== "gun" && !isPersistent && !isComboFree && duel.freeCardAvailable === true;
   const cost = (usingFreebie || isComboFree) ? 0 : def.cost;
+  const playsRemaining = Number.isFinite(duel.playerPlaysRemaining)
+    ? duel.playerPlaysRemaining
+    : basePlaysForPrepRound(duel);
 
+  if (playsRemaining <= 0) return { ok: false, reason: "No plays left" };
   if (cost > duel.playerFocus) return { ok: false, reason: "Not enough nerve" };
 
   // payHp gating: refuse if HP cost would kill caster
@@ -565,6 +595,7 @@ export function tryPlayCard(duel, run, cardUid) {
     return { ok: false, reason: "Would be lethal" };
   }
 
+  duel.playerPlaysRemaining = Math.max(0, playsRemaining - 1);
   duel.playerFocus -= cost;
   if (usingFreebie) {
     duel.freeCardAvailable = false;
@@ -683,6 +714,7 @@ export function tryPlayCard(duel, run, cardUid) {
     const add = s?.value || 0;
     duel.focusBonusCycle += add;
     syncPlayerNerveCap(duel, run, { topUpOnIncrease: add > 0 });
+    grantExtraPlays(duel, add);
   }
 
   duel.message = `Played ${def.name}.`;
@@ -726,25 +758,28 @@ function enemyPrepPlay(duel, run) {
     return d && d.cost <= enemy.focus;
   });
   playable.sort(() => Math.random() - 0.5);
-  let guard = 0;
-  while (guard++ < 10) {
-    if (Math.random() > duel.opponentDef.prepAggression && guard > 1) break;
+  const rawAggression = Number.isFinite(duel.opponentDef?.prepAggression)
+    ? duel.opponentDef.prepAggression
+    : 0.5;
+  const prepChance = Math.min(0.95, Math.max(0.35, rawAggression + 0.25));
+  if (playable.length && Math.random() <= prepChance) {
     const pick = playable.find((c) => getCardDef(c.id).cost <= enemy.focus);
-    if (!pick) break;
-    const d = getCardDef(pick.id);
-    enemy.focus -= d.cost;
-    const ix = enemy.hand.indexOf(pick);
-    enemy.hand.splice(ix, 1);
-    if (isPersistentCardType(d.type)) {
-      playPersistentCard(duel, run, pick, d, "enemy");
-    } else {
-      enemy.discardPile.push(pick);
-      applyEnemyPlayedCard(duel, d);
+    if (pick) {
+      const d = getCardDef(pick.id);
+      enemy.focus -= d.cost;
+      const ix = enemy.hand.indexOf(pick);
+      enemy.hand.splice(ix, 1);
+      if (isPersistentCardType(d.type)) {
+        playPersistentCard(duel, run, pick, d, "enemy");
+      } else {
+        enemy.discardPile.push(pick);
+        applyEnemyPlayedCard(duel, d);
+      }
+      pushPlayLogCard(duel, "outlaw", d);
+      duel.feedbackEnemyRound.push(...feedbackLinesForCard(d, "enemy"));
     }
-    pushPlayLogCard(duel, "outlaw", d);
-    duel.feedbackEnemyRound.push(...feedbackLinesForCard(d, "enemy"));
-    const pi = playable.indexOf(pick);
-    if (pi >= 0) playable.splice(pi, 1);
+  } else if (playable.length) {
+    pushPlayLogBulletin(duel, `${duel.opponentDef.name} holds their nerve.`);
   }
   for (const c of [...enemy.hand]) {
     enemy.discardPile.push(c);
@@ -871,7 +906,7 @@ function buildVolleySide(gun, mods, debuffs, permAcc) {
     pierce: mods.pierce,
     ricochet: mods.ricochet,
     firstHitsAuto: mods.firstHitsAuto,
-    dodgeRecv: mods.dodgeRecv,
+    dodgeRecv: Math.max(0, Math.round(mods.dodgeRecv || 0)),
     returnBulletOnHit: mods.returnBulletOnHit,
     gunName: gun.name,
   };
@@ -986,7 +1021,8 @@ export function resolveShootout(duel, run) {
     const def = volley[defKey];
     const side = tag === "player" ? summary.player : summary.enemy;
     const shot = { i: bulletIndex + 1, outcome: "miss", dmg: 0 };
-    if (def.dodgeRecv > 0 && Math.random() < def.dodgeRecv) {
+    if (def.dodgeRecv > 0) {
+      def.dodgeRecv = Math.max(0, def.dodgeRecv - 1);
       log.push({ kind: "dodge", who: defKey === "P" ? "player" : "enemy" });
       shot.outcome = "dodged";
       side.dodged++;

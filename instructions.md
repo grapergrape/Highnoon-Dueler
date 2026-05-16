@@ -1,8 +1,10 @@
-# High Noon Duelist - Deckbuilding Pistol Roguelite
+# High Noon Duelist - Current Gameplay Notes
 
-Build a self-contained browser-based PvE deckbuilding Western pistol dueling roguelite. Single project, runnable locally via VS Code.
+This file describes how the game currently plays. It is not the original MVP request.
 
-## Project Layout (strict)
+## Project Layout
+
+```text
 project_root/
 ├── src/
 │   └── server.py
@@ -10,138 +12,155 @@ project_root/
 │   ├── index.html
 │   ├── style.css
 │   └── js/
-│       ├── main.js           (game loop, root state manager)
-│       ├── duel.js           (core duel logic, shootouts, resolution)
-│       ├── deck.js           (deck building, card draw, hand management)
-│       ├── cards.js          (card definitions, effects, generation)
-│       ├── guns.js           (gun database, special abilities)
-│       ├── opponents.js      (wanted posters, AI opponents, backstories)
-│       ├── ui.js             (HUD, card UI, shop, wanted board)
-│       ├── render.js         (canvas drawing, animations, particles, duel scene)
-│       └── input.js          (mouse + keyboard handling)
-└── requirements.txt         (fastapi, uvicorn)
-text## Server (`src/server.py`)
-- FastAPI + uvicorn setup identical to previous projects.
-- Supports `--port` and `--host` via argparse.
-- Serves `static/index.html` on `/` and mounts static files.
-- Compatible with VS Code launch config on port 8088.
-
-## Frontend Tech (strict)
-- Vanilla HTML5 Canvas + ES modules + CSS. No frameworks, no bundlers, no external assets.
-- All visuals drawn with Canvas 2D. Single `game` state object in `main.js`.
-
-## Detailed Visuals & Setting
-
-**Overall Aesthetic**: Retro 16-bit / 32-bit pixel art style with a gritty Western feel. Warm, dusty color palette (browns, oranges, deep reds, muted blues). Strong silhouettes and smooth pixel animations.
-
-**Camera & View**:
-- Fixed over-the-shoulder view from **behind the player’s right hip**.
-- Player occupies bottom-left third of screen, enemy stands middle-right.
-- Duel takes place on a dusty Western main street with wooden sidewalks and storefronts.
-
-**Background Details**:
-- Parallax layers: distant mountains, sky with slow clouds, heat haze.
-- Ambient animations: blowing dust, tumbleweeds, swaying signs, circling vultures.
-- Background changes per opponent (saloon, bank, sheriff office, abandoned mine, etc.).
-- Lighting shifts with time of day (harsh noon, orange dusk, dramatic night).
-
-**Player Character**:
-- Tall lean gunslinger in brown duster, cowboy hat, bandana.
-- Right arm and pistol clearly visible.
-- Animations: idle breathing + coat flap, card playing gesture, flinch on damage, rapid recoil while shooting, dramatic death fall with hat flying off.
-
-**Enemies (MVP - 3 opponents)**:
-1. Blackjack Riley – Fat bearded outlaw in red shirt (slow, tanky).
-2. Silent Rose – Female gunslinger in black leather (fast, elegant).
-3. Mad Dog McClane – Skinny crazy-eyed bandit with bandoliers (aggressive).
-
-Each has unique colors, idle animations (spitting tobacco, gun twirling, maniacal laughing), and death animations.
-
-**High Noon Shootout Visuals**:
-- Huge "**HIGH NOON**" text with bell visual.
-- Slight camera zoom + slow-motion effect.
-- Bright yellow bullet tracers, muzzle flashes, dust/blood impacts, damage popups.
-- Screen shake on heavy hits.
-- Special gun abilities have unique flair (ricochet trails, explosions, etc.).
-
-**UI Style**:
-- Pixel art fonts, parchment/wooden panels, wanted-poster style health bars.
-- Cards have thick borders and western illustrations.
+│       ├── main.js
+│       ├── app/
+│       │   ├── app.js
+│       │   ├── run-state.js
+│       │   └── unlock-state.js
+│       ├── data/
+│       │   ├── cards.js
+│       │   ├── classes.js
+│       │   ├── deck.js
+│       │   ├── guns.js
+│       │   └── opponents.js
+│       ├── duel/
+│       │   └── duel.js
+│       ├── rendering/
+│       │   └── render.js
+│       └── ui/
+│           ├── combat-ui.js
+│           ├── input.js
+│           └── ui.js
+└── docs/
+```
 
 ## Core Duel Loop
 
-Each duel consists of multiple **High Noon cycles** until one gunslinger dies:
+Each duel repeats this cycle until one side dies:
 
-1. **Preparation Phase (3 Rounds)**  
-   - Player draws **1 Gun Card + 3 normal cards** per round.  
-   - Both players take turns playing cards (player first).  
-   - Plays limited by **Stamina** (mana).  
-   - After 3 rounds → **High Noon** triggers.
+1. Stare-down
+   - The player chooses 1 free stare-down card.
+   - The enemy secretly commits one card from its deck.
+   - Stare-down effects resolve just before High Noon.
 
-2. **High Noon Shootout**  
-   - Both empty **all loaded bullets** into each other.  
-   - Bullets resolved with accuracy rolls and effects.  
-   - If both die in the same shootout, the one with **less negative HP** wins.
+2. Preparation
+   - Each High Noon cycle has 3 prep rounds.
+   - At the start of every prep round, the player draws 4 cards.
+   - Nerve refills at the start of every prep round.
+   - Base card plays ramp by prep round: 1 play in round 1, 2 in round 2, and 3 in round 3.
+   - Cards with `extraPlay` or `focusCycle` can grant more plays on top of the current prep round's base.
+   - Unplayed hand cards are discarded when the player locks in.
+   - The enemy may play 1 card in a prep round based on its `prepAggression`.
 
-3. Repeat with new card draws until one duelist is dead.
+3. High Noon
+   - Both sides fire their prepared bullet volleys.
+   - Bullets alternate between player and enemy.
+   - Accuracy rolls decide hits unless a card grants automatic hits.
+   - Dodge cancels incoming bullets before accuracy is rolled.
+   - If both die in the same volley, class rules and remaining HP decide the winner.
 
-## Stats
-- **Player** (persistent in a run):
-  - Health (starts ~100, carries between duels)
-  - Accuracy
-  - Stamina / Max Stamina (mana)
-- **Gun**:
-  - Bullets per magazine
-  - Damage per bullet
-  - Base Accuracy
-  - Special Ability
+If both survive High Noon, Showdowns level up, temporary effects clear, and a new 3-round prep cycle begins.
 
-## Card Types & Concrete Examples
+## Nerve, Plays, Dodge, and Accuracy
 
-### Gun Cards (always drawn once per round)
-- Quick Draw Revolver: +2 Bullets, +15% Accuracy this shootout
-- Heavy Slugger: +3 Damage, -10% Accuracy this shootout
-- Oiled Chamber: +25% Accuracy, bullets gain "Pierce"
-- Bandit’s Gambit: +4 Bullets, lose 8 Health after shootout
+- Nerve is the card-cost resource. It refills every prep round.
+- Card plays are separate from Nerve. Having enough Nerve does not matter if no plays remain.
+- The default player prep sequence is `1/1 Plays`, then `2/2 Plays`, then `3/3 Plays`.
+- `extraPlay+1` raises the current prep round by 1 playable card above its base.
+- `focusCycle+1` grants +1 Nerve this cycle and +1 card play.
+- Dodge is deterministic bullet cancellation. `dodgeRecv+2` means the next 2 incoming bullets are dodged.
+- Accuracy is still probabilistic during High Noon. The design goal is that defense is deterministic, while offense still has gunfight uncertainty.
 
-### Attack Cards (gun buffs / opponent debuffs)
-- Rust Bullet: Enemy loses 25% Accuracy next shootout
-- Trick Shot: +1 bullet, 30% chance to ricochet (50% damage)
-- Sand in the Chamber: Enemy loses 2 bullets next shootout
-- Fan the Hammer: +2 bullets at -20% accuracy
-- Dead Man’s Volley: Return 1 bullet per enemy hit (max 4)
+## Outlaw Gameplay
 
-### Character Cards (Permanent Powers - last whole run)
-- Iron Gut: +25 max Health, heal 8 at start of every duel
-- Lightning Reflexes: +12% Accuracy, +1 Stamina per round
-- Deadeye: Bullets above 85% accuracy deal +30% damage
-- Thick Hide: Reduce all incoming damage by 1 (min 1)
+Outlaw is tuned around prep rounds ramping from 1 to 3 base card plays.
 
-### Physical Feat Cards (One-cycle buffs)
-- Adrenaline Rush: +30% Accuracy & +20% damage this cycle, lose 10 Health after
-- Steady Hand: +35% Accuracy, first 3 bullets cannot miss
-- Whiskey Courage: +40 max Stamina this cycle, +15 Health
-- Tumbleweed Dodge: 25% chance to dodge each bullet next shootout
+- Passive: +1 Nerve each prep round.
+- Combo tracking: Outlaw combo cards trigger `comboBonus:` effects once 2 or more Outlaw cards are played in the same prep round.
+- `Outlaw's Pact` grants the next Outlaw combo card for 0 Nerve, +1 play, and 1 Dodge.
+- `Gunslinger's Tempo` grants accuracy, Dodge, +1 play, and combo bullets.
+- `Loaded Sleeve` is the main extra-play offensive payoff.
+- `Cheat the Count`, `Pocket Reload`, `Smoke Break`, `Low Blow`, and `Crooked Smile` give alternate ways to extend, defend, or disrupt.
+- `Lucky Scar`, `Hideout Cache`, and `Black-Market Doc` are unique defensive Outlaw stances.
 
-**Card Names** use strong Western flavor: Devil’s Due, Hangman’s Noose, Rattlesnake Reflexes, Undertaker’s Deal, etc.
+The intended feel is closer to a Slay the Spire hand puzzle than a raw RNG dodge system: build an engine, chain an extra play, then choose whether the next card protects, accelerates, or kills.
+
+## Sheriff Gameplay
+
+Sheriff is tuned as a high-HP shotgun class for prep rounds ramping from 1 to 3 base card plays.
+
+- Passive: each duel win earns Respect, up to 10. Each Respect grants +5 max HP.
+- While above 100 current HP, Sheriff gains +3% shotgun accuracy per HP, up to +35%.
+- `Badge Flash`, `Bulwark`, `Packed Shells`, `Deputy Cover`, `Iron Resolve`, and `Badge Line` are the main play-extenders.
+- `Packed Shells`, `Town's Strength`, `Double-Barrel Warning`, and `Star of Justice` add enough bullets to beat enemy bullet denial and dodge.
+- Defensive cards mostly cancel set bullet counts or reduce hit damage; the class should win by staying above 100 HP and turning that durability into accurate shotgun volleys.
+
+The intended feel is not "roll dodge and pray." Sheriff should decide whether a prep round preserves Respect Aim, adds buckshot volume, or sets up a defensive line before High Noon.
+
+## Deckbuilding and Shops
+
+- Starting decks are 12 cards.
+- Deck cap is 24 cards.
+- Player card rewards and shop card offers are class-only.
+- Feats can repeat.
+- Stances and Showdowns are unique. Once owned, they stop appearing in reward/shop offers.
+- Guns in the player shop are class-only.
+- Starter guns begin equipped and are not counted in the starter deck.
+- Each merchant visit allows 1 card/gun purchase.
+- Whiskey healing is separate from the one card/gun purchase.
+- Health carries between duels.
+
+## Current Outlaw Starter Deck
+
+| Card | Count |
+| --- | ---: |
+| One in the Chamber | 3 |
+| Dodge | 2 |
+| Beer Heal | 1 |
+| Gunslinger's Tempo | 2 |
+| Pistol Whip | 2 |
+| Outlaw's Pact | 1 |
+| Roll the Dice | 1 |
+
+Outlaw starts with the Volcanic Pistol equipped.
+
+## Current Sheriff Starter Deck
+
+| Card | Count |
+| --- | ---: |
+| One in the Chamber | 2 |
+| Dodge | 1 |
+| Beer Heal | 1 |
+| Bulwark | 2 |
+| Badge Flash | 2 |
+| Packed Shells | 2 |
+| Town's Strength | 1 |
+| Deputy Cover | 1 |
+
+Sheriff starts with the Town Guard Scattergun equipped.
 
 ## Progression
-- **Wanted Board** (hub menu): List of wanted posters.
-- MVP has **3 opponents** with unique backstories and decks.
-- After winning a duel → **Merchant** screen:
-  - Spend bounty money on new cards, better guns, and healing (whiskey, food, etc.).
-- Health carries between duels — player must heal at merchant.
-- Money and unlocked cards/guns persist between runs (localStorage).
 
-## Definition of Done
-1. Server runs and game loads instantly.
-2. Full duel loop works: 3 prep rounds → High Noon → repeat until death.
-3. Card drawing, stamina costs, and turn-based play function correctly.
-4. Shootout resolution with bullet tracers and accuracy is satisfying.
-5. Deckbuilding, shop, and Wanted Board progression work.
-6. At least 3 distinct opponents with different behaviors.
-7. Persistent progression via localStorage.
-8. Strong Western pixel-art atmosphere and High Noon tension.
-9. Game is fun and addictive for multiple runs.
+- The Wanted Board is the run map.
+- Towns contain easy, medium, and boss opponents.
+- Boss clears unlock class Showdown cards for future reward/shop pools.
+- Unlocks are between-run progression. They do not directly add cards to the starter deck.
+- Run state and unlock state persist in localStorage.
 
-Build the entire thing now.
+## Visual and UI Goals
+
+- Western wanted-poster interface with a canvas duel scene.
+- During prep, the UI should make current Nerve, remaining Plays, combo count, and free combo status visible.
+- During High Noon, the player should see bullets, hits, misses, dodges, damage, and final duel summary clearly.
+- Dodge text should read as bullet counts, not percentages.
+
+## Definition of Done for Gameplay Changes
+
+1. Server runs and the game loads locally.
+2. Full loop works: stare-down -> 3 prep rounds -> High Noon -> repeat until death.
+3. Nerve refill, prep play ramp, extra-play cards, and lock-in flow work.
+4. Dodge is deterministic bullet cancellation everywhere it is displayed and resolved.
+5. Rewards and shop card offers are class-only.
+6. Feats can repeat, while stances and Showdowns remain unique.
+7. Wanted Board, rewards, shop, healing, and between-run Showdown unlocks work.
+8. Outlaw can build a real combo deck without relying on random dodge chance.

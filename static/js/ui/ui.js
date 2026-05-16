@@ -6,6 +6,14 @@ import { getClassShowdownProgress, isShowdownUnlockedForClass } from "../app/unl
 
 const RARITY_PRICE = { common: 25, uncommon: 40, rare: 65, epic: 110, legendary: 180 };
 
+function hasStaredownOnlyEffect(cardDef) {
+  return Array.isArray(cardDef?.effects) && cardDef.effects.includes("staredownOnly");
+}
+
+function isUniqueDeckCard(cardDef) {
+  return cardDef?.type === "showdown" || cardDef?.type === "stance";
+}
+
 /** Hover-friendly description for an effect token. Used by .card-eff tooltips. */
 const EFFECT_TOOLTIPS = {
   bullets: "Adds bullets to your shootout volley. More shots fired in High Noon.",
@@ -19,22 +27,22 @@ const EFFECT_TOOLTIPS = {
   healNow: "Heal HP immediately.",
   hpAfterShootout: "HP change applied after every volley while this gun is equipped.",
   hpAfterCycle: "HP change applied when you Lock In this prep round.",
-  focusCycle: "Bonus Nerve in this 3-round prep cycle.",
+  focusCycle: "Bonus Nerve and one extra card play in this prep cycle.",
   gainFocused: "Enter the Focused state for the next shootout (synergy bonuses).",
   markEnemy: "Place mark tokens on the enemy. Marks amplify markBurst damage.",
   markBurst: "Each enemy mark adds this much damage to your hits.",
   focusBonusBullets: "While Focused: extra bullets in the next volley.",
   focusBonusAcc: "While Focused: extra accuracy in the next volley.",
   firstHitsAuto: "The first N shots of your volley automatically hit.",
-  dodgeRecv: "Chance to dodge each incoming shot.",
+  dodgeRecv: "Deterministically dodge this many incoming bullets each volley.",
   returnBulletOnHit: "Each hit returns this many bullets to your volley.",
   damageShootout: "Volley damage multiplier (additive percent).",
   maxHp: "Increases your maximum HP for the rest of the run.",
   healPerDuel: "Heal at the start of each duel.",
   deadeye: "Critical hits: ~15% of hits deal 30% bonus damage.",
   damageTaken: "Reduce incoming damage from each enemy hit.",
-  focusPerRound: "Extra Nerve added when a 3-round prep cycle starts.",
-  staminaPerRound: "Extra Nerve added when a prep cycle starts (legacy term).",
+  focusPerRound: "Extra Nerve added to each prep round refill.",
+  staminaPerRound: "Extra Nerve added to each prep round refill (legacy term).",
   extraMarkPerApply: "When you apply marks, add this many extra marks.",
   markBulletPerMark: "At shootout, add this many bullets per mark on the enemy.",
   damagePerHp: "At shootout, gain +1 damage per N current HP.",
@@ -45,6 +53,7 @@ const EFFECT_TOOLTIPS = {
   payHp: "Spend HP to play this card. Refused if it would be lethal.",
   comboBonus: "Bonus effect — triggers if 2+ outlaw cards play in the same prep round.",
   nextComboFree: "Your next outlaw combo card costs 0 Nerve until you play one.",
+  extraPlay: "Gain one more card play this prep round.",
   elDoble: "Mirror your active gun into the off-hand. Triple-stack if already dual.",
   removeDualPenalty: "Removes the dual-wield accuracy penalty for this duel.",
   spiritDoubleNext: "All Spirit-scaling effects double for the next shootout.",
@@ -112,22 +121,22 @@ function effectToText(raw) {
     case 'healNow': return `Heal +${v} HP now`;
     case 'hpAfterShootout': return v < 0 ? `${v} HP after volley` : `+${v} HP after volley`;
     case 'hpAfterCycle': return v < 0 ? `${v} HP on lock-in` : `+${v} HP on lock-in`;
-    case 'focusCycle': return `+${v} Nerve this prep cycle`;
+    case 'focusCycle': return `+${v} Nerve, +${v} play this cycle`;
     case 'gainFocused': return 'Gain Focused ✦';
     case 'markEnemy': return `Mark foe ×${v}`;
     case 'markBurst': return `+${v} dmg per mark`;
     case 'focusBonusBullets': return `+${v} bullets if Focused`;
     case 'focusBonusAcc': return `+${pct(v)} acc if Focused`;
     case 'firstHitsAuto': return `First ${v} shots auto-hit`;
-    case 'dodgeRecv': return `${pct(v)} dodge chance`;
+    case 'dodgeRecv': return `Dodge ${v} bullet${Math.abs(v) === 1 ? '' : 's'}`;
     case 'returnBulletOnHit': return `Return ${v} bullet/hit`;
     case 'damageShootout': return v > 0 ? `+${pct(v)} volley dmg` : `${pct(v)} volley dmg`;
     case 'maxHp': return v > 0 ? `+${v} max HP` : `${v} max HP`;
     case 'healPerDuel': return `+${v} HP per duel`;
     case 'deadeye': return 'Crit shots (Deadeye)';
     case 'damageTaken': return `−${Math.abs(v)} dmg taken`;
-    case 'focusPerRound': return `+${v} Nerve/prep cycle`;
-    case 'staminaPerRound': return `+${v} Nerve/prep cycle`;
+    case 'focusPerRound': return `+${v} Nerve/prep round`;
+    case 'staminaPerRound': return `+${v} Nerve/prep round`;
     case 'extraMarkPerApply': return `+${v} mark per Mark apply`;
     case 'markBulletPerMark': return `+${v} bullet per mark`;
     case 'damagePerHp': return `+1 dmg per ${v} HP`;
@@ -139,6 +148,7 @@ function effectToText(raw) {
     case 'extraVolleyShots': return `+${v} shot / combo`;
     case 'staredownOnly': return null;
     case 'nextComboFree': return 'Next combo card free until played';
+    case 'extraPlay': return `+${v} card play`;
     case 'elDoble': return 'El Doble: mirror or triple-stack';
     case 'removeDualPenalty': return 'Clears dual-wield penalty';
     case 'spiritDoubleNext': return 'Double Spirit scaling';
@@ -347,15 +357,16 @@ function shopCardPool(game) {
   return CARD_DEFINITIONS.filter((c) =>
     c.type !== "gun" &&
     !c.opponentOnly &&
-    !owned.has(c.id) &&
-    (!c.classId || c.classId === classId) &&
+    !hasStaredownOnlyEffect(c) &&
+    !!classId &&
+    c.classId === classId &&
     (
       c.type !== "showdown"
-      || (
-        !!c.classId
-        && c.classId === classId
-        && isShowdownUnlockedForClass(unlockState, classId, c.id)
-      )
+      || isShowdownUnlockedForClass(unlockState, classId, c.id)
+    ) &&
+    (
+      !isUniqueDeckCard(c)
+      || !owned.has(c.id)
     )
   );
 }
@@ -371,6 +382,7 @@ export function rollShopInventory(game) {
     cardIds: shuffle([...shopCardPool(game)]).slice(0, 5).map((c) => c.id),
     gunIds: shuffle([...shopGunPool(game)]).slice(0, 4).map((g) => g.id),
     healUsed: false,
+    purchaseUsed: false,
   };
 }
 
@@ -395,6 +407,7 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
   el.className = "panel";
   const offers = shopInventory ?? rollShopInventory(game);
   const healUsed = !!offers.healUsed;
+  const purchaseUsed = !!offers.purchaseUsed;
   const cardPool = (offers.cardIds ?? [])
     .map((id) => getCardDef(id))
     .filter((c) => !!c && c.type !== "gun");
@@ -406,7 +419,7 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
 
   el.innerHTML = `<h2>Merchant</h2><p>Spend your bounty. Health does not refill between fights.</p>
     <p>Wallet: <strong>$${game.run.money}</strong></p>
-    <h3 class="shop-section-title">Guns <span class="shop-section-sub">(deck holds up to 2 extra guns)</span></h3>
+    <h3 class="shop-section-title">Guns <span class="shop-section-sub">(deck holds up to 2 extra guns, one purchase per visit)</span></h3>
     <div class="shop-list" id="shop-guns"></div>
     <h3 class="shop-section-title">Cards & Tricks <span class="shop-section-sub">(deck cap 24)</span></h3>
     ${atDeckCap ? `<p class="shop-empty"><em>Deck is full (${deckSize}/24). Buy a card to replace one non-gun card.</em></p>` : ''}
@@ -420,6 +433,7 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
     const price = priceForGun(g);
     const card = document.createElement("button");
     card.type = "button";
+    card.disabled = purchaseUsed;
     card.className = `shop-card hand-card-gun iron-rarity-${g.rarity}`;
     const cardDef = getCardDef(g.id);
     const back = g.backstory ? `<span class="card-flavor card-backstory">${g.backstory}</span>` : '';
@@ -433,6 +447,7 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
         ${buildEffectsHtml(cardDef ?? { effects: g.effects })}
       </span>`;
     card.onclick = () => {
+      if (purchaseUsed) return;
       const ownedGuns = ownedGunIdsInDeck(game.run.deckIds);
       if (ownedGuns.length >= 2) {
         promptReplaceGun(game, ownedGuns, (replaceId) => {
@@ -453,6 +468,7 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
     const b = document.createElement("button");
     const price = priceForCard(c);
     b.type = "button";
+    b.disabled = purchaseUsed;
     b.className = `shop-card hand-card-${c.type}`;
     b.innerHTML = `
       <span class="shop-card-inner hand-card-inner">
@@ -462,6 +478,7 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
         ${buildEffectsHtml(c)}
       </span>`;
     b.onclick = () => {
+      if (purchaseUsed) return;
       if (atDeckCap) {
         const ownedCards = ownedNonGunIdsInDeck(game.run.deckIds);
         if (!ownedCards.length) return;
@@ -719,6 +736,9 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
     const dualStr = d.playerSecondaryGun ? `<span class="status-tag status-dual" title="Dual-wielding: mag stacks, damage averages, ${d.dualWieldPenaltyRemoved ? 'no acc penalty' : '−10% acc'}.">⚔ Dual Wield${d.dualWieldPenaltyRemoved ? '' : ' −10%'}</span>` : "";
     const comboStr = (d.roundOutlawCount > 0) ? `<span class="status-tag status-combo" title="Outlaw cards played this round.">↻ Combo ${d.roundOutlawCount}${d.roundOutlawCount >= 2 ? '!' : ''}</span>` : "";
     const comboFreeStr = d.nextComboFree ? `<span class="status-tag status-free" title="Next outlaw combo card costs 0 until used.">★ Free Combo</span>` : "";
+    const playsRemaining = Number.isFinite(d.playerPlaysRemaining) ? d.playerPlaysRemaining : 1;
+    const maxPlays = Number.isFinite(d.playerMaxPlaysThisRound) ? d.playerMaxPlaysThisRound : 1;
+    const playStr = `<span class="status-tag status-plays" title="Card plays remaining this prep round.">${playsRemaining}/${maxPlays} Plays</span>`;
     const sheriffBonus = sheriffCurrentHpAccBonus(game.run);
     const sheriffStr = game.run.classId === "sheriff"
       ? `<span class="status-tag status-respect" title="Above 100 current HP grants +3% shotgun accuracy per HP, up to +35%.">${sheriffBonus > 0 ? `★ Respect Aim +${Math.round(sheriffBonus * 100)}%` : "★ Respect Aim inactive"}</span>`
@@ -737,9 +757,9 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
     html += buildPersistentRowHtml(d);
     html += `<div class="prep-bar">
       <span class="prep-round">Round ${d.prepRound}/3</span>
-      <span class="focus-bar" title="Nerve pool for this 3-round prep cycle: ${d.playerFocus}/${d.playerMaxFocus}">${focPips}</span>
+      <span class="focus-bar" title="Nerve refill for this prep round: ${d.playerFocus}/${d.playerMaxFocus}">${focPips}</span>
       <span class="focus-label">${d.playerFocus}/${d.playerMaxFocus} Nerve</span>
-      ${markStr}${focStr}${freeStr}${spiritStr}${dualStr}${comboStr}${comboFreeStr}${sheriffStr}
+      ${playStr}${markStr}${focStr}${freeStr}${spiritStr}${dualStr}${comboStr}${comboFreeStr}${sheriffStr}
       <button class="btn btn-lockin" id="lock" ${d.playerLocked ? "disabled" : ""}>Lock In</button>
     </div>`;
     html += `<div class="card-row" id="hand"></div>`;
@@ -773,14 +793,16 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
       if (!def) continue;
       const card = document.createElement("div");
       const isFreeEligible = d.freeCardAvailable && def.type !== "gun" && def.type !== "stance" && def.type !== "showdown";
+      const isComboFree = !!def.outlawCombo && !!d.nextComboFree && def.type !== "stance" && def.type !== "showdown";
       let payHpAmount = 0;
       for (const raw of def.effects ?? []) {
         const m = raw.match(/^payHp([+-]?\d+)/);
         if (m) payHpAmount += Math.abs(parseInt(m[1], 10) || 0);
       }
       const wouldBeLethal = payHpAmount > 0 && (game.run.hp - payHpAmount <= 0);
-      const affordable = (def.cost <= d.playerFocus || isFreeEligible) && !wouldBeLethal;
-      const costLabel = isFreeEligible && def.cost > d.playerFocus ? "★ free" : def.cost;
+      const hasPlay = (Number.isFinite(d.playerPlaysRemaining) ? d.playerPlaysRemaining : 1) > 0;
+      const affordable = hasPlay && (def.cost <= d.playerFocus || isFreeEligible || isComboFree) && !wouldBeLethal;
+      const costLabel = (isFreeEligible || isComboFree) && def.cost > 0 ? "★ free" : def.cost;
       card.className = `hand-card hand-card-${def.type}${affordable ? "" : " disabled"}`;
       card.innerHTML = buildCardHtml(def, costLabel);
       if (affordable) {

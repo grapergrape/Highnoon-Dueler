@@ -190,11 +190,11 @@ Design target: each class should have five Showdowns that create different run f
 
 | Slot | Showdown | Unlock | Fun hook |
 | --- | --- | --- | --- |
-| 1 | Star of Justice | Default | Existing resolve identity: current HP converts into damage, making survival feel offensive. |
-| 2 | Main Street Oath | Town 1 boss | Hold the line: heal-per-duel style endurance inside a run, with modest accuracy as the Showdown levels. |
-| 3 | Last Badge Standing | Town 2 boss | Wounded lawman fantasy: lower HP increases dodge and damage, turning near-death into a comeback window. |
-| 4 | Every Door Barred | Town 3 boss | Town protects its sheriff: reduce incoming damage and enemy bullets while the Showdown levels. |
-| 5 | Gallows Sunrise | Town 4/final boss | Slow, certain justice: Level III adds first auto-hit or pierce after surviving long enough to fully level the Showdown. |
+| 1 | Star of Justice | Default | Current HP converts into damage while the Showdown adds bullets, making survival feel offensive. |
+| 2 | Main Street Oath | Town 1 boss | Hold the line: damage reduction plus extra shotgun volume for longer fights. |
+| 3 | Last Badge Standing | Town 2 boss | Tank payoff: healing, damage reduction, and post-shootout recovery keep Respect Aim online. |
+| 4 | Every Door Barred | Town 3 boss | Town protects its sheriff: reduce enemy bullets and accuracy while adding enough pressure to end the duel. |
+| 5 | Legend Never Dies | Town 4/final boss | Late-run Respect extender: raises the Respect cap beyond the baseline and adds accuracy/damage payoff. |
 
 ### U.S. Marshal
 

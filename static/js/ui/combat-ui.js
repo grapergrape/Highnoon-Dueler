@@ -56,7 +56,7 @@ export function feedbackLinesForCard(def, playedBy) {
       } else if (e.kind === "ricochet") {
         lines.push({ targetSide: "player", kind: "buff", text: "RICOCHET" });
       } else if (e.kind === "dodgeRecv") {
-        lines.push({ targetSide: "player", kind: "buff", text: `Dodge ${fmtPct(e.value)}` });
+        lines.push({ targetSide: "player", kind: "buff", text: `Dodge ×${e.value}` });
       } else if (e.kind === "firstHitsAuto") {
         lines.push({ targetSide: "player", kind: "buff", text: `True aim ×${e.value}` });
       } else if (e.kind === "returnBulletOnHit") {
@@ -74,7 +74,7 @@ export function feedbackLinesForCard(def, playedBy) {
           text: `Next lock ${e.value ?? 0} HP`,
         });
       } else if (e.kind === "focusCycle") {
-        lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} NRV` });
+        lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} NRV/+play` });
       } else if (e.kind === "markEnemy") {
         lines.push({ targetSide: "enemy", kind: "debuff", text: `MARK ×${e.value}` });
       } else if (e.kind === "markBurst") {
@@ -89,6 +89,8 @@ export function feedbackLinesForCard(def, playedBy) {
         lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} HP` });
       } else if (e.kind === "respectCapSet") {
         lines.push({ targetSide: "player", kind: "buff", text: `Respect cap ${e.value}` });
+      } else if (e.kind === "extraPlay") {
+        lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} play` });
       }
     } else {
       if (e.kind === "enemyAccNext") {
@@ -128,7 +130,7 @@ export function feedbackLinesForCard(def, playedBy) {
           text: e.kind === "pierce" ? "PIERCE" : "RICOCHET",
         });
       } else if (e.kind === "dodgeRecv") {
-        lines.push({ targetSide: "enemy", kind: "buff", text: `Dodge ${fmtPct(e.value)}` });
+        lines.push({ targetSide: "enemy", kind: "buff", text: `Dodge ×${e.value}` });
       }
     }
   }

@@ -258,7 +258,8 @@ function focusLine(duel, side) {
   if (side === "player") {
     const mark = duel.enemyMarked > 0 ? ` ◆×${duel.enemyMarked}` : "";
     const foc = duel.playerFocused ? " ✦" : "";
-    return `NRV ${duel.playerFocus}/${duel.playerMaxFocus}${mark}${foc}`;
+    const plays = Number.isFinite(duel.playerPlaysRemaining) ? ` · PLY ${duel.playerPlaysRemaining}` : "";
+    return `NRV ${duel.playerFocus}/${duel.playerMaxFocus}${plays}${mark}${foc}`;
   }
   return `NRV ${duel.enemy.focus}/${duel.enemy.maxFocus}`;
 }
@@ -306,7 +307,8 @@ function drawHud(ctx, w, h, game) {
   ctx.font = "10px monospace";
   ctx.fillStyle = "rgba(200,184,164,0.75)";
   const pDmg = Pv.damageMult !== 1 ? `Dmg ×${Pv.damageMult.toFixed(2)} · ` : "";
-  ctx.fillText(`${pDmg}HP ${Math.max(0, run.hp | 0)} / ${run.maxHp}`, lx + 14, 56);
+  const pDodge = Pv.dodgeRecv > 0 ? `Dodge ×${Pv.dodgeRecv} · ` : "";
+  ctx.fillText(`${pDmg}${pDodge}HP ${Math.max(0, run.hp | 0)} / ${run.maxHp}`, lx + 14, 56);
 
   ctx.textAlign = "right";
   ctx.fillStyle = "#f0e6d8";
@@ -318,7 +320,8 @@ function drawHud(ctx, w, h, game) {
   ctx.font = "10px monospace";
   ctx.fillStyle = "rgba(200,184,164,0.75)";
   const eDmg = Ev.damageMult !== 1 ? `Dmg ×${Ev.damageMult.toFixed(2)} · ` : "";
-  ctx.fillText(`${eDmg}HP ${Math.max(0, ehp | 0)} / ${em}`, rx + boxW - 14, 56);
+  const eDodge = Ev.dodgeRecv > 0 ? `Dodge ×${Ev.dodgeRecv} · ` : "";
+  ctx.fillText(`${eDmg}${eDodge}HP ${Math.max(0, ehp | 0)} / ${em}`, rx + boxW - 14, 56);
 
   const barYW = 88;
   const barH = 9;
