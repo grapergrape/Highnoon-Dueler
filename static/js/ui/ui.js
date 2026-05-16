@@ -61,6 +61,7 @@ const EFFECT_TOOLTIPS = {
   dualWieldAccPenaltyReduce: "Reduce the dual-wield accuracy penalty.",
   respectCapSet: "Set your Respect cap to at least this value for the run.",
   bountyOnHit: "Each successful player hit adds this many dollars to the duel bounty.",
+  lifestealOnHit: "Each successful player hit restores this many HP.",
 };
 
 function tooltipForEffect(raw) {
@@ -148,6 +149,7 @@ function effectToText(raw) {
     case 'payHp': return `Pay ${v} HP`;
     case 'extraVolleyShots': return `+${v} shot / combo`;
     case 'bountyOnHit': return `+$${v} bounty / hit`;
+    case 'lifestealOnHit': return `Heal ${v} HP / hit`;
     case 'staredownOnly': return null;
     case 'nextComboFree': return 'Next combo card free until played';
     case 'extraPlay': return `+${v} card play`;
@@ -377,7 +379,12 @@ function shopGunPool(game) {
   const owned = new Set(game.run.deckIds);
   const classId = game.run.classId;
   const starterGunId = starterGunIdForClass(classId);
-  return gunsForClass(classId).filter((g) => !owned.has(g.id) && g.id !== starterGunId);
+  const starterSecondaryGunId = game.run.permanent?.startSecondaryGunId ?? null;
+  return gunsForClass(classId).filter((g) =>
+    !owned.has(g.id) &&
+    g.id !== starterGunId &&
+    g.id !== starterSecondaryGunId
+  );
 }
 
 export function rollShopInventory(game) {
@@ -752,7 +759,8 @@ function buildShootoutSummaryHtml(d) {
       ? side.shots.map(sh => {
           if (sh.outcome === "hit") {
             const extra = sh.ricochet ? ` <span class="shot-rico">+${sh.ricochet} rico</span>` : "";
-            return `<li class="shot shot-hit"><span class="shot-i">#${sh.i}</span><span class="shot-out">HIT</span><span class="shot-dmg">${sh.dmg} dmg</span>${extra}</li>`;
+            const heal = sh.lifesteal ? ` <span class="shot-rico">+${sh.lifesteal} HP</span>` : "";
+            return `<li class="shot shot-hit"><span class="shot-i">#${sh.i}</span><span class="shot-out">HIT</span><span class="shot-dmg">${sh.dmg} dmg</span>${extra}${heal}</li>`;
           }
           if (sh.outcome === "dodged") {
             return `<li class="shot shot-dodge"><span class="shot-i">#${sh.i}</span><span class="shot-out">DODGED</span><span class="shot-dmg">—</span></li>`;
@@ -819,7 +827,9 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
     const focStr = d.playerFocused ? `<span class="status-tag status-focused">✦ Focused</span>` : "";
     const freeStr = d.freeCardAvailable ? `<span class="status-tag status-free">★ Free Card</span>` : "";
     const spiritStr = (d.spirit > 0) ? `<span class="status-tag status-spirit" title="Spirit scales spirit-based effects.">✦ Spirit ${d.spirit}${d.spiritDoubleNext ? " ×2" : ""}</span>` : "";
-    const dualStr = d.playerSecondaryGun ? `<span class="status-tag status-dual" title="Dual-wielding: mag stacks, damage averages, ${d.dualWieldPenaltyRemoved ? 'no acc penalty' : '−10% acc'}.">⚔ Dual Wield${d.dualWieldPenaltyRemoved ? '' : ' −10%'}</span>` : "";
+    const dualPenalty = Math.round((game.run.permanent?.dualWieldAccPenalty ?? 0.10) * 100);
+    const dualPenaltyText = d.dualWieldPenaltyRemoved ? "no acc penalty" : `−${dualPenalty}% acc before reductions`;
+    const dualStr = d.playerSecondaryGun ? `<span class="status-tag status-dual" title="Dual-wielding: mag stacks, damage averages, ${dualPenaltyText}.">⚔ Dual Wield${d.dualWieldPenaltyRemoved ? '' : ` −${dualPenalty}%`}</span>` : "";
     const comboStr = (d.roundOutlawCount > 0) ? `<span class="status-tag status-combo" title="Outlaw cards played this round.">↻ Combo ${d.roundOutlawCount}${d.roundOutlawCount >= 2 ? '!' : ''}</span>` : "";
     const comboFreeStr = d.nextComboFree ? `<span class="status-tag status-free" title="Next outlaw combo card costs 0 until used.">★ Free Combo</span>` : "";
     const playsRemaining = Number.isFinite(d.playerPlaysRemaining) ? d.playerPlaysRemaining : 1;
@@ -880,6 +890,7 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
       const card = document.createElement("div");
       const isFreeEligible = d.freeCardAvailable && def.type !== "gun" && def.type !== "stance" && def.type !== "showdown";
       const isComboFree = !!def.outlawCombo && !!d.nextComboFree && def.type !== "stance" && def.type !== "showdown";
+      const isGunFree = def.type === "gun" && !!game.run.permanent?.freeFirstGunEachDuel && !d.freeGunPlayed;
       let payHpAmount = 0;
       for (const raw of def.effects ?? []) {
         const m = raw.match(/^payHp([+-]?\d+)/);
@@ -887,8 +898,8 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
       }
       const wouldBeLethal = payHpAmount > 0 && (game.run.hp - payHpAmount <= 0);
       const hasPlay = (Number.isFinite(d.playerPlaysRemaining) ? d.playerPlaysRemaining : 1) > 0;
-      const affordable = hasPlay && (def.cost <= d.playerFocus || isFreeEligible || isComboFree) && !wouldBeLethal;
-      const costLabel = (isFreeEligible || isComboFree) && def.cost > 0 ? "★ free" : def.cost;
+      const affordable = hasPlay && (def.cost <= d.playerFocus || isFreeEligible || isComboFree || isGunFree) && !wouldBeLethal;
+      const costLabel = (isFreeEligible || isComboFree || isGunFree) && def.cost > 0 ? "★ free" : def.cost;
       card.className = `hand-card hand-card-${def.type}${affordable ? "" : " disabled"}`;
       card.innerHTML = buildCardHtml(def, costLabel);
       if (affordable) {

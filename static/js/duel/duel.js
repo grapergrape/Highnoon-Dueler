@@ -48,6 +48,7 @@ export function emptyMods() {
     focusBonusAcc: 0,      // extra accuracy if player is focused
     gainFocused: false,    // whether playing this card grants focused state
     bountyOnHit: 0,        // bounty dollars added per player hit while equipped
+    lifestealOnHit: 0,     // HP restored per player hit
     // New synergy mods
     markBulletPerMark: 0,  // +N bullets per enemy mark at shootout
     damagePerHp: 0,        // +1 damage per N current HP at shootout (denominator)
@@ -125,6 +126,16 @@ function elDobleEffect(duel) {
   duel.dualWieldPenaltyRemoved = true;
 }
 
+function applyImmediatePersistentSpecials(duel, run, def, playedBy, level = 1) {
+  if (playedBy !== "player") return;
+  for (const raw of effectsForCardLevel(def, level)) {
+    const e = parseEffect(raw);
+    if (e.kind === "elDoble") {
+      elDobleEffect(duel);
+    }
+  }
+}
+
 function resolveStartingGun(run) {
   const id = starterGunIdForClass(run?.classId) || run?.gunId || run?.activeGunId || FALLBACK_GUN_ID;
   return getGun(id);
@@ -172,6 +183,9 @@ export function createDuel(oppDef, run) {
   // Initialize each side's active gun for this duel.
   const playerStartGun = resolveStartingGun(run);
   const playerActiveGun = makeActiveGun(playerStartGun);
+  const playerSecondaryGun = run?.permanent?.dualWieldEnabled && run?.permanent?.startSecondaryGunId
+    ? makeActiveGun(getGun(run.permanent.startSecondaryGunId))
+    : null;
   const enemyStartGun = getGun(oppDef.gunId);
   enemy.activeGun = makeActiveGun(enemyStartGun);
 
@@ -210,12 +224,13 @@ export function createDuel(oppDef, run) {
     enemyStanceMods: emptyMods(),
     playerShowdownMods: emptyMods(),
     enemyShowdownMods: emptyMods(),
-    // Apache spirit (persists across prep rounds, cleared after shootout)
+    // Apache spirit persists for this duel and resets when the next duel is created.
     spirit: 0,
     spiritDoubleNext: false,
     // Vaquero dual-wield (secondary gun slot)
-    playerSecondaryGun: null,
+    playerSecondaryGun,
     dualWieldPenaltyRemoved: false,
+    freeGunPlayed: false,
     // Outlaw combo tracking
     roundOutlawCount: 0,
     nextComboFree: false,
@@ -346,6 +361,7 @@ function mergeGunIntoMods(mods, effects, sign = 1) {
     else if (e.kind === "focusBonusAcc") mods.focusBonusAcc += sign * (e.value || 0);
     else if (e.kind === "gainFocused" && sign > 0) mods.gainFocused = true;
     else if (e.kind === "bountyOnHit") mods.bountyOnHit += sign * (e.value || 0);
+    else if (e.kind === "lifestealOnHit") mods.lifestealOnHit += sign * (e.value || 0);
     else if (e.kind === "markBulletPerMark") mods.markBulletPerMark += sign * (e.value || 0);
     else if (e.kind === "damagePerHp") mods.damagePerHp += sign * (e.value || 0);
     else if (e.kind === "spiritScaleAcc") mods.spiritScaleAcc += sign * (e.value || 0);
@@ -370,8 +386,6 @@ function grantExtraPlays(duel, value = 1) {
 
 function applyPlayerCardEffects(duel, run, def) {
   const eff = def.effects ?? [];
-  // Spirit-scaled debuffs use the spirit value at play time for next-volley enemy acc
-  const spiritNow = duel.spirit || 0;
   for (const raw of eff) {
     const e = parseEffect(raw);
     if (e.kind === "enemyAccNext") {
@@ -385,9 +399,6 @@ function applyPlayerCardEffects(duel, run, def) {
     } else if (e.kind === "spirit") {
       const cap = run?.permanent?.spiritMax ?? 10;
       duel.spirit = Math.min(cap, (duel.spirit || 0) + (e.value || 0));
-    } else if (e.kind === "spiritScaleEnemyAcc") {
-      // Apply now using current spirit as a debuff on enemy next volley
-      duel.enemyDebuffs.accNext += spiritNow * (e.value || 0);
     } else if (e.kind === "extraPlay") {
       grantExtraPlays(duel, e.value || 0);
     } else {
@@ -440,6 +451,8 @@ function applyPersistentEffects(duel, run, def, targetMods, playedBy, level = 1)
       } else if (e.kind === "spirit") {
         const cap = run?.permanent?.spiritMax ?? 10;
         duel.spirit = Math.min(cap, (duel.spirit || 0) + (e.value || 0));
+      } else if (e.kind === "spiritDoubleNext") {
+        duel.spiritDoubleNext = true;
       } else if (e.kind === "healNow") {
         run.hp = Math.min(run.maxHp, run.hp + (e.value || 0));
       } else if (e.kind === "maxHp") {
@@ -504,6 +517,7 @@ function playPersistentCard(duel, run, card, def, playedBy) {
       duel.playerShowdownLevel = 1;
       duel.playerShowdown.showdownLevel = 1;
       rebuildShowdownMods(duel, run, "player");
+      applyImmediatePersistentSpecials(duel, run, def, playedBy, 1);
       syncPlayerNerveCap(duel, run);
       duel.message = `${def.name} — Showdown Level I.`;
     }
@@ -516,6 +530,7 @@ function playPersistentCard(duel, run, card, def, playedBy) {
   } else {
     duel.playerStances.push(card);
     applyPersistentEffects(duel, run, def, duel.playerStanceMods, "player");
+    applyImmediatePersistentSpecials(duel, run, def, playedBy, 1);
     syncPlayerNerveCap(duel, run);
     duel.message = `${def.name} — stance held.`;
   }
@@ -579,8 +594,9 @@ export function tryPlayCard(duel, run, cardUid) {
   const isPersistent = isPersistentCardType(def.type);
   const isOutlawCombo = !!def.outlawCombo;
   const isComboFree = !isPersistent && isOutlawCombo && duel.nextComboFree;
+  const isFreeGun = def.type === "gun" && !!run.permanent?.freeFirstGunEachDuel && !duel.freeGunPlayed;
   const usingFreebie = def.type !== "gun" && !isPersistent && !isComboFree && duel.freeCardAvailable === true;
-  const cost = (usingFreebie || isComboFree) ? 0 : def.cost;
+  const cost = (usingFreebie || isComboFree || isFreeGun) ? 0 : def.cost;
   const playsRemaining = Number.isFinite(duel.playerPlaysRemaining)
     ? duel.playerPlaysRemaining
     : basePlaysForPrepRound(duel);
@@ -608,7 +624,17 @@ export function tryPlayCard(duel, run, cardUid) {
     duel.nextComboFree = false;
     pushPlayLogBulletin(duel, "Free combo spent - that one was on the house.");
   }
+  if (isFreeGun) {
+    duel.freeGunPlayed = true;
+    grantExtraPlays(duel, 1);
+    pushPlayLogBulletin(duel, "Quick holster — first off-hand gun swap was free.");
+  }
   duel.playerHand.splice(idx, 1);
+
+  if (payHpAmount > 0) {
+    run.hp = Math.max(1, run.hp - payHpAmount);
+    pushPlayLogBulletin(duel, `Spent ${payHpAmount} HP for ${def.name}.`);
+  }
 
   if (isPersistent) {
     playPersistentCard(duel, run, card, def, "player");
@@ -617,12 +643,6 @@ export function tryPlayCard(duel, run, cardUid) {
   }
 
   duel.playerDiscard.push(card);
-
-  // Pay HP cost if any
-  if (payHpAmount > 0) {
-    run.hp = Math.max(1, run.hp - payHpAmount);
-    pushPlayLogBulletin(duel, `Spent ${payHpAmount} HP for ${def.name}.`);
-  }
 
   if (def.type === "gun") {
     const gunDef = getGun(def.id);
@@ -859,6 +879,11 @@ export function duelDisplayedVolleyPreview(duel, run) {
   result.player.sheriffHpAccBonus = sheriffHighHpAccBonus(run, run.hp);
   result.player.acc += result.player.sheriffHpAccBonus;
 
+  applySpiritBaseDamage(duel, run, result.player);
+  applySpiritBonusBullets(duel, run, result.player);
+  applySpiritPassiveEnemyAcc(duel, run, result.enemy);
+  applySpiritScaling(duel, playerMods, result.player, result.enemy);
+
   // Final player clamp after all modifiers (including sheriff bonus).
   const floor = Math.max(MIN_VOLLEY_ACC, run.permanent?.accFloor ?? 0);
   result.player.acc = clampVolleyAcc(result.player.acc, floor);
@@ -872,6 +897,90 @@ const MAX_VOLLEY_ACC = 0.96;
 
 function clampVolleyAcc(acc, floor = MIN_VOLLEY_ACC) {
   return Math.min(MAX_VOLLEY_ACC, Math.max(floor, acc));
+}
+
+function applySpiritBaseDamage(duel, run, P, { log = false } = {}) {
+  const spirit = Math.max(0, Math.round(duel.spirit || 0));
+  const each = Math.max(0, run.permanent?.spiritDamagePerSpirit ?? 0);
+  const cap = Number.isFinite(run.permanent?.spiritDamageCap)
+    ? Math.max(0, run.permanent.spiritDamageCap)
+    : Infinity;
+  if (spirit <= 0 || each <= 0) return;
+  const addDamage = Math.min(cap, spirit * each);
+  if (addDamage <= 0) return;
+  P.damage += addDamage;
+  if (log) {
+    pushPlayLogBulletin(duel, `Spirit carried the shot — +${addDamage} damage from ${spirit} Spirit.`);
+  }
+}
+
+function applySpiritBonusBullets(duel, run, P, { log = false } = {}) {
+  const spirit = Math.max(0, Math.round(duel.spirit || 0));
+  const per = Math.max(0, Math.round(run.permanent?.spiritBulletsPer ?? 0));
+  const cap = Number.isFinite(run.permanent?.spiritBulletsCap)
+    ? Math.max(0, Math.round(run.permanent.spiritBulletsCap))
+    : Infinity;
+  if (spirit <= 0 || per <= 0) return;
+  const addBullets = Math.min(cap, Math.floor(spirit / per));
+  if (addBullets <= 0) return;
+  P.bullets += addBullets;
+  if (log) {
+    pushPlayLogBulletin(duel, `Spirit volley — +${addBullets} bullets from ${spirit} Spirit.`);
+  }
+}
+
+function applySpiritPassiveEnemyAcc(duel, run, E, { log = false } = {}) {
+  const spirit = Math.max(0, Math.round(duel.spirit || 0));
+  const each = run.permanent?.spiritEnemyAccPerSpirit ?? 0;
+  const cap = Number.isFinite(run.permanent?.spiritEnemyAccCap)
+    ? Math.max(0, run.permanent.spiritEnemyAccCap)
+    : Infinity;
+  if (spirit <= 0 || each === 0) return;
+  let delta = spirit * each;
+  if (delta < 0) delta = Math.max(-cap, delta);
+  if (delta > 0) delta = Math.min(cap, delta);
+  if (delta === 0) return;
+  E.acc += delta;
+  if (log && delta < 0) {
+    pushPlayLogBulletin(duel, `Wind read — enemy accuracy ${Math.round(delta * 100)}% from ${spirit} Spirit.`);
+  }
+}
+
+function spiritHealAfterShootout(duel, run) {
+  const spirit = Math.max(0, Math.round(duel.spirit || 0));
+  const per = Math.max(0, Math.round(run.permanent?.spiritHealPer ?? 0));
+  const cap = Number.isFinite(run.permanent?.spiritHealCap)
+    ? Math.max(0, Math.round(run.permanent.spiritHealCap))
+    : Infinity;
+  if (spirit <= 0 || per <= 0) return 0;
+  return Math.min(cap, Math.floor(spirit / per));
+}
+
+function applySpiritScaling(duel, playerMods, P, E, { log = false } = {}) {
+  const spirit = Math.max(0, Math.round(duel.spirit || 0));
+  const spiritMult = duel.spiritDoubleNext ? 2 : 1;
+  if (spirit <= 0 || spiritMult <= 0) return;
+  if (playerMods.spiritScaleAcc !== 0) {
+    const addAcc = spirit * playerMods.spiritScaleAcc * spiritMult;
+    P.acc += addAcc;
+    if (log && addAcc > 0) {
+      pushPlayLogBulletin(duel, `Spirit sight — +${Math.round(addAcc * 100)}% accuracy from ${spirit} Spirit.`);
+    }
+  }
+  if (playerMods.spiritScaleDamage > 0) {
+    const addDamageMult = spirit * playerMods.spiritScaleDamage * spiritMult;
+    P.damageMult = Math.max(0.25, P.damageMult * (1 + addDamageMult));
+    if (log && addDamageMult > 0) {
+      pushPlayLogBulletin(duel, `Spirit strike — +${Math.round(addDamageMult * 100)}% damage from ${spirit} Spirit.`);
+    }
+  }
+  if (playerMods.spiritScaleEnemyAcc !== 0) {
+    const enemyAccDelta = spirit * playerMods.spiritScaleEnemyAcc * spiritMult;
+    E.acc += enemyAccDelta;
+    if (log && enemyAccDelta < 0) {
+      pushPlayLogBulletin(duel, `Coyote spirit — enemy accuracy ${Math.round(enemyAccDelta * 100)}% from ${spirit} Spirit.`);
+    }
+  }
 }
 
 function sheriffHighHpAccBonus(run, hpNow = run?.hp ?? 0) {
@@ -893,6 +1002,26 @@ function effectiveFirstCycleAccPenalty(run) {
   return Math.max(0, base - respect * each);
 }
 
+function applyBrinkBonus(duel, run, P, { log = false } = {}) {
+  const thresholdPct = run.permanent?.brinkThresholdPct ?? 0;
+  if (thresholdPct <= 0 || run.maxHp <= 0) return;
+  const thresholdHp = Math.max(1, Math.floor(run.maxHp * thresholdPct));
+  if (run.hp > thresholdHp) return;
+  const acc = run.permanent?.brinkAccBonus ?? 0;
+  const damage = Math.max(0, Math.round(run.permanent?.brinkDamageBonus ?? 0));
+  const auto = Math.max(0, Math.round(run.permanent?.brinkFirstHitsAuto ?? 0));
+  if (acc) P.acc += acc;
+  if (damage) P.damage += damage;
+  if (auto) P.firstHitsAuto += auto;
+  if (log && (acc || damage || auto)) {
+    const parts = [];
+    if (acc) parts.push(`+${Math.round(acc * 100)}% acc`);
+    if (damage) parts.push(`+${damage} damage`);
+    if (auto) parts.push(`${auto} auto-hit`);
+    pushPlayLogBulletin(duel, `Blood for Lead — brink bonus active (${parts.join(", ")}).`);
+  }
+}
+
 function buildVolleySide(gun, mods, debuffs, permAcc) {
   let bullets = gun.mag + mods.bulletDelta + (debuffs?.bulletNext ?? 0);
   bullets = Math.max(1, Math.round(bullets));
@@ -910,6 +1039,7 @@ function buildVolleySide(gun, mods, debuffs, permAcc) {
     dodgeRecv: Math.max(0, Math.round(mods.dodgeRecv || 0)),
     returnBulletOnHit: mods.returnBulletOnHit,
     bountyOnHit: Math.max(0, Math.round(mods.bountyOnHit || 0)),
+    lifestealOnHit: Math.max(0, Math.round(mods.lifestealOnHit || 0)),
     gunName: gun.name,
   };
 }
@@ -957,16 +1087,11 @@ export function resolveShootout(duel, run) {
       pushPlayLogBulletin(duel, `Star of Justice — HP empowers your shot (+${bonus} dmg).`);
     }
   }
-  // Apache spirit scaling
-  const spiritMult = duel.spiritDoubleNext ? 2 : 1;
-  if ((duel.spirit || 0) > 0 && spiritMult > 0) {
-    if (playerMods.spiritScaleAcc > 0) {
-      P.acc += duel.spirit * playerMods.spiritScaleAcc * spiritMult;
-    }
-    if (playerMods.spiritScaleDamage > 0) {
-      P.damageMult = Math.max(0.25, P.damageMult * (1 + duel.spirit * playerMods.spiritScaleDamage * spiritMult));
-    }
-  }
+  applySpiritBaseDamage(duel, run, P, { log: true });
+  applySpiritBonusBullets(duel, run, P, { log: true });
+  applySpiritPassiveEnemyAcc(duel, run, E, { log: true });
+  applySpiritScaling(duel, playerMods, P, E, { log: true });
+  applyBrinkBonus(duel, run, P, { log: true });
   // Vaquero dual-wield accuracy penalty
   if (duel.playerSecondaryGun && !duel.dualWieldPenaltyRemoved) {
     let pen = run.permanent?.dualWieldAccPenalty ?? 0.10;
@@ -1106,6 +1231,13 @@ export function resolveShootout(duel, run) {
         duel.bonusBounty = Math.max(0, Math.round(duel.bonusBounty || 0)) + addBounty;
         shot.bounty = addBounty;
       }
+      if (att.lifestealOnHit > 0) {
+        const heal = Math.max(0, Math.round(att.lifestealOnHit));
+        const before = run.hp;
+        run.hp = Math.min(run.maxHp, run.hp + heal);
+        const actual = Math.max(0, run.hp - before);
+        if (actual > 0) shot.lifesteal = actual;
+      }
     } else {
       run.hp -= dmg;
       log.push({ kind: "hit", by: "enemy", dmg });
@@ -1131,10 +1263,15 @@ export function resolveShootout(duel, run) {
     if (duel.enemy.hp <= 0 || run.hp <= 0) break;
   }
 
-  const totalHpAfter = playerMods.hpAfterShootout;
+  const spiritHeal = spiritHealAfterShootout(duel, run);
+  const totalHpAfter = playerMods.hpAfterShootout + spiritHeal;
+  if (spiritHeal > 0) {
+    pushPlayLogBulletin(duel, `Spirit returns — +${spiritHeal} HP after the volley.`);
+  }
   run.hp = Math.max(0, Math.min(run.maxHp, run.hp + totalHpAfter));
 
-  // Clear all mods, debuffs, and synergy state for next cycle
+  // Clear per-cycle mods, debuffs, and temporary synergy for next cycle.
+  // Spirit stays banked for the rest of this duel.
   duel.playerMods = emptyMods();
   duel.enemyMods = emptyMods();
   duel.playerDebuffs = emptyDebuffs();

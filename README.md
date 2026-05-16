@@ -14,6 +14,9 @@ A browser-based PvE Western deckbuilding duel roguelite. Pick a class, fight dow
 - Gun cards equip for the current duel only. The next duel starts from the class starter gun again until another gun card is played.
 - Upgraded Outlaw guns scale from combo triggers. Sheriff guns provide a defensive shotgun floor, while Sheriff cards supply most of the late-run sustain and closing power.
 - U.S. Marshal builds around Marks. Marks increase his hit damage and reduce enemy hit damage during High Noon; his premium government handgun upgrades support that mark plan, and the legendary Treasury Gold Schofield adds $5 bounty per successful hit.
+- Apache Tracker builds Spirit with bow/rifle tactics. Spirit lasts for the duel, adds capped damage, bullets, sustain, and enemy aim pressure, and his upgrade weapons are bows/rifles that reward Spirit rather than replacing the deck.
+- Vaquero starts each duel dual-wielding. His first gun card each duel is free and swaps the off-hand, while his deck manages the dual-wield accuracy penalty with steadying, cover, and first-hit pressure.
+- Bounty Hunter spends HP for tempo and life-stealing blood rounds. At low HP he becomes more accurate and lethal, but he must land hits to earn that blood back.
 
 ## Run Locally
 

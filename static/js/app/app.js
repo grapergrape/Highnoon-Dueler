@@ -299,10 +299,12 @@ function rewardGunPool(gameState) {
   const owned = new Set(run.deckIds);
   if (!classId) return [];
   const starterGunId = starterGunIdForClass(classId);
+  const starterSecondaryGunId = run.permanent?.startSecondaryGunId ?? null;
   return gunsForClass(classId).filter((g) =>
     !owned.has(g.id) &&
     g.id !== run.activeGunId &&
-    g.id !== starterGunId
+    g.id !== starterGunId &&
+    g.id !== starterSecondaryGunId
   );
 }
 

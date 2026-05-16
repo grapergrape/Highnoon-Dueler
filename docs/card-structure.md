@@ -62,6 +62,49 @@ Marshal is tuned separately because marks are both offense and defense:
 | `Badge Cover` | 1 |
 | Total | 12 |
 
+Apache Tracker is tuned separately because Spirit is both setup and payoff, and his starter cards need immediate value under the prep-play limit:
+
+| Card | Count |
+| --- | ---: |
+| `One in the Chamber` | 2 |
+| `Dodge` | 2 |
+| `Beer Heal` | 1 |
+| `Wind Whisper` | 2 |
+| `Spirit Talk` | 1 |
+| `Ridge Sight` | 1 |
+| `Owl's Vision` | 1 |
+| `Bear Spirit` | 1 |
+| `Medicine Bundle` | 1 |
+| Total | 12 |
+
+Vaquero is tuned separately because dual-wielding is his baseline state, and his starter deck needs penalty control plus cover:
+
+| Card | Count |
+| --- | ---: |
+| `One in the Chamber` | 2 |
+| `Dodge` | 2 |
+| `Beer Heal` | 1 |
+| `Steady the Off-Hand` | 2 |
+| `Quick Holster` | 2 |
+| `Crossfire` | 1 |
+| `Left-Hand Cover` | 1 |
+| `Off-Hand Reload` | 1 |
+| Total | 12 |
+
+Bounty Hunter is tuned separately because HP is his secondary resource, and his starter deck needs both blood-round payoff and recovery:
+
+| Card | Count |
+| --- | ---: |
+| `One in the Chamber` | 2 |
+| `Dodge` | 2 |
+| `Beer Heal` | 1 |
+| `Blood for Lead` | 2 |
+| `Dead Man's Cover` | 2 |
+| `Vendetta Shot` | 1 |
+| `Reckless Aim` | 1 |
+| `Patch Job` | 1 |
+| Total | 12 |
+
 ## Run Deck Rules
 
 - Rewards and shop card offers are class-only.
@@ -70,7 +113,7 @@ Marshal is tuned separately because marks are both offense and defense:
 - Stances and Showdowns are unique deck cards; once owned, they stop appearing in reward/shop card offers.
 - Guns are class-only in the player shop and gun drop screen. Starter guns begin equipped, do not count against the starter deck, and are not offered as merchant upgrades.
 - Gun cards equip only for the current duel. The next duel starts from the class starter gun again until another gun card is played.
-- Starter guns are baseline equipment and do not give combo bonuses. Upgraded Outlaw guns use combo-trigger shot scaling. Sheriff guns provide the defensive shotgun floor, but Sheriff cards should carry most late-run sustain and closing power. Marshal guns are premium government handguns that support marks and bounty economy without replacing the mark deck.
+- Starter guns are baseline equipment and do not give combo bonuses. Upgraded Outlaw guns use combo-trigger shot scaling. Sheriff guns provide the defensive shotgun floor, but Sheriff cards should carry most late-run sustain and closing power. Marshal guns are premium government handguns that support marks and bounty economy without replacing the mark deck. Apache guns are bows/rifles that support Spirit payoff without replacing Spirit deckbuilding. Vaquero starts with a right-hand gun plus starter off-hand; Vaquero gun cards replace only the off-hand for the current duel. Bounty Hunter guns are concealed pistols that support blood-round life-steal without replacing HP-spend deckbuilding.
 - The merchant offers cards and guns, but the player can buy only 1 card/gun per merchant visit. Whiskey healing is separate.
 
 ## Pool Targets
@@ -95,3 +138,6 @@ Starter decks begin at 12 cards and can grow up to the 24-card cap.
 - [Outlaw](outlaw.md) is the baseline for high-tempo combo classes.
 - [Sheriff](sheriff.md) is the baseline for defensive scaling classes.
 - [U.S. Marshal](marshal.md) is the baseline for mark-scaling control classes.
+- [Apache Tracker](apache-tracker.md) is the baseline for Spirit-ramp precision classes.
+- [Vaquero](vaquero.md) is the baseline for equipment-slot dual-wield classes.
+- [Bounty Hunter](bounty-hunter.md) is the baseline for HP-as-resource blood-round classes.

@@ -42,6 +42,40 @@ const MARSHAL_STARTER_DECK = [
   "atk_badge_cover",
 ];
 
+const APACHE_STARTER_DECK = [
+  "atk_one_in_the_chamber", "atk_one_in_the_chamber",
+  "atk_dodge", "atk_dodge",
+  "atk_beer_heal",
+  "atk_wind_whisper", "atk_wind_whisper",
+  "atk_spirit_talk",
+  "atk_ridge_sight",
+  "atk_owls_vision",
+  "atk_bear_spirit",
+  "char_medicine_bundle",
+];
+
+const VAQUERO_STARTER_DECK = [
+  "atk_one_in_the_chamber", "atk_one_in_the_chamber",
+  "atk_dodge", "atk_dodge",
+  "atk_beer_heal",
+  "atk_steady_offhand", "atk_steady_offhand",
+  "atk_quick_holster", "atk_quick_holster",
+  "atk_crossfire",
+  "atk_left_hand_cover",
+  "atk_offhand_reload",
+];
+
+const BOUNTY_HUNTER_STARTER_DECK = [
+  "atk_one_in_the_chamber", "atk_one_in_the_chamber",
+  "atk_dodge", "atk_dodge",
+  "atk_beer_heal",
+  "atk_blood_for_lead", "atk_blood_for_lead",
+  "atk_dead_mans_cover", "atk_dead_mans_cover",
+  "atk_vendetta_shot",
+  "atk_reckless_aim",
+  "atk_patch_job",
+];
+
 function starterDeckWithSpecials(specials) {
   return [...SHARED_BASIC_STARTER_CORE, ...specials];
 }
@@ -66,14 +100,23 @@ export const CLASSES = [
     title: "Reads the Wind",
     backstory: "Trained by elders who knew the land before the railroad split it. He shoots when the wind agrees, and the wind agrees more often than the bluecoats would like. Carries a single feather in his hatband — earned, not taken.",
     abilityName: "Spirit Walker",
-    abilityBlurb: "+5% acc, never below 50%. First card each prep round costs 0 nerve. Build Spirit (cap 10) to scale buffs and debuffs.",
-    startingMaxHp: 100,
-    starterDeckIds: starterDeckWithSpecials([
-      "atk_wind_whisper",
-      "atk_spirit_talk",
-      "atk_spirit_walk",
-    ]),
-    permanent: { accBonus: 0.05, freeFirstCardPerRound: true, accFloor: 0.50, spiritMax: 10 },
+    abilityBlurb: "+5% acc, never below 55%. First card each prep round costs 0 nerve. Spirit (cap 10) lasts for the duel and adds capped damage, bullets, sustain, and disruption.",
+    startingMaxHp: 115,
+    starterDeckIds: [...APACHE_STARTER_DECK],
+    permanent: {
+      accBonus: 0.05,
+      freeFirstCardPerRound: true,
+      accFloor: 0.55,
+      spiritMax: 10,
+      spiritDamagePerSpirit: 1,
+      spiritDamageCap: 12,
+      spiritBulletsPer: 2,
+      spiritBulletsCap: 5,
+      spiritHealPer: 2,
+      spiritHealCap: 6,
+      spiritEnemyAccPerSpirit: -0.015,
+      spiritEnemyAccCap: 0.15,
+    },
     portraitTint: "#5a6e3e",
   },
   {
@@ -121,14 +164,16 @@ export const CLASSES = [
     title: "Hijo del Sur",
     backstory: "Born south of the Rio Grande, rode with revolutionaries one summer and rurales the next. The desert taught him patience. The cantinas taught him the rest. Twin Colts and a flask of mescal — the rest is rumor.",
     abilityName: "Dos Pistolas",
-    abilityBlurb: "Dual-wield: equip a second gun (stats stack, damage averaged, –10% accuracy). +10 HP/duel.",
-    startingMaxHp: 105,
-    starterDeckIds: starterDeckWithSpecials([
-      "atk_steady_offhand",
-      "atk_crossfire",
-      "atk_quick_holster",
-    ]),
-    permanent: { healPerDuel: 10, dualWieldEnabled: true, dualWieldAccPenalty: 0.10 },
+    abilityBlurb: "Starts each duel dual-wielding. First gun card each duel is free and replaces the off-hand. Magazines stack, damage/accuracy average, -8% accuracy until steadied. +8 HP/duel.",
+    startingMaxHp: 110,
+    starterDeckIds: [...VAQUERO_STARTER_DECK],
+    permanent: {
+      healPerDuel: 8,
+      dualWieldEnabled: true,
+      dualWieldAccPenalty: 0.08,
+      startSecondaryGunId: "gun_offhand_iron",
+      freeFirstGunEachDuel: true,
+    },
     portraitTint: "#a85c2a",
   },
   {
@@ -137,14 +182,18 @@ export const CLASSES = [
     title: "Crown's Cast-Off",
     backstory: "Crossed an ocean from Britain with a starched collar and a Queen's English the frontier hates. Quotes Shakespeare to corpses, drinks his whiskey slow, and draws faster than any man who's lived to argue it.",
     abilityName: "Blood for Lead",
-    abilityBlurb: "Spend HP to power your shots. Quickdraw: if both fall in the same volley, you walk away — and recover 20% max HP.",
-    startingMaxHp: 95,
-    starterDeckIds: starterDeckWithSpecials([
-      "atk_blood_for_lead",
-      "atk_vendetta_shot",
-      "atk_reckless_aim",
-    ]),
-    permanent: { quickdrawWin: true, quickdrawHealPct: 0.20 },
+    abilityBlurb: "+1 Nerve each prep round. Spend HP for tempo and life-stealing blood rounds. At 50% HP or lower: +15% acc, +4 damage, and first 2 shots auto-hit. Quickdraw ties are wins, healing 25% max HP.",
+    startingMaxHp: 110,
+    starterDeckIds: [...BOUNTY_HUNTER_STARTER_DECK],
+    permanent: {
+      quickdrawWin: true,
+      quickdrawHealPct: 0.25,
+      focusPerRound: 1,
+      brinkThresholdPct: 0.50,
+      brinkAccBonus: 0.15,
+      brinkDamageBonus: 4,
+      brinkFirstHitsAuto: 2,
+    },
     portraitTint: "#3d2e22",
   },
 ];

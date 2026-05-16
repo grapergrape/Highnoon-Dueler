@@ -111,6 +111,48 @@ U.S. Marshal is tuned as a mark-scaling federal control class.
 
 The intended feel is case-building under fire: mark the fugitive, make their shots weaker, then use enough bullets or mark payoffs to finish before the late bosses grind through the mitigation cap.
 
+## Apache Tracker Gameplay
+
+Apache Tracker is tuned as a Spirit-ramp bow/rifle class.
+
+- Passive: +5% accuracy, never below 55% accuracy, and the first non-gun/non-persistent card each prep round costs 0 Nerve.
+- Spirit caps at 10, lasts for the current duel, and resets at the start of the next duel.
+- Spirit adds capped hit damage, capped bullets, small post-volley healing, and enemy accuracy pressure.
+- `Wind Whisper`, `Spirit Talk`, `Ridge Sight`, `Silent String`, `Raven Feint`, and `Moonlit Arrow` are the main Spirit-building tools.
+- `Owl's Vision`, `Coyote's Curse`, `Eagle's Strike`, `Buffalo Patience`, `Medicine Bundle`, and Apache Showdowns convert Spirit into aim, damage, sustain, and disruption.
+- Apache guns are bows and rifles only. He starts with `Henry Repeater`; upgrade guns include `Mescalero War Bow`, `Sharps Buffalo Rifle`, and `Cochise's War Bow`.
+
+The intended feel is reading the fight before firing: build enough Spirit to make the enemy less reliable, choose whether the next prep play is defense or payoff, then let the bow/rifle finish the duel. Spirit generators should never be blank setup cards; they need immediate tactical value because card plays are limited.
+
+## Vaquero Gameplay
+
+Vaquero is tuned as an equipment-slot dual-wield class.
+
+- Passive: starts each duel dual-wielding `Remington Model 1875` plus `Off-Hand Iron`, and heals 8 HP at duel start.
+- The first gun card each duel costs 0 Nerve, refunds its card play, and replaces the off-hand gun for that duel.
+- Dual-wield magazines stack, while damage and accuracy are averaged between the two guns.
+- Dual-wield has an 8% accuracy penalty until reduced or removed by cards, stances, or off-hand upgrades.
+- `Steady the Off-Hand`, `Quick Holster`, `Crossfire`, `Left-Hand Cover`, and `Off-Hand Reload` are the starter tools for penalty control, tempo, bullet pressure, and cover.
+- `Crossdraw Burst`, `Dance of Lead`, `Pistolero Waltz`, `Matched Grips`, and Vaquero Showdowns convert a stable off-hand into burst turns.
+- Vaquero guns are handguns that upgrade the off-hand only. He should want `Colt Lightning Revolver`, `LeMat Dragoon`, or `Villa's Mauser C96`, but should not require the legendary to function.
+
+The intended feel is a two-gun tempo puzzle: keep enough cover to survive the alternating volley, steady the penalty so both guns matter, then use first-hit pressure and big magazines to close. Raw bullet count alone should not carry the class.
+
+## Bounty Hunter Gameplay
+
+Bounty Hunter is tuned as a blood-price quickdraw class.
+
+- Passive: +1 Nerve each prep round.
+- Bounty Hunter cards can spend HP with `payHp` for tempo, bullets, damage, and first-hit pressure.
+- Life-steal bullets use `lifestealOnHit`: each successful player hit restores HP immediately during the volley.
+- At 50% HP or lower, Bounty Hunter gains +15% accuracy, +4 damage, and the first 2 player shots auto-hit.
+- If both duelists die in the same volley, Bounty Hunter wins and heals 25% max HP.
+- `Blood for Lead`, `Vendetta Shot`, `Reckless Aim`, `Final Notice`, `Bloodlust`, and `No Tomorrow` are the main blood-round pressure cards.
+- `Dead Man's Cover`, `Patch Job`, `Grit Teeth`, `Stitched Coat`, and `Undertaker's Credit` keep the HP wager survivable.
+- Bounty Hunter guns are concealed pistols. He starts with `.41 Derringer`; upgrades include `Twin Contract Derringer`, `Pepperbox Revolver`, and `Doc Holliday's Hideout`.
+
+The intended feel is wagering blood against execution: pay HP to load a lethal volley, use cover when the hand cannot close, then heal back only if the shots land. He should not become a passive sustain tank or a pure self-damage damage stack.
+
 ## Deckbuilding and Shops
 
 - Starting decks are 12 cards.
@@ -128,6 +170,9 @@ The intended feel is case-building under fire: mark the fugitive, make their sho
 - Sheriff guns provide a defensive shotgun floor: modest damage reduction, bullet dodge, and limited sustain.
 - Sheriff scaling should mostly come from class cards such as Badge Line, Town's Strength, Jailhouse Cover, Town Doctor, and Bullet-Stopping Badge.
 - Marshal guns are premium government handguns. They support marks and bounty generation, but the deck should still provide the mark density and defensive control.
+- Apache guns are bows/rifles. They support Spirit payoff, but the deck should still provide Spirit generation, defense, and scaling.
+- Vaquero guns are off-hand handgun upgrades. They equip for the current duel only, and the starter off-hand is excluded from shops and rewards.
+- Bounty Hunter guns are concealed pistols that support life-steal and quickdraw pressure, but the deck should still provide HP-spend payoff, cover, and recovery.
 - Each merchant visit allows 1 card/gun purchase.
 - Whiskey healing is separate from the one card/gun purchase.
 - Health carries between duels.
@@ -175,6 +220,52 @@ Sheriff starts with the Town Guard Scattergun equipped.
 
 U.S. Marshal starts with the Colt Single Action Army equipped.
 
+## Current Apache Tracker Starter Deck
+
+| Card | Count |
+| --- | ---: |
+| One in the Chamber | 2 |
+| Dodge | 2 |
+| Beer Heal | 1 |
+| Wind Whisper | 2 |
+| Spirit Talk | 1 |
+| Ridge Sight | 1 |
+| Owl's Vision | 1 |
+| Bear Spirit | 1 |
+| Medicine Bundle | 1 |
+
+Apache Tracker starts with the Henry Repeater equipped.
+
+## Current Vaquero Starter Deck
+
+| Card | Count |
+| --- | ---: |
+| One in the Chamber | 2 |
+| Dodge | 2 |
+| Beer Heal | 1 |
+| Steady the Off-Hand | 2 |
+| Quick Holster | 2 |
+| Crossfire | 1 |
+| Left-Hand Cover | 1 |
+| Off-Hand Reload | 1 |
+
+Vaquero starts with the Remington Model 1875 plus Off-Hand Iron equipped.
+
+## Current Bounty Hunter Starter Deck
+
+| Card | Count |
+| --- | ---: |
+| One in the Chamber | 2 |
+| Dodge | 2 |
+| Beer Heal | 1 |
+| Blood for Lead | 2 |
+| Dead Man's Cover | 2 |
+| Vendetta Shot | 1 |
+| Reckless Aim | 1 |
+| Patch Job | 1 |
+
+Bounty Hunter starts with the .41 Derringer equipped.
+
 ## Progression
 
 - The Wanted Board is the run map.
@@ -201,3 +292,6 @@ U.S. Marshal starts with the Colt Single Action Army equipped.
 7. Wanted Board, rewards, shop, healing, and between-run Showdown unlocks work.
 8. Outlaw can build a real combo deck without relying on random dodge chance.
 9. Marshal can build a mark deck where marks provide both damage and tankiness without turning final bosses into automatic wins.
+10. Apache Tracker can build a Spirit deck where bows/rifles are payoff tools, not replacements for Spirit generation and defensive prep.
+11. Vaquero can build a dual-wield deck where off-hand swaps, penalty control, cover, and first-hit pressure all matter.
+12. Bounty Hunter can build a blood-round deck where HP spending is paid back through landed life-steal hits, not passive sustain.
