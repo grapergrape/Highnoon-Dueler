@@ -9,7 +9,10 @@ A browser-based PvE Western deckbuilding duel roguelite. Pick a class, fight dow
 - Cards such as `Outlaw's Pact`, `Gunslinger's Tempo`, `Badge Flash`, `Packed Shells`, and `focusCycle` effects can grant extra card plays for that prep round.
 - Dodge is deterministic bullet cancellation, not a percentage chance. `Dodge 2 bullets` cancels the next 2 incoming bullets in the volley.
 - Accuracy still controls hit rolls during High Noon, so bullets can miss unless made automatic by effects.
-- Rewards and shop cards are class-only. Feats can repeat; stances and showdowns are unique. Each merchant visit allows 1 card/gun purchase plus optional whiskey healing.
+- Rewards and shop cards are class-only. Feats can repeat; stances and showdowns are unique. Each merchant visit allows 1 card/gun purchase plus optional whiskey healing. Starter guns are baseline equipment and are not offered as merchant upgrades.
+- Each win has a 20% chance to add a separate class-only gun drop screen after the card reward. Gun drops exclude the class starter/currently equipped gun and can be taken or skipped.
+- Gun cards equip for the current duel only. The next duel starts from the class starter gun again until another gun card is played.
+- Upgraded Outlaw guns scale from combo triggers. Sheriff guns provide a defensive shotgun floor, while Sheriff cards supply most of the late-run sustain and closing power.
 
 ## Run Locally
 

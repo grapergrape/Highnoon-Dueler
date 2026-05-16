@@ -1,7 +1,7 @@
 import { OPPONENTS, TOWNS } from "../data/opponents.js";
 import { CARD_DEFINITIONS, effectsForCardLevel, getCardDef } from "../data/cards.js";
 import { getClass, CLASSES } from "../data/classes.js";
-import { gunsForClass, getGun } from "../data/guns.js";
+import { gunsForClass, getGun, starterGunIdForClass } from "../data/guns.js";
 import { getClassShowdownProgress, isShowdownUnlockedForClass } from "../app/unlock-state.js";
 
 const RARITY_PRICE = { common: 25, uncommon: 40, rare: 65, epic: 110, legendary: 180 };
@@ -374,7 +374,8 @@ function shopCardPool(game) {
 function shopGunPool(game) {
   const owned = new Set(game.run.deckIds);
   const classId = game.run.classId;
-  return gunsForClass(classId).filter((g) => !owned.has(g.id));
+  const starterGunId = starterGunIdForClass(classId);
+  return gunsForClass(classId).filter((g) => !owned.has(g.id) && g.id !== starterGunId);
 }
 
 export function rollShopInventory(game) {
@@ -565,12 +566,13 @@ export function renderPostDuelReward(game, reward, onTakeCard, onSkip) {
   const atDeckCap = deckSize >= deckCap;
   const opponentTitle = reward.opponentTitle ? `<em>${reward.opponentTitle}</em>` : "";
   const noRewards = rewardCards.length === 0;
+  const skipLabel = reward.skipLabel ?? (noRewards ? "Continue to Merchant" : "Skip Reward");
   el.innerHTML = `<h2>Victory Reward</h2>
     <p>You defeated <strong>${reward.opponentName ?? "Outlaw"}</strong> ${opponentTitle}.</p>
     <p>Bounty earned: <strong>$${reward.bountyEarned | 0}</strong> · Run bounty: <strong>$${game.run.money | 0}</strong></p>
     <p>Choose one card reward or skip. ${atDeckCap ? `<em>Deck full (${deckSize}/${deckCap}): taking a card requires replacing a non-gun card.</em>` : ""}</p>
     <div class="shop-list" id="reward-cards"></div>
-    <button class="btn" id="skip-reward">${noRewards ? "Continue to Merchant" : "Skip Reward"}</button>`;
+    <button class="btn" id="skip-reward">${skipLabel}</button>`;
 
   const rewardRow = el.querySelector("#reward-cards");
   for (const c of rewardCards) {
@@ -614,6 +616,88 @@ export function renderPostDuelReward(game, reward, onTakeCard, onSkip) {
     rewardRow.innerHTML = `<p class="shop-empty"><em>No class rewards available. Ride to the merchant.</em></p>`;
   }
   el.querySelector("#skip-reward").onclick = onSkip;
+}
+
+export function renderPostDuelGunReward(game, reward, onTakeGun, onSkip) {
+  const el = panel();
+  el.className = "panel";
+  const rewardGuns = Array.isArray(reward.rewardGuns) ? reward.rewardGuns : [];
+  const deckCap = Number.isFinite(reward.deckCap) ? reward.deckCap : 24;
+  const deckSize = game.run.deckIds.length;
+  const ownedGuns = ownedGunIdsInDeck(game.run.deckIds);
+  const gunSlotsFull = ownedGuns.length >= 2;
+  const deckFull = deckSize >= deckCap;
+  const opponentTitle = reward.opponentTitle ? `<em>${reward.opponentTitle}</em>` : "";
+  const noRewards = rewardGuns.length === 0;
+  let note = "";
+  if (gunSlotsFull) {
+    note = "<em>Gun slots full: taking this gun requires holstering one extra gun.</em>";
+  } else if (deckFull) {
+    note = `<em>Deck full (${deckSize}/${deckCap}): taking this gun requires replacing a non-gun card.</em>`;
+  }
+
+  el.innerHTML = `<h2>Gun Drop</h2>
+    <p>You defeated <strong>${reward.opponentName ?? "Outlaw"}</strong> ${opponentTitle}.</p>
+    <p>Choose one gun drop or skip. ${note}</p>
+    <div class="shop-list" id="reward-guns"></div>
+    <button class="btn" id="skip-gun-reward">${noRewards ? "Continue to Merchant" : "Skip Gun"}</button>`;
+
+  const rewardRow = el.querySelector("#reward-guns");
+  for (const g of rewardGuns) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = `shop-card hand-card-gun iron-rarity-${g.rarity}`;
+    const cardDef = getCardDef(g.id);
+    const back = g.backstory ? `<span class="card-flavor card-backstory">${g.backstory}</span>` : "";
+    b.innerHTML = `
+      <span class="shop-card-inner hand-card-inner">
+        <span class="card-ribbon">${g.rarity.toUpperCase()} GUN DROP</span>
+        <span class="card-cost">${g.cost}</span>
+        <span class="card-name-text">${g.name}</span>
+        <span class="card-flavor">${g.flavor ?? ""}</span>
+        ${back}
+        ${buildEffectsHtml(cardDef ?? { effects: g.effects })}
+      </span>`;
+    b.onclick = () => {
+      if (gunSlotsFull) {
+        promptReplaceGun(game, ownedGuns, (replaceId) => {
+          if (!replaceId) {
+            renderPostDuelGunReward(game, reward, onTakeGun, onSkip);
+            return;
+          }
+          onTakeGun(g.id, { replaceGunId: replaceId });
+        });
+        return;
+      }
+      if (deckFull) {
+        const ownedCards = ownedNonGunIdsInDeck(game.run.deckIds);
+        if (!ownedCards.length) return;
+        promptReplaceCard(
+          game,
+          ownedCards,
+          (replaceId) => {
+            if (!replaceId) {
+              renderPostDuelGunReward(game, reward, onTakeGun, onSkip);
+              return;
+            }
+            onTakeGun(g.id, { replaceCardId: replaceId });
+          },
+          {
+            title: "Deck Full",
+            description: "Your deck is at the 24-card cap. Choose one non-gun card to replace with this gun:",
+          }
+        );
+        return;
+      }
+      onTakeGun(g.id);
+    };
+    rewardRow.appendChild(b);
+  }
+
+  if (noRewards) {
+    rewardRow.innerHTML = `<p class="shop-empty"><em>No class gun drops available. Ride to the merchant.</em></p>`;
+  }
+  el.querySelector("#skip-gun-reward").onclick = onSkip;
 }
 function shuffle(a) {
   const x = [...a];

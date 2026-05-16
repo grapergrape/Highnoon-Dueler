@@ -1,9 +1,10 @@
 /**
  * Unified gun system.
  *
- * A gun is a persistent in-duel equipment that lives in the deck as a "gun"
- * card. Playing it during a duel sets the player's active gun (replacing any
- * previous one). Effects persist for the rest of the duel until swapped.
+ * A gun is in-duel equipment that can live in the deck as a "gun" card.
+ * Playing it during a duel sets the player's active gun for that duel only
+ * (replacing any previous one). The next duel starts from the class starter gun
+ * again until another gun card is played.
  *
  * @typedef {'common'|'uncommon'|'rare'|'epic'|'legendary'} GunRarity
  *
@@ -31,9 +32,9 @@ export const GUNS_LIST = [
     name: "Volcanic Pistol",
     rarity: "uncommon",
     classId: "outlaw",
-    mag: 7, damage: 8, accuracy: 0.55, cost: 2,
-    effects: ["bullets+1", "damage-1"],
-    flavor: "More lead, less aim.",
+    mag: 6, damage: 8, accuracy: 0.52, cost: 2,
+    effects: ["damage-1"],
+    flavor: "Cheap iron, cheap shot. Enough to get started.",
   },
   {
     id: "gun_sawed_off_coach",
@@ -41,9 +42,9 @@ export const GUNS_LIST = [
     rarity: "epic",
     classId: "outlaw",
     weaponType: "carbine",
-    mag: 6, damage: 12, accuracy: 0.56, cost: 3,
-    effects: ["bullets+2", "damage+2", "accShootout-0.05"],
-    flavor: "Stolen repeater, short temper.",
+    mag: 4, damage: 10, accuracy: 0.55, cost: 3,
+    effects: ["accShootout-0.05", "extraVolleyShots+1"],
+    flavor: "Stolen repeater, short temper, faster encore.",
     backstory: "Lifted from a Wells Fargo escort chest and cut for speed, not spread. Fast lever, dirty work.",
   },
   {
@@ -51,9 +52,9 @@ export const GUNS_LIST = [
     name: "Jesse James' Schofield",
     rarity: "legendary",
     classId: "outlaw",
-    mag: 6, damage: 12, accuracy: 0.66, cost: 4,
-    effects: ["bullets+1", "damage+2", "accShootout+0.10"],
-    flavor: "The James gang's hand cannon.",
+    mag: 4, damage: 12, accuracy: 0.62, cost: 4,
+    effects: ["accShootout+0.06", "firstHitsAuto+1", "extraVolleyShots+1"],
+    flavor: "The James gang's hand cannon. It finishes what the combo starts.",
     backstory: "Recovered from the floorboards of 1318 Lafayette Street, St. Joseph, Missouri, the morning Bob Ford put a bullet behind Jesse's ear, April 3rd, 1882.",
   },
 
@@ -201,9 +202,9 @@ export const GUNS_LIST = [
     rarity: "uncommon",
     classId: "sheriff",
     weaponType: "shotgun",
-    mag: 4, damage: 18, accuracy: 0.45, cost: 2,
-    effects: ["damage+3"],
-    flavor: "Short barrel, long consequences.",
+    mag: 4, damage: 18, accuracy: 0.46, cost: 2,
+    effects: ["damage+2", "damageTaken-1", "dodgeRecv+1"],
+    flavor: "Short barrel, long consequences. The badge stays planted.",
   },
   {
     id: "gun_winchester_1887",
@@ -211,9 +212,9 @@ export const GUNS_LIST = [
     rarity: "epic",
     classId: "sheriff",
     weaponType: "shotgun",
-    mag: 5, damage: 23, accuracy: 0.46, cost: 3,
-    effects: ["damage+5", "ricochet"],
-    flavor: "The lever clacks. The street ducks.",
+    mag: 5, damage: 22, accuracy: 0.50, cost: 3,
+    effects: ["damage+4", "ricochet", "dodgeRecv+1", "damageTaken-1", "hpAfterShootout+3"],
+    flavor: "The lever clacks. The street ducks behind the badge.",
     backstory: "John Moses Browning's lever-action shotgun, 1887, made for Winchester at Oliver Winchester's request. The clack of its action ended more saloon arguments than any judge.",
   },
   {
@@ -222,9 +223,9 @@ export const GUNS_LIST = [
     rarity: "legendary",
     classId: "sheriff",
     weaponType: "shotgun",
-    mag: 5, damage: 30, accuracy: 0.48, cost: 4,
-    effects: ["damage+7", "firstHitsAuto+1", "hpAfterShootout+5"],
-    flavor: "Special order. Final warning.",
+    mag: 5, damage: 27, accuracy: 0.52, cost: 4,
+    effects: ["damage+4", "firstHitsAuto+1", "dodgeRecv+2", "damageTaken-2", "hpAfterShootout+5"],
+    flavor: "Special order. Final warning. The star turns lead aside.",
     backstory: "Bartholomew W. Masterson wrote to Colt's Hartford works, July 1885: 'a special grip of gutta-percha, easy on the trigger.' Dodge City, Tombstone, and finally a desk at the New York Morning Telegraph.",
   },
 

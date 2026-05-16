@@ -52,7 +52,7 @@ export function loadRun() {
       ...base,
       ...o,
       deckIds: o.deckIds?.length ? o.deckIds : base.deckIds,
-      activeGunId: o.activeGunId || base.activeGunId,
+      activeGunId: base.activeGunId,
       permanent: o.permanent && typeof o.permanent === "object" && !Array.isArray(o.permanent) ? o.permanent : {},
       classId: validClassId,
       currentTownOrder,

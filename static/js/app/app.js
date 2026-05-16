@@ -1,5 +1,5 @@
 import { STARTER_DECK_IDS, shuffle } from "../data/deck.js";
-import { starterGunIdForClass } from "../data/guns.js";
+import { getGun, gunsForClass, starterGunIdForClass } from "../data/guns.js";
 import { getOpponent, TOWNS } from "../data/opponents.js";
 import { CARD_DEFINITIONS, getCardDef } from "../data/cards.js";
 import {
@@ -22,6 +22,7 @@ import {
   rollShopInventory,
   renderDuelPanel,
   renderPostDuelReward,
+  renderPostDuelGunReward,
   renderGameOver,
 } from "../ui/ui.js";
 import { getClass } from "../data/classes.js";
@@ -35,6 +36,7 @@ import {
 
 const GAMEOVER_AUTO_RETURN_MS = 10000;
 const MAX_DECK_SIZE = 24;
+const GUN_DROP_CHANCE = 0.20;
 const REWARD_RARITY_WEIGHTS = {
   common: 34,
   uncommon: 40,
@@ -291,6 +293,19 @@ function rewardCardPool(gameState) {
   );
 }
 
+function rewardGunPool(gameState) {
+  const run = gameState.run;
+  const classId = run.classId;
+  const owned = new Set(run.deckIds);
+  if (!classId) return [];
+  const starterGunId = starterGunIdForClass(classId);
+  return gunsForClass(classId).filter((g) =>
+    !owned.has(g.id) &&
+    g.id !== run.activeGunId &&
+    g.id !== starterGunId
+  );
+}
+
 function drawRewardRarity(pool) {
   const availableRarities = new Set(pool.map((c) => c.rarity));
   const weighted = Object.entries(REWARD_RARITY_WEIGHTS).filter(([rarity]) => availableRarities.has(rarity));
@@ -302,6 +317,17 @@ function drawRewardRarity(pool) {
     if (roll <= 0) return rarity;
   }
   return weighted[weighted.length - 1][0];
+}
+
+function rollPostDuelRewardGun(gameState) {
+  if (Math.random() >= GUN_DROP_CHANCE) return null;
+  const pool = rewardGunPool(gameState);
+  if (!pool.length) return null;
+  const rarity = drawRewardRarity(pool);
+  const candidates = rarity
+    ? pool.filter((g) => g.rarity === rarity)
+    : pool;
+  return candidates[(Math.random() * candidates.length) | 0] ?? null;
 }
 
 function rollPostDuelRewardCards(gameState, count = 3) {
@@ -339,26 +365,87 @@ function applyRewardCard(cardId, opts) {
   return true;
 }
 
-function openPostDuelReward(duel, bountyEarned) {
-  const rewardCards = rollPostDuelRewardCards(game, 3);
-  game.screen = "post-duel-reward";
-  renderPostDuelReward(
+function applyRewardGun(gunId, opts) {
+  if (!gunId) return false;
+  const gun = getGun(gunId);
+  if (!gun || gun.id !== gunId || gun.opponentOnly || gun.classId !== game.run.classId) return false;
+  if (game.run.deckIds.includes(gunId)) return false;
+
+  const replacingGun = !!opts?.replaceGunId;
+  const replacingCard = !!opts?.replaceCardId;
+  if (gunCountInDeck(game.run.deckIds) >= 2 && !replacingGun) return false;
+  if (game.run.deckIds.length >= MAX_DECK_SIZE && !replacingGun && !replacingCard) return false;
+
+  if (replacingGun) {
+    if (!opts.replaceGunId.startsWith("gun_")) return false;
+    const ix = game.run.deckIds.indexOf(opts.replaceGunId);
+    if (ix < 0) return false;
+    game.run.deckIds.splice(ix, 1, gunId);
+  } else {
+    if (replacingCard) {
+      if (opts.replaceCardId.startsWith("gun_")) return false;
+      const ix = game.run.deckIds.indexOf(opts.replaceCardId);
+      if (ix < 0) return false;
+      game.run.deckIds.splice(ix, 1);
+    }
+    game.run.deckIds.push(gunId);
+  }
+
+  saveRun(game.run);
+  updateHud(game);
+  return true;
+}
+
+function openPostDuelGunReward(gunReward, rewardContext) {
+  if (!gunReward) {
+    openShop();
+    return;
+  }
+  game.screen = "post-duel-gun-reward";
+  renderPostDuelGunReward(
     game,
     {
-      opponentName: duel?.opponentDef?.name ?? "Outlaw",
-      opponentTitle: duel?.opponentDef?.title ?? "",
-      bountyEarned,
-      rewardCards,
+      ...rewardContext,
+      rewardGuns: [gunReward],
       deckCap: MAX_DECK_SIZE,
     },
-    (cardId, opts) => {
-      if (!applyRewardCard(cardId, opts)) return;
+    (gunId, opts) => {
+      if (!applyRewardGun(gunId, opts)) return;
       openShop();
     },
     () => {
       saveRun(game.run);
       updateHud(game);
       openShop();
+    }
+  );
+}
+
+function openPostDuelReward(duel, bountyEarned) {
+  const rewardCards = rollPostDuelRewardCards(game, 3);
+  const gunReward = rollPostDuelRewardGun(game);
+  const rewardContext = {
+    opponentName: duel?.opponentDef?.name ?? "Outlaw",
+    opponentTitle: duel?.opponentDef?.title ?? "",
+    bountyEarned,
+  };
+  game.screen = "post-duel-reward";
+  renderPostDuelReward(
+    game,
+    {
+      ...rewardContext,
+      rewardCards,
+      deckCap: MAX_DECK_SIZE,
+      skipLabel: gunReward ? "Continue to Gun Drop" : undefined,
+    },
+    (cardId, opts) => {
+      if (!applyRewardCard(cardId, opts)) return;
+      openPostDuelGunReward(gunReward, rewardContext);
+    },
+    () => {
+      saveRun(game.run);
+      updateHud(game);
+      openPostDuelGunReward(gunReward, rewardContext);
     }
   );
 }

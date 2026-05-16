@@ -102,10 +102,17 @@ The intended feel is not "roll dodge and pray." Sheriff should decide whether a 
 - Starting decks are 12 cards.
 - Deck cap is 24 cards.
 - Player card rewards and shop card offers are class-only.
+- Each duel win has a 20% chance to add a separate class-only gun drop screen after the card reward.
 - Feats can repeat.
 - Stances and Showdowns are unique. Once owned, they stop appearing in reward/shop offers.
-- Guns in the player shop are class-only.
+- Guns in the player shop are class-only and exclude class starter guns.
+- Gun drops use the same rarity weights as card rewards, exclude the class starter/currently equipped gun, and can be taken or skipped.
 - Starter guns begin equipped and are not counted in the starter deck.
+- Gun cards in the deck equip for the current duel only. The next duel starts from the class starter gun again until another gun card is played.
+- Starter guns are baseline equipment and do not give combo bonuses.
+- Upgraded Outlaw guns turn combo triggers into extra volley shots instead of only giving flat stats.
+- Sheriff guns provide a defensive shotgun floor: modest damage reduction, bullet dodge, and limited sustain.
+- Sheriff scaling should mostly come from class cards such as Badge Line, Town's Strength, Jailhouse Cover, Town Doctor, and Bullet-Stopping Badge.
 - Each merchant visit allows 1 card/gun purchase.
 - Whiskey healing is separate from the one card/gun purchase.
 - Health carries between duels.

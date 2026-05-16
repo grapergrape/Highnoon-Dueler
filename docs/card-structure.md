@@ -52,9 +52,12 @@ Sheriff is also tuned separately because the class uses Respect HP scaling and s
 ## Run Deck Rules
 
 - Rewards and shop card offers are class-only.
+- Each win has a 20% chance to add a separate class-only gun drop screen after the card reward. Gun drops exclude the class starter/currently equipped gun.
 - Feats can repeat, which lets a class build a focused engine.
 - Stances and Showdowns are unique deck cards; once owned, they stop appearing in reward/shop card offers.
-- Guns are class-only in the player shop. Starter guns begin equipped and do not count against the starter deck.
+- Guns are class-only in the player shop and gun drop screen. Starter guns begin equipped, do not count against the starter deck, and are not offered as merchant upgrades.
+- Gun cards equip only for the current duel. The next duel starts from the class starter gun again until another gun card is played.
+- Starter guns are baseline equipment and do not give combo bonuses. Upgraded Outlaw guns use combo-trigger shot scaling. Sheriff guns provide the defensive shotgun floor, but Sheriff cards should carry most late-run sustain and closing power.
 - The merchant offers cards and guns, but the player can buy only 1 card/gun per merchant visit. Whiskey healing is separate.
 
 ## Pool Targets
@@ -73,3 +76,8 @@ Recommended class pool target:
 Shared cards still exist for starter decks, enemy decks, and legacy content, but player rewards and shop card offers should not use the shared pool during normal class runs.
 
 Starter decks begin at 12 cards and can grow up to the 24-card cap.
+
+## Class Balance Baselines
+
+- [Outlaw](outlaw.md) is the baseline for high-tempo combo classes.
+- [Sheriff](sheriff.md) is the baseline for defensive scaling classes.

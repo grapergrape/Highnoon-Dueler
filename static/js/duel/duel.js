@@ -125,7 +125,7 @@ function elDobleEffect(duel) {
 }
 
 function resolveStartingGun(run) {
-  const id = run.activeGunId || run.gunId || starterGunIdForClass(run.classId) || FALLBACK_GUN_ID;
+  const id = starterGunIdForClass(run?.classId) || run?.gunId || run?.activeGunId || FALLBACK_GUN_ID;
   return getGun(id);
 }
 
@@ -168,7 +168,7 @@ export function createDuel(oppDef, run) {
   enemy.discardPile = [];
   enemy.hand = [];
 
-  // Initialize each side's persistent active gun.
+  // Initialize each side's active gun for this duel.
   const playerStartGun = resolveStartingGun(run);
   const playerActiveGun = makeActiveGun(playerStartGun);
   const enemyStartGun = getGun(oppDef.gunId);
@@ -628,7 +628,6 @@ export function tryPlayCard(duel, run, cardUid) {
       // Vaquero path: secondary slot
       if (!duel.playerActiveGun) {
         duel.playerActiveGun = makeActiveGun(gunDef);
-        if (run) run.activeGunId = gunDef.id;
         pushPlayLogBulletin(duel, `You draw the ${gunDef.name}.`);
       } else if (!duel.playerSecondaryGun) {
         duel.playerSecondaryGun = makeActiveGun(gunDef);
@@ -642,7 +641,6 @@ export function tryPlayCard(duel, run, cardUid) {
     } else {
       const prev = duel.playerActiveGun;
       duel.playerActiveGun = makeActiveGun(gunDef);
-      if (run) run.activeGunId = gunDef.id;
       if (prev && prev.id !== gunDef.id) {
         pushPlayLogBulletin(duel, `You holster the ${prev.name} and draw the ${gunDef.name}.`);
       } else if (!prev) {
@@ -958,12 +956,12 @@ export function resolveShootout(duel, run) {
     pen = Math.max(0, pen - (run.permanent?.dualWieldAccPenaltyReduce ?? 0) - (playerMods.dualWieldAccPenaltyReduce || 0));
     P.acc -= pen;
   }
-  // Outlaw legendary: +1 volley shot per combo trigger this duel
+  // Outlaw combo irons: +N volley shots per combo trigger this duel.
   if (playerMods.extraVolleyShots > 0) {
     const extra = playerMods.extraVolleyShots * (duel.duelComboTriggers || 0);
     if (extra > 0) {
       P.bullets += extra;
-      pushPlayLogBulletin(duel, `No Honor Among Thieves — +${extra} bonus shots from combos.`);
+      pushPlayLogBulletin(duel, `Combo iron — +${extra} bonus shots from combos.`);
     }
   }
 

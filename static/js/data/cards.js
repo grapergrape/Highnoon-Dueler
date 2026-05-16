@@ -745,13 +745,13 @@ export const CARD_DEFINITIONS = [
   {
     id: "atk_badge_flash", name: "Badge Flash", type: "feat", rarity: "common", cost: 0,
     classId: "sheriff",
-    effects: ["extraPlay+1", "accShootout+0.06"],
+    effects: ["extraPlay+1", "accShootout+0.08"],
     flavorText: "Sun on the star. Hands remember the law.",
   },
   {
     id: "atk_deputy_cover", name: "Deputy Cover", type: "feat", rarity: "common", cost: 1,
     classId: "sheriff",
-    effects: ["enemyBullets-1", "damage+1", "extraPlay+1"],
+    effects: ["enemyBullets-1", "damage+2", "extraPlay+1"],
     flavorText: "A second badge buys you a second breath.",
   },
   {
@@ -763,7 +763,7 @@ export const CARD_DEFINITIONS = [
   {
     id: "atk_towns_strength", name: "Town's Strength", type: "feat", rarity: "uncommon", cost: 2,
     classId: "sheriff",
-    effects: ["bullets+2", "damageShootout+0.16", "accShootout+0.10"],
+    effects: ["bullets+2", "damageShootout+0.16", "accShootout+0.10", "extraPlay+1"],
     flavorText: "The whole street steadies your aim.",
   },
   {
@@ -781,13 +781,13 @@ export const CARD_DEFINITIONS = [
   {
     id: "atk_double_barrel_warning", name: "Double-Barrel Warning", type: "feat", rarity: "uncommon", cost: 2,
     classId: "sheriff",
-    effects: ["bullets+3", "damage+2", "firstHitsAuto+1"],
+    effects: ["bullets+3", "damage+2", "firstHitsAuto+1", "accShootout+0.05"],
     flavorText: "The warning arrives as thunder.",
   },
   {
     id: "atk_iron_resolve", name: "Iron Resolve", type: "feat", rarity: "uncommon", cost: 1,
     classId: "sheriff",
-    effects: ["healNow+8", "damageTaken-1", "accShootout+0.08", "extraPlay+1"],
+    effects: ["healNow+10", "damageTaken-1", "accShootout+0.08", "extraPlay+1"],
     flavorText: "He bleeds. He keeps walking.",
   },
   {
@@ -799,7 +799,7 @@ export const CARD_DEFINITIONS = [
   {
     id: "atk_bullet_proof", name: "Bullet-Stopping Badge", type: "feat", rarity: "rare", cost: 2,
     classId: "sheriff",
-    effects: ["dodgeRecv+2", "damageTaken-1", "healNow+8"],
+    effects: ["dodgeRecv+2", "damageTaken-1", "healNow+10"],
     flavorText: "Flash the star, slip the shot, keep marching.",
   },
   {
@@ -817,7 +817,7 @@ export const CARD_DEFINITIONS = [
   {
     id: "char_town_doctor", name: "Town Doctor", type: "stance", rarity: "rare", cost: 0,
     classId: "sheriff",
-    effects: ["healNow+18", "hpAfterShootout+5", "extraPlay+1"],
+    effects: ["healNow+20", "hpAfterShootout+5", "extraPlay+1"],
     flavorText: "Needle, bottle, bandage. Back to the street.",
   },
   {
