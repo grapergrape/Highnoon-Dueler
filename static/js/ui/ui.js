@@ -3,6 +3,7 @@ import { CARD_DEFINITIONS, effectsForCardLevel, getCardDef } from "../data/cards
 import { getClass, CLASSES } from "../data/classes.js";
 import { gunsForClass, getGun, starterGunIdForClass } from "../data/guns.js";
 import { getClassShowdownProgress, isShowdownUnlockedForClass } from "../app/unlock-state.js";
+import { duelDisplayedVolleyPreview, estimateVolleyDamage } from "../duel/duel.js";
 
 const RARITY_PRICE = { common: 25, uncommon: 40, rare: 65, epic: 110, legendary: 180 };
 
@@ -22,6 +23,7 @@ const EFFECT_TOOLTIPS = {
   accGlobal: "Permanent accuracy modifier carried for the rest of the run.",
   enemyAccNext: "Reduces the enemy's accuracy on the next shootout only.",
   enemyBullets: "Reduces the enemy's bullet count on the next shootout only.",
+  enemyDodge: "Reduces the enemy's deterministic dodges on the next shootout only.",
   pierce: "Shots ignore enemy damage reduction (pierce armor).",
   ricochet: "30% chance per hit for a half-damage ricochet.",
   healNow: "Heal HP immediately.",
@@ -79,8 +81,9 @@ const hudClass = () => document.getElementById("hud-class");
 const RIBBON_LABEL = {
   gun: "Gun",
   feat: "Feat",
+  staredown: "Staredown",
   stance: "Stance",
-  showdown: "Showdown",
+  showdown: "Oath",
 };
 
 const ROLE_LABEL = {
@@ -90,6 +93,16 @@ const ROLE_LABEL = {
 };
 
 function pct(v) { return `${Math.round((v ?? 0) * 100)}%`; }
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[ch]));
+}
 
 function sheriffCurrentHpAccBonus(run) {
   if (run?.classId !== "sheriff") return 0;
@@ -118,6 +131,7 @@ function effectToText(raw) {
     case 'accGlobal': return v > 0 ? `+${pct(v)} acc (perm)` : `${pct(v)} acc (perm)`;
     case 'enemyAccNext': return `Foe −${pct(-v)} accuracy`;
     case 'enemyBullets': return v < 0 ? `Foe ${v} bullets` : `Foe +${v} bullets`;
+    case 'enemyDodge': return v < 0 ? `Foe ${v} dodges` : `Foe +${v} dodges`;
     case 'pierce': return 'Piercing shots';
     case 'ricochet': return 'Ricochet on hit';
     case 'healNow': return `Heal +${v} HP now`;
@@ -153,7 +167,7 @@ function effectToText(raw) {
     case 'staredownOnly': return null;
     case 'nextComboFree': return 'Next combo card free until played';
     case 'extraPlay': return `+${v} card play`;
-    case 'elDoble': return 'El Doble: mirror or triple-stack';
+    case 'elDoble': return 'Oath of El Doble: mirror or triple-stack';
     case 'removeDualPenalty': return 'Clears dual-wield penalty';
     case 'spiritDoubleNext': return 'Double Spirit scaling';
     case 'outlawCombo': return null;
@@ -179,8 +193,8 @@ function buildEffectsHtml(def) {
     if (!text) continue;
     const cls = classifyEffect(raw);
     const tip = tooltipForEffect(raw);
-    const tipAttr = tip ? ` title="${tip.replace(/"/g, '&quot;')}"` : '';
-    lines.push(`<span class="card-eff card-eff-${cls}"${tipAttr}>${text}</span>`);
+    const tipAttr = tip ? ` title="${escapeHtml(tip)}"` : '';
+    lines.push(`<span class="card-eff card-eff-${cls}"${tipAttr}>${escapeHtml(text)}</span>`);
   }
   if (!lines.length) return '';
   return `<span class="card-effects">${lines.join('')}</span>`;
@@ -205,15 +219,16 @@ function buildActiveGunBadgeHtml(activeGun, label = "Drawn Iron") {
 
 function buildPersistentRowHtml(d) {
   const stances = d.playerStances ?? [];
+  const cardName = (card) => card?.name ?? getCardDef(card?.id)?.name ?? "Unknown";
   const stanceHtml = stances.length
-    ? stances.map((s) => `<span class="persistent-chip persistent-stance">${s.name}</span>`).join("")
+    ? stances.map((s) => `<span class="persistent-chip persistent-stance">${escapeHtml(cardName(s))}</span>`).join("")
     : `<span class="persistent-empty">No stance held</span>`;
   const showdown = d.playerShowdown
-    ? `<span class="persistent-chip persistent-showdown">${d.playerShowdown.name} · Level ${d.playerShowdownLevel || 1}</span>`
-    : `<span class="persistent-empty">No showdown</span>`;
+    ? `<span class="persistent-chip persistent-showdown">${escapeHtml(cardName(d.playerShowdown))} · Level ${d.playerShowdownLevel || 1}</span>`
+    : `<span class="persistent-empty">No oath held</span>`;
   return `<div class="persistent-row">
     <div class="persistent-group"><span class="persistent-label">Stances</span>${stanceHtml}</div>
-    <div class="persistent-group"><span class="persistent-label">Showdown</span>${showdown}</div>
+    <div class="persistent-group"><span class="persistent-label">Oath</span>${showdown}</div>
   </div>`;
 }
 
@@ -326,18 +341,22 @@ export function renderWanted(game, onPick) {
     for (const o of townOpps) {
       const gun = getGun(o.gunId);
       const isDefeated = defeated.has(o.id);
+      const requiredOpp = townOpps.find((prev) => prev.roleOrder < o.roleOrder && !defeated.has(prev.id));
+      const roleLockReason = requiredOpp ? `Defeat ${requiredOpp.name} first` : "";
+      const isLockedPoster = isLockedTown || !!roleLockReason || isDefeated;
+      const posterLockText = isDefeated ? "Bounty claimed" : (roleLockReason || lockReason);
       const d = document.createElement("button");
       d.type = "button";
-      d.className = `poster wanted-poster role-${o.role}${isDefeated ? " poster-defeated" : ""}${isLockedTown ? " poster-locked" : ""}`;
-      d.disabled = isLockedTown;
-      if (isLockedTown) d.title = lockReason;
+      d.className = `poster wanted-poster role-${o.role}${isDefeated ? " poster-defeated" : ""}${isLockedPoster ? " poster-locked" : ""}`;
+      d.disabled = isLockedPoster;
+      if (isLockedPoster) d.title = posterLockText;
       d.innerHTML = `
         <span class="role-badge">${ROLE_LABEL[o.role]}</span>
-        ${isLockedTown ? `<span class="locked-badge">Locked</span>` : ""}
+        ${isLockedPoster && !isDefeated ? `<span class="locked-badge">Locked</span>` : ""}
         ${isDefeated ? `<span class="defeated-badge">Defeated</span>` : ""}
         <h3>${o.name}</h3>
         <p><em>${o.title}</em></p>
-        ${isLockedTown ? `<p class="poster-lock-note">${lockReason}</p>` : ""}
+        ${isLockedPoster ? `<p class="poster-lock-note">${posterLockText}</p>` : ""}
         <p class="wanted-backstory">${o.backstory.slice(0, 150)}...</p>
         <div class="wanted-stat-row">
           <span><strong>HP</strong> ${o.maxHp}</span>
@@ -347,7 +366,7 @@ export function renderWanted(game, onPick) {
           <span><strong>Nerve</strong> ${o.focus}</span>
           <span><strong>Iron</strong> ${gun.name}</span>
         </div>`;
-      if (!isLockedTown) d.onclick = () => onPick(o.id);
+      if (!isLockedPoster) d.onclick = () => onPick(o.id);
       g.appendChild(d);
     }
     roster.appendChild(townWrap);
@@ -738,13 +757,177 @@ function fillBattleLog(container, duel) {
   });
 }
 
+function buildForecastCardHtml(label, subLabel, forecast, sideClass) {
+  const dodge = forecast.dodge > 0
+    ? `<span>Dodge eats ${forecast.dodge}</span>`
+    : `<span>No dodges</span>`;
+  const auto = forecast.autoHits > 0
+    ? `<span>${forecast.autoHits} auto-hit</span>`
+    : `<span>${pct(forecast.acc)} acc</span>`;
+  const swing = forecast.swingy ? `<span>Swing effects active</span>` : "";
+  return `<div class="forecast-card ${sideClass}">
+    <div class="forecast-kicker">${escapeHtml(label)}</div>
+    <div class="forecast-value">~${Math.round(forecast.expectedDamage)} dmg</div>
+    <div class="forecast-sub">${escapeHtml(subLabel)}</div>
+    <div class="forecast-facts">
+      <span>${forecast.liveShots}/${forecast.bullets} live shots</span>
+      <span>${forecast.damagePerHit} dmg/hit</span>
+      ${auto}
+      ${dodge}
+      ${swing}
+    </div>
+  </div>`;
+}
+
+function buildForecastPanelHtml(d, run) {
+  const preview = duelDisplayedVolleyPreview(d, run);
+  const outgoing = estimateVolleyDamage(preview.player, preview.enemy);
+  const incoming = estimateVolleyDamage(preview.enemy, preview.player);
+  const foe = d.opponentDef?.name ?? "Foe";
+  const playerGun = preview.player.gunName ? `Your ${preview.player.gunName}` : "Your volley";
+  const foeGun = preview.enemy.gunName ? `${foe}'s ${preview.enemy.gunName}` : `${foe}'s volley`;
+  return `<div class="forecast-grid">
+    ${buildForecastCardHtml(`Expected on ${foe}`, playerGun, outgoing, "forecast-outgoing")}
+    ${buildForecastCardHtml("Incoming threat", foeGun, incoming, "forecast-incoming")}
+  </div>`;
+}
+
+function buildPlayedCardTileHtml(play) {
+  const def = getCardDef(play.id) ?? play;
+  const level = play.showdownLevel || def.showdownLevel || 1;
+  const viewDef = {
+    ...def,
+    effects: play.effects ?? def.effects ?? [],
+    showdownLevel: level,
+  };
+  const type = play.cardType ?? def.type ?? "feat";
+  const label = RIBBON_LABEL[type] ?? type;
+  const flavor = play.flavorText || def.flavorText || "";
+  const rarity = play.rarity || def.rarity || "common";
+  return `<div class="played-card played-card-${escapeHtml(type)} played-rarity-${escapeHtml(rarity)}">
+    <div class="played-card-top">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(String(play.cost ?? def.cost ?? 0))}</strong>
+    </div>
+    <div class="played-card-name">${escapeHtml(play.name || def.name || "Unknown Card")}</div>
+    ${flavor ? `<div class="played-card-flavor">${escapeHtml(flavor)}</div>` : ""}
+    ${buildEffectsHtml(viewDef)}
+  </div>`;
+}
+
+function buildPlayedLaneHtml(label, cards, emptyText) {
+  const body = cards?.length
+    ? cards.map(buildPlayedCardTileHtml).join("")
+    : `<div class="played-empty">${escapeHtml(emptyText)}</div>`;
+  return `<div class="played-lane">
+    <div class="played-lane-label">${escapeHtml(label)}</div>
+    <div class="played-card-list">${body}</div>
+  </div>`;
+}
+
+function buildPrepPlayGroupHtml(title, prepRound, playerCards, enemyCards, enemyEmpty, playerEmpty = "No card played") {
+  return `<div class="played-group">
+    <div class="combat-section-title">
+      <span>${escapeHtml(title)}</span>
+      <strong>Prep ${prepRound}/3</strong>
+    </div>
+    <div class="played-lanes">
+      ${buildPlayedLaneHtml("You", playerCards, playerEmpty)}
+      ${buildPlayedLaneHtml("Opponent", enemyCards, enemyEmpty)}
+    </div>
+  </div>`;
+}
+
+function buildPlayedCardsPanelHtml(d) {
+  const groups = [];
+  if (d.phase === "prep") {
+    const current = d.playedThisPrep ?? { player: [], enemy: [] };
+    groups.push(buildPrepPlayGroupHtml(
+      "Current prep plays",
+      d.prepRound,
+      current.player ?? [],
+      current.enemy ?? [],
+      d.playerLocked ? `${d.opponentDef?.name ?? "Opponent"} has not played` : "Reveals after Lock In",
+      "No card played yet"
+    ));
+  }
+  const currentCycle = d.cycleNumber ?? 1;
+  const historySource = Array.isArray(d.prepPlayHistory) && d.prepPlayHistory.length
+    ? d.prepPlayHistory
+    : (d.lastPrepPlays ? [d.lastPrepPlays] : []);
+  const history = historySource
+    .filter((entry) => entry && entry.cycleNumber === currentCycle)
+    .filter((entry) => (
+      d.phase !== "prep"
+      || entry.prepRound !== d.prepRound
+    ))
+    .sort((a, b) => b.prepRound - a.prepRound);
+  for (const last of history) {
+    groups.push(buildPrepPlayGroupHtml(
+      "Locked prep",
+      last.prepRound,
+      last.player ?? [],
+      last.enemy ?? [],
+      `${d.opponentDef?.name ?? "Opponent"} held nerve`
+    ));
+  }
+  if (!groups.length) return "";
+  return `<section class="combat-section played-board">
+    ${groups.join("")}
+  </section>`;
+}
+
+function buildShowdownSideHtml(label, card, level) {
+  if (!card) {
+    return `<div class="showdown-side showdown-empty">
+      <div class="showdown-label">${escapeHtml(label)}</div>
+      <div class="showdown-empty-text">No oath active</div>
+    </div>`;
+  }
+  const def = getCardDef(card.id) ?? card;
+  const viewDef = { ...def, showdownLevel: level || 1 };
+  return `<div class="showdown-side">
+    <div class="showdown-label">${escapeHtml(label)}</div>
+    <div class="showdown-heading">
+      <span>${escapeHtml(def.name ?? "Oath")}</span>
+      <strong>Level ${level || 1}</strong>
+    </div>
+    ${def.flavorText ? `<div class="showdown-flavor">${escapeHtml(def.flavorText)}</div>` : ""}
+    ${buildEffectsHtml(viewDef)}
+  </div>`;
+}
+
+function buildShowdownBoardHtml(d) {
+  return `<section class="combat-section showdown-board">
+    <div class="combat-section-title">
+      <span>Oath cards</span>
+      <strong>Persistent</strong>
+    </div>
+    <div class="showdown-grid">
+      ${buildShowdownSideHtml("Your oath", d.playerShowdown, d.playerShowdownLevel)}
+      ${buildShowdownSideHtml(`${d.opponentDef?.name ?? "Opponent"} oath`, d.enemyShowdown, d.enemyShowdownLevel)}
+    </div>
+  </section>`;
+}
+
+function buildCombatDashboardHtml(game) {
+  const d = game.duel;
+  if (!d || d.phase === "ended" || d.phase === "staredown_commit") return "";
+  return `<div class="combat-dashboard">
+    ${buildForecastPanelHtml(d, game.run)}
+    ${buildPlayedCardsPanelHtml(d)}
+    ${buildShowdownBoardHtml(d)}
+  </div>`;
+}
+
 function buildCardHtml(def, costLabel = 'free') {
+  const ribbon = hasStaredownOnlyEffect(def) ? "Staredown" : (RIBBON_LABEL[def.type] ?? def.type);
   return `
     <span class="hand-card-inner">
-      <span class="card-ribbon">${RIBBON_LABEL[def.type] ?? def.type}</span>
-      <span class="card-cost">${costLabel}</span>
-      <span class="card-name-text">${def.name}</span>
-      ${def.flavorText ? `<span class="card-flavor">${def.flavorText}</span>` : ''}
+      <span class="card-ribbon">${escapeHtml(ribbon)}</span>
+      <span class="card-cost">${escapeHtml(costLabel)}</span>
+      <span class="card-name-text">${escapeHtml(def.name)}</span>
+      ${def.flavorText ? `<span class="card-flavor">${escapeHtml(def.flavorText)}</span>` : ''}
       ${buildEffectsHtml(def)}
     </span>`;
 }
@@ -795,15 +978,12 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
   const d = game.duel;
   if (!d) return;
   el.className = "panel panel-duel";
-  let html = `<h3>${d.message}</h3>`;
-  html += `<div class="battle-log-wrap">
-    <div class="battle-log-title">Sheriff's ledger</div>
-    <div class="battle-log" id="battle-log" role="log" aria-live="polite" aria-relevant="additions"></div>
-  </div>`;
+  let html = `<h3>${escapeHtml(d.message)}</h3>`;
+  html += buildCombatDashboardHtml(game);
 
   if (d.phase === "staredown_commit") {
     html += `<div class="staredown-panel">
-      <p class="staredown-desc">Before the prep — commit one card face-down. It resolves <em>before</em> the shootout, free of cost.</p>
+      <p class="staredown-desc">Before the prep — commit one class staredown face-down. It resolves <em>before</em> the shootout, free of cost.</p>
       <div class="card-row" id="staredown-choices"></div>
     </div>`;
   } else if (d.phase === "staredown_reveal") {
@@ -866,6 +1046,11 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
     html += buildShootoutSummaryHtml(d);
   }
 
+  html += `<details class="battle-log-wrap">
+    <summary class="battle-log-title">Full duel ledger</summary>
+    <div class="battle-log" id="battle-log" role="log" aria-live="polite" aria-relevant="additions"></div>
+  </details>`;
+
   el.innerHTML = html;
   fillBattleLog(el.querySelector("#battle-log"), d);
 
@@ -922,7 +1107,7 @@ export function renderGameOver(game, onRestart, opts = {}) {
   ).join("");
   const unlockReport = unlockItems
     ? `<div class="gameover-unlock-report">
-        <h3>Showdown Catalog Updated</h3>
+        <h3>Oath Catalog Updated</h3>
         <ul>${unlockItems}</ul>
       </div>`
     : "";
@@ -943,7 +1128,7 @@ export function renderClassSelect(onPick, opts = {}) {
   ).join("");
   const unlockBanner = unlockItems
     ? `<div class="catalog-unlock-banner">
-        <h3>New Showdown Unlocks</h3>
+        <h3>New Oath Unlocks</h3>
         <ul>${unlockItems}</ul>
       </div>`
     : "";
@@ -957,8 +1142,8 @@ export function renderClassSelect(onPick, opts = {}) {
   for (const cls of CLASSES) {
     const progress = getClassShowdownProgress(unlockState, cls.id);
     const progressLine = progress.totalCount > 0
-      ? `${progress.unlockedCount}/${progress.totalCount} Showdowns unlocked`
-      : "No class Showdown catalog";
+      ? `${progress.unlockedCount}/${progress.totalCount} Oaths unlocked`
+      : "No class Oath catalog";
     let nextTarget = "Catalog complete";
     if (progress.nextLocked) {
       const townOrder = progress.nextLocked.unlockTownOrder;

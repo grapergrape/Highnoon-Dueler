@@ -15,8 +15,8 @@ The class is not a generic bullet-volume class. Vaquero should care about the of
 - Gun cards replace the off-hand gun for the current duel.
 - Dual-wield magazines stack.
 - Dual-wield damage and accuracy are averaged between the two guns.
-- Dual-wield has an -8% accuracy penalty until reduced or removed.
-- Passive sustain: +8 HP at the start of each duel.
+- Dual-wield has a -5% accuracy penalty until reduced or removed.
+- Passive sustain: +10 HP at the start of each duel.
 
 The free first gun swap is important. Without it, off-hand upgrades are tempo traps under the prep-play limit. With it, drawing a gun feels like a class moment instead of a lost setup turn.
 
@@ -118,14 +118,14 @@ Be careful when changing:
 
 ## Current Playtest Baseline
 
-May 16, 2026 Playwright/Chromium simulation, 10 full Vaquero runs, no relics/smithing/potions:
+May 16, 2026 routed Node simulation, 200 Vaquero runs with card rewards, 20% gun drops, and whiskey healing, no shop purchases:
 
-- Clears: 3/10.
-- Average wins: 13.3/15.
-- Losses: mostly `devils_saloon_caleb_cross` and `devils_saloon_judge_blackthorn`, with some Dead Man's Creek failures.
+- Clears: 69/200 (34.5%).
+- Average wins: 11.70/15.
+- Main deaths: `Silas Gravesmoke`, `Caleb Cross`, `Marshal Elias Graves`, then `Red Jack Calder`.
 - Winning decks leaned on `Crossdraw Burst`, `Dance of Lead`, `Steady the Off-Hand`, `Left-Hand Cover`, and either `LeMat Dragoon` or `Villa's Mauser C96`.
 
-Honest read: this is the right class shape. Vaquero can high-roll into loud final-town kills, but still folds if he misses cover, first-hit pressure, or off-hand upgrades.
+Honest read: on target. Vaquero can high-roll into loud final-town kills, but still folds if he misses cover, first-hit pressure, or off-hand upgrades.
 
 ## Baseline For Other Classes
 

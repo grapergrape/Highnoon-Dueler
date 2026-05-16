@@ -4,18 +4,18 @@ import { getGun, FALLBACK_GUN_ID, starterGunIdForClass } from "../data/guns.js";
 import { makeEnemyRuntime } from "../data/opponents.js";
 import { buildDeckFromIds, drawCards, shuffle } from "../data/deck.js";
 
-const STAREDOWN_POOL = ["std_dead_eye", "std_warning_shot", "std_iron_will", "std_marked_man"];
+const STAREDOWN_POOL = ["std_dirty_stare", "std_outlaw_stare", "std_snake_eyes_read", "std_loaded_bluff"];
 const PLAYER_BASE_NERVE = 4;
 const PLAYER_BASE_PLAYS_PER_ROUND = 1;
 const PLAYER_MAX_BASE_PLAYS_PER_ROUND = 3;
 
 const STAREDOWN_BY_CLASS = {
-  marshal:       ["std_marked_man", "std_federal_stare", "std_cold_stare", "std_warning_shot"],
-  vaquero:       ["std_twin_stance", "std_hot_blood", "std_iron_will", "std_dead_eye"],
-  sheriff:       ["std_last_stand_eye", "std_tin_star", "std_iron_will", "std_warning_shot"],
-  apache_tracker:["std_spirit_stare", "std_iron_will", "std_wind_read", "std_dead_eye"],
-  bounty_hunter: ["std_quickdraw_eye", "std_vendetta_eye", "std_dead_eye", "std_marked_man"],
-  outlaw:        ["std_outlaw_stare", "std_dirty_stare", "std_iron_will", "std_dead_eye"],
+  marshal:       ["std_federal_stare", "std_cold_stare", "std_dead_to_rights_eye", "std_posse_signal"],
+  vaquero:       ["std_twin_stance", "std_matador_blink", "std_cantina_spark", "std_hot_blood"],
+  sheriff:       ["std_tin_star", "std_hold_street", "std_last_stand_eye", "std_deputys_signal"],
+  apache_tracker:["std_spirit_stare", "std_wind_read", "std_still_bow", "std_medicine_breath"],
+  bounty_hunter: ["std_quickdraw_eye", "std_blood_price_eye", "std_dead_mans_cover_eye", "std_vendetta_eye"],
+  outlaw:        ["std_dirty_stare", "std_outlaw_stare", "std_snake_eyes_read", "std_loaded_bluff"],
 };
 
 function isPersistentCardType(type) {
@@ -64,7 +64,7 @@ export function emptyMods() {
 }
 
 export function emptyDebuffs() {
-  return { accNext: 0, bulletNext: 0 };
+  return { accNext: 0, bulletNext: 0, dodgeNext: 0 };
 }
 
 /** Build an activeGun record from a gun definition. Effects are baked into mods at equip time. */
@@ -109,7 +109,7 @@ function elDobleEffect(duel) {
   if (!duel.playerActiveGun) return;
   if (!duel.playerSecondaryGun) {
     duel.playerSecondaryGun = JSON.parse(JSON.stringify(duel.playerActiveGun));
-    pushPlayLogBulletin(duel, "El Doble — your iron mirrors itself.");
+    pushPlayLogBulletin(duel, "Oath of El Doble — your iron mirrors itself.");
   } else {
     // Triple-stack: add primary's stats and mods on top of existing pair
     const p = duel.playerActiveGun;
@@ -121,7 +121,7 @@ function elDobleEffect(duel) {
       if (typeof p.mods[k] === "number") s.mods[k] += p.mods[k];
       else if (typeof p.mods[k] === "boolean") s.mods[k] = s.mods[k] || p.mods[k];
     }
-    pushPlayLogBulletin(duel, "El Doble — triple-stack! Three guns in two hands.");
+    pushPlayLogBulletin(duel, "Oath of El Doble — triple-stack! Three guns in two hands.");
   }
   duel.dualWieldPenaltyRemoved = true;
 }
@@ -237,6 +237,9 @@ export function createDuel(oppDef, run) {
     duelComboTriggers: 0,
     bonusBounty: 0,
     shootoutLog: [],
+    playedThisPrep: { player: [], enemy: [] },
+    lastPrepPlays: null,
+    prepPlayHistory: [],
     message: "STARE-DOWN — commit your hidden card before the prep.",
     winner: null,
     highNoonT: 0,
@@ -256,17 +259,69 @@ function trimPlayLog(duel) {
   while (duel.playLog.length > PLAY_LOG_CAP) duel.playLog.shift();
 }
 
+function ensurePrepPlayState(duel) {
+  if (!duel.playedThisPrep) duel.playedThisPrep = { player: [], enemy: [] };
+  if (!Array.isArray(duel.playedThisPrep.player)) duel.playedThisPrep.player = [];
+  if (!Array.isArray(duel.playedThisPrep.enemy)) duel.playedThisPrep.enemy = [];
+}
+
+function snapshotPlayedCard(duel, actor, def) {
+  const level = def.showdownLevel || 1;
+  const cardType = def.effects?.includes("staredownOnly") ? "staredown" : def.type;
+  return {
+    id: def.id,
+    actor,
+    name: def.name,
+    cardType,
+    rarity: def.rarity ?? null,
+    cost: def.cost ?? 0,
+    prepRound: duel.prepRound,
+    cycleNumber: duel.cycleNumber ?? 1,
+    showdownLevel: def.type === "showdown" ? level : null,
+    effects: [...effectsForCardLevel(def, level)],
+    flavorText: def.flavorText ?? def.flavor ?? "",
+  };
+}
+
+function recordPrepPlayedCard(duel, actor, def) {
+  if (duel.phase !== "prep") return;
+  ensurePrepPlayState(duel);
+  const side = actor === "you" ? "player" : "enemy";
+  duel.playedThisPrep[side].push(snapshotPlayedCard(duel, actor, def));
+}
+
+function snapshotLockedPrep(duel) {
+  ensurePrepPlayState(duel);
+  const snap = {
+    prepRound: duel.prepRound,
+    cycleNumber: duel.cycleNumber ?? 1,
+    player: duel.playedThisPrep.player.map((card) => ({ ...card })),
+    enemy: duel.playedThisPrep.enemy.map((card) => ({ ...card })),
+  };
+  duel.lastPrepPlays = snap;
+  const history = Array.isArray(duel.prepPlayHistory) ? duel.prepPlayHistory : [];
+  duel.prepPlayHistory = history
+    .filter((entry) => entry.cycleNumber === snap.cycleNumber && entry.prepRound !== snap.prepRound)
+    .concat(snap)
+    .slice(-3);
+}
+
 /** @param {'you'|'outlaw'} actor */
 export function pushPlayLogCard(duel, actor, def) {
   if (!duel.playLog) duel.playLog = [];
   trimPlayLog(duel);
+  const cardType = def.effects?.includes("staredownOnly") ? "staredown" : def.type;
   duel.playLog.push({
     kind: "card",
     actor,
+    id: def.id,
     name: def.name,
-    cardType: def.type,
+    cardType,
+    cost: def.cost ?? 0,
+    effects: [...effectsForCardLevel(def, def.showdownLevel || 1)],
     prepRound: duel.prepRound,
   });
+  recordPrepPlayedCard(duel, actor, def);
 }
 
 export function pushPlayLogBulletin(duel, text) {
@@ -392,6 +447,8 @@ function applyPlayerCardEffects(duel, run, def) {
       duel.enemyDebuffs.accNext += e.value || 0;
     } else if (e.kind === "enemyBullets") {
       duel.enemyDebuffs.bulletNext += e.value || 0;
+    } else if (e.kind === "enemyDodge") {
+      duel.enemyDebuffs.dodgeNext += e.value || 0;
     } else if (e.kind === "markEnemy") {
       const baseMarks = e.value || 0;
       const extra = run?.permanent?.extraMarkPerApply ?? 0;
@@ -428,6 +485,8 @@ function applyEnemyPlayedCard(duel, def) {
       duel.playerDebuffs.accNext += e.value || 0;
     } else if (e.kind === "enemyBullets") {
       duel.playerDebuffs.bulletNext += e.value || 0;
+    } else if (e.kind === "enemyDodge") {
+      duel.playerDebuffs.dodgeNext += e.value || 0;
     } else if (e.kind === "markEnemy") {
       // Enemy marking player doesn't use the same mechanic
     } else {
@@ -445,6 +504,8 @@ function applyPersistentEffects(duel, run, def, targetMods, playedBy, level = 1)
         duel.enemyDebuffs.accNext += e.value || 0;
       } else if (e.kind === "enemyBullets") {
         duel.enemyDebuffs.bulletNext += e.value || 0;
+      } else if (e.kind === "enemyDodge") {
+        duel.enemyDebuffs.dodgeNext += e.value || 0;
       } else if (e.kind === "markEnemy") {
         const extra = run?.permanent?.extraMarkPerApply ?? 0;
         duel.enemyMarked += (e.value || 0) + extra;
@@ -481,6 +542,8 @@ function applyPersistentEffects(duel, run, def, targetMods, playedBy, level = 1)
         duel.playerDebuffs.accNext += e.value || 0;
       } else if (e.kind === "enemyBullets") {
         duel.playerDebuffs.bulletNext += e.value || 0;
+      } else if (e.kind === "enemyDodge") {
+        duel.playerDebuffs.dodgeNext += e.value || 0;
       } else if (e.kind !== "healNow" && e.kind !== "maxHp") {
         mergeGunIntoMods(targetMods, [raw], 1);
       }
@@ -519,7 +582,7 @@ function playPersistentCard(duel, run, card, def, playedBy) {
       rebuildShowdownMods(duel, run, "player");
       applyImmediatePersistentSpecials(duel, run, def, playedBy, 1);
       syncPlayerNerveCap(duel, run);
-      duel.message = `${def.name} — Showdown Level I.`;
+      duel.message = `${def.name} — Oath Level I.`;
     }
     return;
   }
@@ -542,13 +605,13 @@ function advanceShowdowns(duel, run) {
     duel.playerShowdown.showdownLevel = duel.playerShowdownLevel;
     rebuildShowdownMods(duel, run, "player");
     syncPlayerNerveCap(duel, run);
-    pushPlayLogBulletin(duel, `${duel.playerShowdown.name} advances to Level ${duel.playerShowdownLevel}.`);
+    pushPlayLogBulletin(duel, `${duel.playerShowdown.name} oath advances to Level ${duel.playerShowdownLevel}.`);
   }
   if (duel.enemyShowdown && duel.enemyShowdownLevel < 3) {
     duel.enemyShowdownLevel += 1;
     duel.enemyShowdown.showdownLevel = duel.enemyShowdownLevel;
     rebuildShowdownMods(duel, run, "enemy");
-    pushPlayLogBulletin(duel, `${duel.opponentDef.name}'s ${duel.enemyShowdown.name} advances to Level ${duel.enemyShowdownLevel}.`);
+    pushPlayLogBulletin(duel, `${duel.opponentDef.name}'s ${duel.enemyShowdown.name} oath advances to Level ${duel.enemyShowdownLevel}.`);
   }
 }
 
@@ -556,6 +619,7 @@ export function startPrepRound(duel, run) {
   const basePlays = basePlaysForPrepRound(duel);
   const playText = basePlays === 1 ? "play one card" : `play up to ${basePlays} cards`;
   duel.playerLocked = false;
+  duel.playedThisPrep = { player: [], enemy: [] };
   duel.playerPlaysRemaining = basePlays;
   duel.playerMaxPlaysThisRound = basePlays;
   duel.freeCardAvailable = !!run.permanent?.freeFirstCardPerRound;
@@ -716,7 +780,7 @@ export function tryPlayCard(duel, run, cardUid) {
     duel.dualWieldPenaltyRemoved = true;
     pushPlayLogBulletin(duel, "Dual-wield penalty cleared for this duel.");
   }
-  // El Doble triple-stack: if already dual, double-apply primary stats; else mirror primary into secondary
+  // Oath of El Doble triple-stack: if already dual, double-apply primary stats; else mirror primary into secondary
   if ((def.effects || []).includes("elDoble")) {
     elDobleEffect(duel);
   }
@@ -774,32 +838,51 @@ function applyPermanentFromCharacter(run, def) {
 function enemyPrepPlay(duel, run) {
   const { enemy } = duel;
   duel.feedbackEnemyRound = [];
-  const playable = enemy.hand.filter((c) => {
-    const d = getCardDef(c.id);
-    return d && d.cost <= enemy.focus;
-  });
-  playable.sort(() => Math.random() - 0.5);
+  const playbook = duel.opponentDef?.playbook;
+  const roundPlan = playbook?.prepRoundPriority?.[duel.prepRound] ?? [];
+  const fallbackPlan = playbook?.fallbackPriority ?? [];
+  const priority = [...roundPlan, ...fallbackPlan];
+  const roundPlayCap = Math.max(1, Math.round(playbook?.playsPerRound?.[duel.prepRound] ?? 1));
   const rawAggression = Number.isFinite(duel.opponentDef?.prepAggression)
     ? duel.opponentDef.prepAggression
     : 0.5;
-  const prepChance = Math.min(0.95, Math.max(0.35, rawAggression + 0.25));
-  if (playable.length && Math.random() <= prepChance) {
+  const prepChance = playbook?.alwaysPlay
+    ? 1
+    : Math.min(0.95, Math.max(0.35, rawAggression + 0.25));
+
+  let played = 0;
+  while (played < roundPlayCap) {
+    const playable = enemy.hand.filter((c) => {
+      const d = getCardDef(c.id);
+      return d && d.cost <= enemy.focus;
+    });
+    playable.sort((a, b) => {
+      const ai = priority.indexOf(a.id);
+      const bi = priority.indexOf(b.id);
+      if (ai >= 0 || bi >= 0) return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
+      return Math.random() - 0.5;
+    });
+    if (!playable.length || Math.random() > prepChance) break;
     const pick = playable.find((c) => getCardDef(c.id).cost <= enemy.focus);
-    if (pick) {
-      const d = getCardDef(pick.id);
-      enemy.focus -= d.cost;
-      const ix = enemy.hand.indexOf(pick);
-      enemy.hand.splice(ix, 1);
-      if (isPersistentCardType(d.type)) {
-        playPersistentCard(duel, run, pick, d, "enemy");
-      } else {
-        enemy.discardPile.push(pick);
-        applyEnemyPlayedCard(duel, d);
-      }
-      pushPlayLogCard(duel, "outlaw", d);
-      duel.feedbackEnemyRound.push(...feedbackLinesForCard(d, "enemy"));
+    if (!pick) break;
+    const d = getCardDef(pick.id);
+    enemy.focus -= d.cost;
+    const ix = enemy.hand.indexOf(pick);
+    enemy.hand.splice(ix, 1);
+    if (isPersistentCardType(d.type)) {
+      playPersistentCard(duel, run, pick, d, "enemy");
+    } else {
+      enemy.discardPile.push(pick);
+      applyEnemyPlayedCard(duel, d);
     }
-  } else if (playable.length) {
+    pushPlayLogCard(duel, "outlaw", d);
+    duel.feedbackEnemyRound.push(...feedbackLinesForCard(d, "enemy"));
+    played += 1;
+  }
+  if (played === 0 && enemy.hand.some((c) => {
+    const d = getCardDef(c.id);
+    return d && d.cost <= enemy.focus;
+  })) {
     pushPlayLogBulletin(duel, `${duel.opponentDef.name} holds their nerve.`);
   }
   for (const c of [...enemy.hand]) {
@@ -819,6 +902,7 @@ export function lockInPrep(duel, run) {
 
   pushPlayLogBulletin(duel, "You lock in…");
   enemyPrepPlay(duel, run);
+  snapshotLockedPrep(duel);
   const enemyFeedback = duel.feedbackEnemyRound ? [...duel.feedbackEnemyRound] : [];
   duel.feedbackEnemyRound = [];
 
@@ -854,6 +938,26 @@ export function duelDisplayedVolleyPreview(duel, run) {
     player: buildVolleySide(pg, playerMods, duel.playerDebuffs, permAcc),
     enemy: buildVolleySide(eg, enemyMods, duel.enemyDebuffs, 0),
   };
+  const marks = Math.max(0, Math.round(duel.enemyMarked || 0));
+  const markDamageEach = Math.max(0, run.permanent?.markDamagePerMark ?? 0);
+  const markDamageCap = Number.isFinite(run.permanent?.markDamageCap)
+    ? Math.max(0, run.permanent.markDamageCap)
+    : Infinity;
+  if (marks > 0 && markDamageEach > 0) {
+    result.player.damage += Math.min(markDamageCap, marks * markDamageEach);
+  }
+  if (marks > 0 && playerMods.markBurstDmg > 0) {
+    result.player.damage += Math.floor(playerMods.markBurstDmg * marks);
+  }
+  if (marks > 0 && playerMods.markBulletPerMark > 0) {
+    result.player.bullets += playerMods.markBulletPerMark * marks;
+  }
+  if (playerMods.damagePerHp > 0) {
+    result.player.damage += Math.floor(run.hp / playerMods.damagePerHp);
+  }
+  if (playerMods.extraVolleyShots > 0) {
+    result.player.bullets += playerMods.extraVolleyShots * (duel.duelComboTriggers || 0);
+  }
   if (duel.playerFocused) {
     result.player.bullets = Math.max(1, Math.round(result.player.bullets + (playerMods.focusBonusBullets || 0)));
     result.player.acc += playerMods.focusBonusAcc || 0;
@@ -883,6 +987,16 @@ export function duelDisplayedVolleyPreview(duel, run) {
   applySpiritBonusBullets(duel, run, result.player);
   applySpiritPassiveEnemyAcc(duel, run, result.enemy);
   applySpiritScaling(duel, playerMods, result.player, result.enemy);
+  applyBrinkBonus(duel, run, result.player);
+
+  const markReduceEach = Math.max(0, run.permanent?.markDamageReducePerMark ?? 0);
+  const markReduceCap = Number.isFinite(run.permanent?.markDamageReduceCap)
+    ? Math.max(0, run.permanent.markDamageReduceCap)
+    : Infinity;
+  const markReduce = marks > 0 && markReduceEach > 0
+    ? Math.min(markReduceCap, marks * markReduceEach)
+    : 0;
+  result.player.incomingDamageReduce = (run.permanent?.damageReduce ?? 0) + (playerMods.damageReduce || 0) + markReduce;
 
   // Final player clamp after all modifiers (including sheriff bonus).
   const floor = Math.max(MIN_VOLLEY_ACC, run.permanent?.accFloor ?? 0);
@@ -890,6 +1004,40 @@ export function duelDisplayedVolleyPreview(duel, run) {
   result.enemy.acc = clampVolleyAcc(result.enemy.acc);
 
   return result;
+}
+
+export function estimateVolleyDamage(attacker, defender) {
+  const bullets = Math.max(0, Math.round(attacker?.bullets || 0));
+  const dodge = Math.min(bullets, Math.max(0, Math.round(defender?.dodgeRecv || 0)));
+  const acc = Math.min(MAX_VOLLEY_ACC, Math.max(0, attacker?.acc ?? 0));
+  const autoLimit = Math.max(0, Math.round(attacker?.firstHitsAuto || 0));
+  let expectedHits = 0;
+  let autoHits = 0;
+  for (let i = 0; i < bullets; i++) {
+    if (i < dodge) continue;
+    if (i < autoLimit) {
+      expectedHits += 1;
+      autoHits += 1;
+    } else {
+      expectedHits += acc;
+    }
+  }
+  const rawHitDamage = Math.max(1, Math.round((attacker?.damage || 0) * (attacker?.damageMult || 1)));
+  const reduction = Math.max(0, Math.round(defender?.incomingDamageReduce || 0));
+  const damagePerHit = Math.max(1, rawHitDamage - reduction);
+  const liveShots = Math.max(0, bullets - dodge);
+  return {
+    bullets,
+    liveShots,
+    dodge,
+    autoHits,
+    acc,
+    expectedHits,
+    damagePerHit,
+    expectedDamage: expectedHits * damagePerHit,
+    maxDamage: liveShots * damagePerHit,
+    swingy: !!(attacker?.ricochet || attacker?.returnBulletOnHit > 0 || attacker?.lifestealOnHit > 0),
+  };
 }
 
 const MIN_VOLLEY_ACC = 0.08;
@@ -1036,7 +1184,7 @@ function buildVolleySide(gun, mods, debuffs, permAcc) {
     pierce: mods.pierce,
     ricochet: mods.ricochet,
     firstHitsAuto: mods.firstHitsAuto,
-    dodgeRecv: Math.max(0, Math.round(mods.dodgeRecv || 0)),
+    dodgeRecv: Math.max(0, Math.round((mods.dodgeRecv || 0) + (debuffs?.dodgeNext ?? 0))),
     returnBulletOnHit: mods.returnBulletOnHit,
     bountyOnHit: Math.max(0, Math.round(mods.bountyOnHit || 0)),
     lifestealOnHit: Math.max(0, Math.round(mods.lifestealOnHit || 0)),
@@ -1084,7 +1232,7 @@ export function resolveShootout(duel, run) {
     const bonus = Math.floor(run.hp / playerMods.damagePerHp);
     if (bonus > 0) {
       P.damage += bonus;
-      pushPlayLogBulletin(duel, `Star of Justice — HP empowers your shot (+${bonus} dmg).`);
+      pushPlayLogBulletin(duel, `Oath of the Star — HP empowers your shot (+${bonus} dmg).`);
     }
   }
   applySpiritBaseDamage(duel, run, P, { log: true });
@@ -1320,6 +1468,8 @@ export function resolveShootout(duel, run) {
     pushPlayLogBulletin(duel, "Volleys done — both still standing. New prep.");
     duel.phase = "prep";
     duel.prepRound = 1;
+    duel.lastPrepPlays = null;
+    duel.prepPlayHistory = [];
     duel.playerStaredown = null;
     duel.enemyStaredown = null;
     duel.message = "Smoke clears. Neither buried. Prepare again.";

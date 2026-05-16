@@ -39,7 +39,7 @@ project_root/
 Each duel repeats this cycle until one side dies:
 
 1. Stare-down
-   - The player chooses 1 free stare-down card.
+   - The player chooses 1 free class-based stare-down card from 4 fixed class options.
    - The enemy secretly commits one card from its deck.
    - Stare-down effects resolve just before High Noon.
 
@@ -59,7 +59,7 @@ Each duel repeats this cycle until one side dies:
    - Dodge cancels incoming bullets before accuracy is rolled.
    - If both die in the same volley, class rules and remaining HP decide the winner.
 
-If both survive High Noon, Showdowns level up, temporary effects clear, and a new 3-round prep cycle begins.
+If both survive High Noon, Oaths level up, temporary effects clear, and a new 3-round prep cycle begins.
 
 ## Nerve, Plays, Dodge, and Accuracy
 
@@ -92,7 +92,7 @@ Sheriff is tuned as a high-HP shotgun class for prep rounds ramping from 1 to 3 
 - Passive: each duel win earns Respect, up to 10. Each Respect grants +5 max HP.
 - While above 100 current HP, Sheriff gains +3% shotgun accuracy per HP, up to +35%.
 - `Badge Flash`, `Bulwark`, `Packed Shells`, `Deputy Cover`, `Iron Resolve`, and `Badge Line` are the main play-extenders.
-- `Packed Shells`, `Town's Strength`, `Double-Barrel Warning`, and `Star of Justice` add enough bullets to beat enemy bullet denial and dodge.
+- `Packed Shells`, `Town's Strength`, `Double-Barrel Warning`, and `Oath of the Star` add enough bullets to beat enemy bullet denial and dodge.
 - Defensive cards mostly cancel set bullet counts or reduce hit damage; the class should win by staying above 100 HP and turning that durability into accurate shotgun volleys.
 
 The intended feel is not "roll dodge and pray." Sheriff should decide whether a prep round preserves Respect Aim, adds buckshot volume, or sets up a defensive line before High Noon.
@@ -106,7 +106,7 @@ U.S. Marshal is tuned as a mark-scaling federal control class.
 - Marks reduce enemy hit damage during High Noon, capped at 12 damage reduction.
 - Marks clear after each shootout, so every High Noon cycle asks the player to rebuild pressure.
 - `Dead to Rights`, `Federal Warrant`, `Deputy Crossfire`, `Badge Cover`, and `Paper Trail` are the main mark-building tools.
-- `Warrant Served`, `No-Knock Entry`, `Federal Ledger`, and Marshal Showdowns convert marks into better closing power.
+- `Warrant Served`, `No-Knock Entry`, `Federal Ledger`, and Marshal Oaths convert marks into better closing power.
 - Marshal guns are premium government handguns only. The legendary `Treasury Gold Schofield` uses golden bullets: each successful player hit adds $5 bounty to the duel reward.
 
 The intended feel is case-building under fire: mark the fugitive, make their shots weaker, then use enough bullets or mark payoffs to finish before the late bosses grind through the mitigation cap.
@@ -119,7 +119,7 @@ Apache Tracker is tuned as a Spirit-ramp bow/rifle class.
 - Spirit caps at 10, lasts for the current duel, and resets at the start of the next duel.
 - Spirit adds capped hit damage, capped bullets, small post-volley healing, and enemy accuracy pressure.
 - `Wind Whisper`, `Spirit Talk`, `Ridge Sight`, `Silent String`, `Raven Feint`, and `Moonlit Arrow` are the main Spirit-building tools.
-- `Owl's Vision`, `Coyote's Curse`, `Eagle's Strike`, `Buffalo Patience`, `Medicine Bundle`, and Apache Showdowns convert Spirit into aim, damage, sustain, and disruption.
+- `Owl's Vision`, `Coyote's Curse`, `Eagle's Strike`, `Buffalo Patience`, `Medicine Bundle`, and Apache Oaths convert Spirit into aim, damage, sustain, and disruption.
 - Apache guns are bows and rifles only. He starts with `Henry Repeater`; upgrade guns include `Mescalero War Bow`, `Sharps Buffalo Rifle`, and `Cochise's War Bow`.
 
 The intended feel is reading the fight before firing: build enough Spirit to make the enemy less reliable, choose whether the next prep play is defense or payoff, then let the bow/rifle finish the duel. Spirit generators should never be blank setup cards; they need immediate tactical value because card plays are limited.
@@ -133,7 +133,7 @@ Vaquero is tuned as an equipment-slot dual-wield class.
 - Dual-wield magazines stack, while damage and accuracy are averaged between the two guns.
 - Dual-wield has an 8% accuracy penalty until reduced or removed by cards, stances, or off-hand upgrades.
 - `Steady the Off-Hand`, `Quick Holster`, `Crossfire`, `Left-Hand Cover`, and `Off-Hand Reload` are the starter tools for penalty control, tempo, bullet pressure, and cover.
-- `Crossdraw Burst`, `Dance of Lead`, `Pistolero Waltz`, `Matched Grips`, and Vaquero Showdowns convert a stable off-hand into burst turns.
+- `Crossdraw Burst`, `Dance of Lead`, `Pistolero Waltz`, `Matched Grips`, and Vaquero Oaths convert a stable off-hand into burst turns.
 - Vaquero guns are handguns that upgrade the off-hand only. He should want `Colt Lightning Revolver`, `LeMat Dragoon`, or `Villa's Mauser C96`, but should not require the legendary to function.
 
 The intended feel is a two-gun tempo puzzle: keep enough cover to survive the alternating volley, steady the penalty so both guns matter, then use first-hit pressure and big magazines to close. Raw bullet count alone should not carry the class.
@@ -160,7 +160,7 @@ The intended feel is wagering blood against execution: pay HP to load a lethal v
 - Player card rewards and shop card offers are class-only.
 - Each duel win has a 20% chance to add a separate class-only gun drop screen after the card reward.
 - Feats can repeat.
-- Stances and Showdowns are unique. Once owned, they stop appearing in reward/shop offers.
+- Stances and Oaths are unique. Once owned, they stop appearing in reward/shop offers.
 - Guns in the player shop are class-only and exclude class starter guns.
 - Gun drops use the same rarity weights as card rewards, exclude the class starter/currently equipped gun, and can be taken or skipped.
 - Starter guns begin equipped and are not counted in the starter deck.
@@ -270,7 +270,7 @@ Bounty Hunter starts with the .41 Derringer equipped.
 
 - The Wanted Board is the run map.
 - Towns contain easy, medium, and boss opponents.
-- Boss clears unlock class Showdown cards for future reward/shop pools.
+- Boss clears unlock class Oath cards for future reward/shop pools.
 - Unlocks are between-run progression. They do not directly add cards to the starter deck.
 - Run state and unlock state persist in localStorage.
 
@@ -288,8 +288,8 @@ Bounty Hunter starts with the .41 Derringer equipped.
 3. Nerve refill, prep play ramp, extra-play cards, and lock-in flow work.
 4. Dodge is deterministic bullet cancellation everywhere it is displayed and resolved.
 5. Rewards and shop card offers are class-only.
-6. Feats can repeat, while stances and Showdowns remain unique.
-7. Wanted Board, rewards, shop, healing, and between-run Showdown unlocks work.
+6. Feats can repeat, while stances and Oaths remain unique.
+7. Wanted Board, rewards, shop, healing, and between-run Oath unlocks work.
 8. Outlaw can build a real combo deck without relying on random dodge chance.
 9. Marshal can build a mark deck where marks provide both damage and tankiness without turning final bosses into automatic wins.
 10. Apache Tracker can build a Spirit deck where bows/rifles are payoff tools, not replacements for Spirit generation and defensive prep.

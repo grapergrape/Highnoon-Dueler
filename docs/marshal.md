@@ -10,8 +10,8 @@ Marshal is not a generic accuracy class. His deck should care about putting mark
 
 - Passive: `Federal Warrant`
 - Permanent: `accBonus+0.05`, `focusPerRound+1`, `extraMarkPerApply+1`
-- Marks grant +1 player hit damage per mark, capped at +14 damage.
-- Marks reduce enemy hit damage by 1 per mark, capped at 12 damage reduction.
+- Marks grant +1 player hit damage per mark, capped at +24 damage.
+- Marks reduce enemy hit damage by 1 per mark, capped at 16 damage reduction.
 - Starting HP: 100
 - Starter gun: `Colt Single Action Army`
 
@@ -21,13 +21,14 @@ The mark bonuses apply at High Noon from the current enemy mark count. Marks cle
 
 | Card | Count |
 | --- | ---: |
-| `One in the Chamber` | 3 |
-| `Dodge` | 2 |
+| `One in the Chamber` | 1 |
+| `Dodge` | 1 |
 | `Beer Heal` | 1 |
 | `Dead to Rights` | 2 |
 | `Federal Warrant` | 2 |
-| `Deputy Crossfire` | 1 |
-| `Badge Cover` | 1 |
+| `Deputy Crossfire` | 2 |
+| `Badge Cover` | 2 |
+| `Suppressing Fire` | 1 |
 
 The starter deck should teach the loop immediately: mark first, then decide whether the next prep play adds bullets, accuracy, or defensive pressure. It should not need an upgraded gun to beat town 1.
 
@@ -43,8 +44,8 @@ Marshal cards should mostly do one of these jobs:
 
 Healthy examples:
 
-- `Dead to Rights`: clean mark setup.
-- `Federal Warrant`: mark setup with a little accuracy.
+- `Dead to Rights`: clean mark setup with a bullet and short-lived damage reduction.
+- `Federal Warrant`: mark setup with a bullet, a little accuracy, and enemy aim pressure.
 - `Deputy Crossfire`: mark, bullet, and extra play in one tempo card.
 - `Badge Cover`: mark plus deterministic enemy bullet denial.
 - `Federal Ledger`: stance that makes marked targets hit harder while giving a small defensive floor.
@@ -99,7 +100,7 @@ Nerf Marshal through:
 - Lowering `markDamageReduceCap`.
 - Lowering `markDamageCap`.
 - Reducing repeated `extraPlay+1` on common mark cards.
-- Reducing `markBurst` on guns or Showdowns.
+- Reducing `markBurst` on guns or Oaths.
 - Lowering the legendary gun's `bountyOnHit` if it overfunds shop healing.
 
 Be careful when changing:
@@ -127,6 +128,15 @@ Bad signs:
 - Blackthorn and other late bosses deal trivial damage through full volleys.
 - The legendary gun funds enough healing that HP stops mattering.
 - The starter deck wins without caring about marks.
+
+## Current Simulation Baseline
+
+May 16, 2026 routed Node simulation, 200 U.S. Marshal runs with card rewards, 20% gun drops, and whiskey healing, no shop purchases:
+
+- Clears: 72/200 (36%).
+- Average wins: 14.31/15.
+- Main deaths: `Judge Obadiah Blackthorn`, with only a few `Silas Gravesmoke` losses before final town.
+- Honest read: on target. Marshal reaches the final boss often, but Blackthorn still filters weak mark/bullet setups.
 
 ## Baseline For Other Classes
 

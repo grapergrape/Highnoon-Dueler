@@ -1,6 +1,6 @@
 import { STARTER_DECK_IDS, shuffle } from "../data/deck.js";
 import { getGun, gunsForClass, starterGunIdForClass } from "../data/guns.js";
-import { getOpponent, TOWNS } from "../data/opponents.js";
+import { getOpponent, OPPONENTS, TOWNS } from "../data/opponents.js";
 import { CARD_DEFINITIONS, getCardDef } from "../data/cards.js";
 import {
   createDuel,
@@ -11,7 +11,7 @@ import {
   dealStaredownChoices,
   commitPlayerStaredown,
 } from "../duel/duel.js";
-import { drawGame, pushTracer, tickFx } from "../rendering/render.js";
+import { clearCombatCanvasOverlay, drawGame, pushTracer, tickFx } from "../rendering/render.js";
 import { tickCombatUi, enqueueCombatFloats, resetCombatUi } from "../ui/combat-ui.js";
 import { bindInput } from "../ui/input.js";
 import {
@@ -205,6 +205,14 @@ function startDuel(oppId) {
   const opp = getOpponent(oppId);
   const highestUnlockedTown = unlockedTownOrder();
   if (opp.townOrder > highestUnlockedTown) return;
+  const defeated = new Set(Array.isArray(game.run.defeatedOpponentIds) ? game.run.defeatedOpponentIds : []);
+  if (defeated.has(opp.id)) return;
+  const requiredOpp = OPPONENTS.find((candidate) =>
+    candidate.townOrder === opp.townOrder &&
+    candidate.roleOrder < opp.roleOrder &&
+    !defeated.has(candidate.id)
+  );
+  if (requiredOpp) return;
   setCurrentTown(highestUnlockedTown);
   game.lastBounty = bountyFor(oppId);
   game.run.hp = Math.min(game.run.maxHp, Math.max(1, game.run.hp));
@@ -622,6 +630,7 @@ function loop(ts) {
     if (game.screen === "duel" && game.duel) {
       drawGame(game.ctx, game, game.canvas.width, game.canvas.height);
     } else {
+      clearCombatCanvasOverlay();
       drawTitle(game.ctx, game.canvas.width, game.canvas.height);
     }
   }

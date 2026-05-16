@@ -11,8 +11,8 @@ The class should not be "guns solve the run." Sheriff guns provide a defensive f
 - Passive: `Earned Respect`
 - Starting HP: 105
 - Each duel win grants 1 Respect, capped at 10.
-- Each Respect grants +5 max HP.
-- While above 100 current HP, Sheriff gains +3% shotgun accuracy per HP above 100, capped at +35%.
+- Each Respect grants +4 max HP.
+- While above 100 current HP, Sheriff gains +3% shotgun accuracy per HP above 100, capped at +25%.
 - Starter gun: `Town Guard Scattergun`
 
 The passive creates the main class tension: staying above 100 HP is offense, not just defense. Losing too much HP makes the shotgun less reliable.
@@ -49,7 +49,7 @@ Healthy examples:
 - `Town's Strength`: meaningful shotgun payoff with bullets, damage multiplier, accuracy, and extra play.
 - `Jailhouse Cover`: unique defensive stance that improves prep flexibility.
 - `Town Doctor`: unique sustain stance that helps preserve the HP accuracy passive.
-- `Star of Justice`: Showdown that turns HP into damage.
+- `Oath of the Star`: Oath that turns HP into damage.
 
 Repeatable defensive feats must be watched carefully. If repeated `Bullet-Stopping Badge`, `Lawman's Stand`, or `Bulwark` can clear the run without good guns or stances, the deck pool is too defensive.
 
@@ -93,7 +93,7 @@ Buff Sheriff through cards first:
 - Add `extraPlay+1` to setup cards that otherwise feel dead.
 - Improve unique stances before buffing repeatable feats.
 - Add modest sustain to card engines, not all guns.
-- Improve `damagePerHp` or HP-scaling Showdowns if late fights drag.
+- Improve `damagePerHp` or HP-scaling Oaths if late fights drag.
 
 Buff Sheriff through guns only when:
 
@@ -133,6 +133,15 @@ Bad signs:
 - The correct reward pick is always the defensive card.
 - Playing a gun card feels like a mistake.
 - The class ignores the high-HP accuracy passive because it either never drops below 100 or never stays above 100.
+
+## Current Simulation Baseline
+
+May 16, 2026 routed Node simulation, 200 Sheriff runs with card rewards, 20% gun drops, and whiskey healing, no shop purchases:
+
+- Clears: 56/200 (28%).
+- Average wins: 12.55/15.
+- Main deaths: `Judge Obadiah Blackthorn`, then `Marshal Elias Graves` and `Silas Gravesmoke`.
+- Honest read: slightly hard but acceptable for the defensive class. If Sheriff drops below this, buff cards before restoring the old high-HP accuracy cap.
 
 ## Baseline For Other Classes
 

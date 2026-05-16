@@ -9,10 +9,10 @@ The class is not a generic self-damage berserker. HP is the wager, but accuracy,
 ## Current Core Rules
 
 - Passive: `Blood for Lead`
-- Starting HP: 110
+- Starting HP: 120
 - +1 Nerve each prep round.
-- At 50% HP or lower, gains +15% accuracy, +4 damage, and the first 2 shots auto-hit.
-- If both duelists die in the same volley, Bounty Hunter wins and heals 25% max HP.
+- At 60% HP or lower, gains +20% accuracy, +6 damage, and the first 3 shots auto-hit.
+- If both duelists die in the same volley, Bounty Hunter wins and heals 30% max HP.
 - Life-steal bullets heal HP per successful player hit.
 
 The class should want to dip into danger, not sit at 1 HP forever. Brink bonuses should make low HP exciting, while life-steal gives a route back out if the player built enough hit density.
@@ -113,14 +113,14 @@ Be careful when changing:
 
 ## Current Playtest Baseline
 
-May 16, 2026 Playwright/Chromium simulation, 10 full Bounty Hunter runs, no relics/smithing/potions:
+May 16, 2026 routed Node simulation, 200 Bounty Hunter runs with card rewards, 20% gun drops, and whiskey healing, no shop purchases:
 
-- Clears: 3/10.
-- Average wins: 13.4/15.
-- Losses: mostly `devils_saloon_judge_blackthorn` and `dead_creek_silas_gravesmoke`.
+- Clears: 58/200 (29%).
+- Average wins: 13.66/15.
+- Main deaths: `Judge Obadiah Blackthorn`, then `Silas Gravesmoke`.
 - Winning decks leaned on repeated `Vendetta Shot`, `Blood for Lead`, `Bloodlust`, `No Tomorrow`, and either `Twin Contract Derringer`, `Pepperbox Revolver`, or `Doc Holliday's Hideout`.
 
-Honest read: this is a good hard-class baseline. The class can clear when blood rounds line up with life-steal and a good concealed gun, but final bosses still punish hands that pay HP without enough cover or first-hit pressure.
+Honest read: slightly hard but acceptable. The class can clear when blood rounds line up with life-steal and a good concealed gun, but final bosses still punish hands that pay HP without enough cover or first-hit pressure.
 
 ## Baseline For Other Classes
 

@@ -23,7 +23,7 @@ body {
 }
 
 #app {
-  max-width: 980px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: 0.75rem;
 }
@@ -61,13 +61,86 @@ body {
   border-radius: inherit;
 }
 
+.combat-canvas-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.combat-canvas-overlay[hidden] {
+  display: none;
+}
+
+.canvas-forecast-pill {
+  position: absolute;
+  top: 31%;
+  width: clamp(7.8rem, 24%, 15rem);
+  min-height: 3.3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.08rem;
+  padding: 0.42rem 0.55rem;
+  border: 2px solid var(--forecast-accent);
+  border-radius: 7px;
+  background: var(--forecast-bg);
+  color: #f6ecd8;
+  text-align: center;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.34);
+}
+
+.canvas-forecast-incoming {
+  --forecast-accent: #f0a090;
+  --forecast-bg: rgba(72, 24, 20, 0.82);
+  left: 24%;
+  transform: translateX(-50%);
+}
+
+.canvas-forecast-outgoing {
+  --forecast-accent: #f0d17c;
+  --forecast-bg: rgba(58, 40, 16, 0.84);
+  left: 67%;
+  transform: translateX(-50%);
+}
+
+.canvas-forecast-label {
+  max-width: 100%;
+  color: rgba(246, 236, 216, 0.82);
+  font-family: "Courier New", Consolas, monospace;
+  font-size: clamp(0.48rem, 1.05vw, 0.68rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.canvas-forecast-pill strong {
+  color: var(--forecast-accent);
+  font-size: clamp(1rem, 2.25vw, 1.45rem);
+  line-height: 1;
+  text-shadow: 1px 1px 0 #120d0a;
+}
+
+.canvas-forecast-pill span:last-child {
+  color: rgba(246, 236, 216, 0.76);
+  font-family: "Courier New", Consolas, monospace;
+  font-size: clamp(0.52rem, 1.05vw, 0.68rem);
+  line-height: 1.1;
+}
+
 #game-canvas {
   display: block;
   width: 100%;
-  max-width: 960px;
+  max-width: 100%;
   height: auto;
   vertical-align: middle;
   background: #1a1612;
+  image-rendering: pixelated;
 }
 
 .panel {
@@ -123,9 +196,9 @@ button.shop-card {
   --card-accent: var(--sand);
   position: relative;
   flex: 0 0 auto;
-  width: 140px;
+  width: 154px;
   aspect-ratio: 5 / 7;
-  max-height: 198px;
+  max-height: 216px;
   padding: 0;
   margin: 0;
   cursor: pointer;
@@ -254,7 +327,7 @@ button.shop-card.hand-card-showdown {
 .card-name-text {
   position: relative;
   z-index: 1;
-  font-size: 0.68rem;
+  font-size: 0.74rem;
   font-weight: 700;
   line-height: 1.2;
   color: var(--ink);
@@ -266,7 +339,7 @@ button.shop-card.hand-card-showdown {
 .card-flavor {
   position: relative;
   z-index: 1;
-  font-size: 0.48rem;
+  font-size: 0.51rem;
   line-height: 1.3;
   color: rgba(26, 18, 12, 0.6);
   font-style: italic;
@@ -297,7 +370,7 @@ button.shop-card.hand-card-showdown {
 }
 
 .card-eff {
-  font-size: 0.53rem;
+  font-size: 0.57rem;
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: 0.01em;
@@ -415,6 +488,279 @@ button.shop-card:active {
   font-style: italic;
 }
 
+/* Combat dashboard */
+.combat-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0.65rem 0 0.8rem;
+}
+
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.forecast-card,
+.combat-section {
+  border: 1px solid rgba(196, 165, 116, 0.34);
+  border-radius: 4px;
+  background: rgba(10, 8, 6, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 220, 0.06);
+}
+
+.forecast-card {
+  min-height: 7.2rem;
+  padding: 0.7rem 0.75rem;
+  border-width: 2px;
+}
+
+.forecast-outgoing {
+  border-color: rgba(232, 200, 122, 0.82);
+  background: linear-gradient(180deg, rgba(75, 52, 22, 0.72), rgba(18, 12, 8, 0.72));
+}
+
+.forecast-incoming {
+  border-color: rgba(210, 96, 82, 0.68);
+  background: linear-gradient(180deg, rgba(72, 24, 20, 0.68), rgba(18, 12, 8, 0.74));
+}
+
+.forecast-kicker,
+.combat-section-title,
+.played-lane-label,
+.showdown-label {
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.forecast-kicker {
+  color: rgba(246, 236, 216, 0.78);
+  margin-bottom: 0.2rem;
+}
+
+.forecast-value {
+  font-size: 2rem;
+  line-height: 1;
+  color: #f2d27e;
+  font-weight: 700;
+  text-shadow: 1px 1px 0 #120d0a;
+}
+
+.forecast-incoming .forecast-value {
+  color: #f0a090;
+}
+
+.forecast-sub {
+  margin-top: 0.22rem;
+  font-size: 0.78rem;
+  color: rgba(232, 220, 196, 0.82);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.forecast-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  margin-top: 0.48rem;
+}
+
+.forecast-facts span {
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.66rem;
+  line-height: 1.15;
+  color: rgba(246, 236, 216, 0.86);
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 245, 220, 0.1);
+  border-radius: 3px;
+  padding: 0.1rem 0.3rem;
+}
+
+.combat-section {
+  padding: 0.6rem;
+}
+
+.combat-section-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  color: rgba(232, 200, 122, 0.92);
+  margin-bottom: 0.5rem;
+}
+
+.combat-section-title strong {
+  color: rgba(246, 236, 216, 0.72);
+  font-size: 0.62rem;
+}
+
+.played-board {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.played-group + .played-group {
+  border-top: 1px dashed rgba(196, 165, 116, 0.22);
+  padding-top: 0.7rem;
+}
+
+.played-lanes,
+.showdown-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.played-lane {
+  min-width: 0;
+}
+
+.played-lane-label,
+.showdown-label {
+  color: rgba(246, 236, 216, 0.64);
+  margin-bottom: 0.35rem;
+}
+
+.played-card-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.48rem;
+  align-items: stretch;
+}
+
+.played-card,
+.played-empty,
+.showdown-side {
+  border: 1px solid rgba(255, 245, 220, 0.12);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.played-card {
+  flex: 1 1 12.5rem;
+  min-width: 12rem;
+  max-width: 18rem;
+  padding: 0.48rem 0.55rem 0.55rem;
+  border-left: 4px solid var(--card-accent, var(--sand));
+}
+
+.played-card-feat { --card-accent: var(--blood); }
+.played-card-gun { --card-accent: #9b6a32; }
+.played-card-stance,
+.played-card-character { --card-accent: #6f8b3b; }
+.played-card-showdown { --card-accent: #5d7db4; }
+
+.played-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.45rem;
+  color: rgba(232, 220, 196, 0.68);
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.played-card-top strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: rgba(232, 200, 122, 0.9);
+  color: #1a120c;
+  font-size: 0.7rem;
+}
+
+.played-card-name {
+  margin-top: 0.25rem;
+  color: #f6ecd8;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.12;
+}
+
+.played-card-flavor,
+.showdown-flavor {
+  margin-top: 0.25rem;
+  color: rgba(232, 220, 196, 0.6);
+  font-size: 0.7rem;
+  font-style: italic;
+  line-height: 1.25;
+}
+
+.played-card .card-effects,
+.showdown-side .card-effects {
+  border-top: 1px dashed rgba(255, 245, 220, 0.14);
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  margin-top: 0.42rem;
+  padding-top: 0.42rem;
+}
+
+.played-card .card-eff,
+.showdown-side .card-eff {
+  font-size: 0.66rem;
+  line-height: 1.15;
+  border: 1px solid rgba(255, 245, 220, 0.1);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.22);
+  padding: 0.12rem 0.32rem;
+}
+
+.played-card .card-eff-pos,
+.showdown-side .card-eff-pos { color: #b9e29a; }
+.played-card .card-eff-neg,
+.showdown-side .card-eff-neg { color: #f0a4a4; }
+.played-card .card-eff-enemy,
+.showdown-side .card-eff-enemy { color: #f1c987; }
+
+.played-empty,
+.showdown-empty-text {
+  min-height: 4.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: rgba(232, 220, 196, 0.5);
+  font-size: 0.78rem;
+  font-style: italic;
+  padding: 0.65rem;
+}
+
+.showdown-side {
+  min-width: 0;
+  padding: 0.55rem 0.65rem 0.65rem;
+}
+
+.showdown-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.65rem;
+  align-items: flex-start;
+  color: #f6ecd8;
+  font-size: 0.92rem;
+  line-height: 1.15;
+  font-weight: 700;
+}
+
+.showdown-heading strong {
+  flex: 0 0 auto;
+  color: #f2d27e;
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 /* Card play ledger (chat log) */
 .battle-log-wrap {
   margin: 0.65rem 0 0.75rem;
@@ -424,6 +770,8 @@ button.shop-card:active {
 }
 
 .battle-log-title {
+  cursor: pointer;
+  list-style: none;
   font-size: 0.62rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -431,6 +779,10 @@ button.shop-card:active {
   border-bottom: 1px solid rgba(196, 165, 116, 0.25);
   color: var(--sand);
   opacity: 0.9;
+}
+
+.battle-log-title::-webkit-details-marker {
+  display: none;
 }
 
 .battle-log {
@@ -1171,9 +1523,44 @@ button.shop-card.iron-rarity-legendary,
     padding: 0.55rem;
   }
 
+  .hand-card,
+  button.shop-card {
+    width: 136px;
+  }
+
   .top-bar {
     flex-direction: column;
     gap: 0.22rem;
+  }
+
+  .canvas-forecast-pill {
+    top: 27%;
+    width: 8.6rem;
+    min-height: 2.75rem;
+    padding: 0.3rem 0.42rem;
+  }
+
+  .canvas-forecast-incoming {
+    left: 28%;
+  }
+
+  .canvas-forecast-outgoing {
+    left: 70%;
+  }
+
+  .forecast-grid,
+  .played-lanes,
+  .showdown-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .forecast-value {
+    font-size: 1.65rem;
+  }
+
+  .played-card {
+    min-width: 100%;
+    max-width: 100%;
   }
 
   .wanted-map {

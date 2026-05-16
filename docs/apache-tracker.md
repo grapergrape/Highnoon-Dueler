@@ -9,14 +9,14 @@ Apache is not a generic accuracy class. Accuracy helps him survive the low floor
 ## Current Core Rules
 
 - Passive: `Spirit Walker`
-- Starting HP: 115
+- Starting HP: 110
 - Permanent: `accBonus+0.05`, `accFloor: 0.55`, `freeFirstCardPerRound`
 - Spirit cap: 10
 - Spirit lasts for the current duel and resets at the start of the next duel.
-- Each Spirit adds +1 hit damage, capped at +12.
-- Every 2 Spirit adds +1 bullet, capped at +5 bullets.
-- Every 2 Spirit heals 1 HP after the volley, capped at 6 HP.
-- Each Spirit reduces enemy accuracy by 1.5%, capped at -15%.
+- Each Spirit adds +1 hit damage, capped at +8.
+- Every 2 Spirit adds +1 bullet, capped at +4 bullets.
+- Every 2 Spirit heals 1 HP after the volley, capped at 3 HP.
+- Each Spirit reduces enemy accuracy by 1.5%, capped at -10%.
 - Starter gun: `Henry Repeater`
 
 The first free card each prep round lets Apache play a real setup card even when Nerve is tight. That card still consumes the round's play slot, so cards that only add Spirit must carry enough immediate value to be worth the slot.
@@ -135,14 +135,14 @@ Bad signs:
 
 ## Current Playtest Baseline
 
-May 16, 2026 Playwright/Chromium simulation, 10 full Apache runs, no relics/smithing/potions:
+May 16, 2026 routed Node simulation, 200 Apache Tracker runs with card rewards, 20% gun drops, and whiskey healing, no shop purchases:
 
-- Clears: 3/10.
-- Average wins: 13.7/15.
-- Losses: mostly `devils_saloon_caleb_cross` and `devils_saloon_judge_blackthorn`, with one `dead_creek_silas_gravesmoke`.
-- Winning decks leaned on `Bear Spirit`, `Buffalo Patience`, `Moonlit Arrow`, `Eagle's Strike`, and either `Cochise's War Bow` or `Sharps Buffalo Rifle`.
+- Clears: 75/200 (37.5%).
+- Average wins: 12.65/15.
+- Main deaths: `Judge Obadiah Blackthorn`, `Silas Gravesmoke`, `Caleb Cross`, and `Dahlia Kane`.
+- Winning decks still lean on Spirit generation plus a real payoff gun or Oath, but the lowered Spirit caps stop passive Spirit from solving every late fight.
 
-Honest read: this is a playable hard-class baseline. The class now has a real deck mechanism, but it is still punishing when the deck misses Spirit payoff or enters final town with low HP.
+Honest read: slightly above the 33% target but acceptable. If future rewards make Apache stronger, lower `spiritBulletsCap` before touching starter cards.
 
 ## Baseline For Other Classes
 

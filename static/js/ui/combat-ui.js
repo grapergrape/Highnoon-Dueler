@@ -21,7 +21,7 @@ export function feedbackLinesForCard(def, playedBy) {
     lines.push({
       targetSide: playedBy === "enemy" ? "enemy" : "player",
       kind: "buff",
-      text: def.type === "showdown" ? "SHOWDOWN" : "STANCE",
+      text: def.type === "showdown" ? "OATH" : "STANCE",
     });
     return lines;
   }
@@ -33,6 +33,8 @@ export function feedbackLinesForCard(def, playedBy) {
         lines.push({ targetSide: "enemy", kind: "debuff", text: `${fmtPct(e.value)} ACC` });
       } else if (e.kind === "enemyBullets") {
         lines.push({ targetSide: "enemy", kind: "debuff", text: `${e.value ?? 0} rounds` });
+      } else if (e.kind === "enemyDodge") {
+        lines.push({ targetSide: "enemy", kind: "debuff", text: `${e.value ?? 0} dodges` });
       } else if (e.kind === "bullets") {
         lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} rounds` });
       } else if (e.kind === "damage") {
@@ -108,6 +110,12 @@ export function feedbackLinesForCard(def, playedBy) {
           targetSide: "player",
           kind: "debuff",
           text: `${e.value ?? 0} rounds`,
+        });
+      } else if (e.kind === "enemyDodge") {
+        lines.push({
+          targetSide: "player",
+          kind: "debuff",
+          text: `${e.value ?? 0} dodges`,
         });
       } else if (e.kind === "bullets") {
         lines.push({ targetSide: "enemy", kind: "buff", text: `+${e.value} rounds` });

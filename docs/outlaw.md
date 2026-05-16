@@ -15,11 +15,11 @@ Outlaw should be the clearest example of "more cards played means more payoff", 
 
 - Passive: `Twin Combos`
 - Permanent: `focusPerRound+1`, `outlawComboTracking`
-- Starting HP: 100
+- Starting HP: 95
 - Starter gun: `Volcanic Pistol`
-- Starter gun effects: `damage-1`
+- Starter gun effects: none
 - Starter gun should not have combo bonuses.
-- Upgrade guns and Showdowns may convert combo triggers into extra shots.
+- Upgrade guns and Oaths may convert combo triggers into extra shots.
 
 Outlaw combo cards use `outlawCombo: true`. Once the second Outlaw combo card is played in a prep round, combo bonuses begin applying. The first two combo cards both get their `comboBonus:` payloads, and later combo cards apply their own combo bonus.
 
@@ -27,11 +27,13 @@ Outlaw combo cards use `outlawCombo: true`. Once the second Outlaw combo card is
 
 | Card | Count |
 | --- | ---: |
-| `One in the Chamber` | 3 |
+| `One in the Chamber` | 2 |
 | `Dodge` | 2 |
 | `Beer Heal` | 1 |
 | `Gunslinger's Tempo` | 2 |
-| `Pistol Whip` | 2 |
+| `Pistol Whip` | 1 |
+| `Dust 'em Up` | 1 |
+| `Smoke Break` | 1 |
 | `Outlaw's Pact` | 1 |
 | `Roll the Dice` | 1 |
 
@@ -98,7 +100,7 @@ Buff Outlaw through:
 
 Nerf Outlaw through:
 
-- Reducing `extraVolleyShots` on guns or Showdowns.
+- Reducing `extraVolleyShots` on guns or Oaths.
 - Lowering upgrade gun magazine size.
 - Removing flat damage from combo setup cards.
 - Making powerful combo enablers cost 2+ Nerve.
@@ -127,6 +129,15 @@ Bad signs:
 - The deck wins by hoarding random bullet cards with no combo sequencing.
 - Runs fail because a single accuracy miss wastes all setup.
 - Outlaw clears 5/5 full runs with high HP in basic sims.
+
+## Current Simulation Baseline
+
+May 16, 2026 routed Node simulation, 200 Outlaw runs with card rewards, 20% gun drops, and whiskey healing, no shop purchases:
+
+- Clears: 69/200 (34.5%).
+- Average wins: 11.16/15.
+- Main deaths: `Red Jack Calder`, `Caleb Cross`, then `Silas Gravesmoke`.
+- Honest read: on target. Outlaw is volatile and can spike hard, but the low HP keeps bad hands honest.
 
 ## Baseline For Other Classes
 

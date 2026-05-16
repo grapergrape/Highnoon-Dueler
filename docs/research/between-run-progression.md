@@ -2,11 +2,11 @@
 
 ## Recommendation
 
-Add one lightweight between-run system: Showdown Catalog unlocks.
+Add one lightweight between-run system: Oath Catalog unlocks.
 
-Every run should still start blank, in the Slay the Spire sense: the player picks a class, receives that class's starter kit, starts at the first town, and carries no previous run money, HP, deck growth, defeated posters, town access, or run-only modifiers. The persistent layer only unlocks additional Showdown cards into future card-offer pools.
+Every run should still start blank, in the Slay the Spire sense: the player picks a class, receives that class's starter kit, starts at the first town, and carries no previous run money, HP, deck growth, defeated posters, town access, or run-only modifiers. The persistent layer only unlocks additional Oath cards into future card-offer pools.
 
-The target content shape is five fun player Showdown cards per class. One Showdown per class can be available by default in that class's offer pool; the other four become between-run unlock goals. Opponents should also keep or receive signature Showdown cards, but those are encounter identity cards, not player unlock rewards.
+The target content shape is five fun player Oath cards per class. One Oath per class can be available by default in that class's offer pool; the other four become between-run unlock goals. Opponents should also keep or receive signature Oath cards, but those are encounter identity cards, not player unlock rewards.
 
 ## Current State
 
@@ -14,10 +14,10 @@ The target content shape is five fun player Showdown cards per class. One Showdo
 - `defaultRun()` creates a run with starting money, HP, deck, active gun, class state, `currentTownOrder`, and `defeatedOpponentIds`.
 - `static/js/app/app.js` removes the current run key on death, then routes the player through game over back to class select.
 - `run.permanent` is run-local mechanical state. It includes class passives and cards that modify the run, and should still disappear on death.
-- `static/js/data/cards.js` already supports `type: "showdown"` cards with `showdownLevels`.
-- `static/js/duel/duel.js` already treats Showdowns as persistent in-duel build-arounds that enter at Level I and can advance to Level III.
-- `static/js/ui/ui.js` already has the relevant surfaces: class select, shop/card offer rendering, the persistent stance/showdown row in duel, and game over.
-- Existing opponents already have `opponentOnly` Showdown cards; the content pass should make those feel more signature, not route them through the player unlock catalog.
+- `static/js/data/cards.js` still stores Oath cards under the legacy internal `type: "showdown"` with `showdownLevels`.
+- `static/js/duel/duel.js` already treats Oaths as persistent in-duel build-arounds that enter at Level I and can advance to Level III.
+- `static/js/ui/ui.js` already has the relevant surfaces: class select, shop/card offer rendering, the persistent stance/oath row in duel, and game over.
+- Existing opponents already have `opponentOnly` Oath cards; the content pass should make those feel more signature, not route them through the player unlock catalog.
 
 The earlier town-access idea should not be used. It makes future runs inherit map access, which conflicts with the requested blank-start roguelike structure.
 
@@ -25,7 +25,7 @@ The earlier town-access idea should not be used. It makes future runs inherit ma
 
 Every new run starts from the same baseline for the chosen class.
 
-Between runs, the player may unlock new class Showdown cards. An unlocked Showdown is not added to the starter deck, not granted for free, and not guaranteed in a run. It only becomes eligible to appear in future card-offer pools, such as shops or future reward screens.
+Between runs, the player may unlock new class Oath cards. An unlocked Oath is not added to the starter deck, not granted for free, and not guaranteed in a run. It only becomes eligible to appear in future card-offer pools, such as shops or future reward screens.
 
 This keeps permanent progression about variety and long-term goals, not raw power or skipped content.
 
@@ -75,18 +75,18 @@ Suggested value:
 
 Field notes:
 
-- `unlockedShowdownIdsByClass` is the only field that changes future player card offers.
-- Each class starts with one default catalog Showdown available; the saved unlock catalog adds more.
+- `unlockedShowdownIdsByClass` is the legacy internal field that changes future player Oath card offers.
+- Each class starts with one default catalog Oath available; the saved unlock catalog adds more.
 - `achievedMilestones` records why a card unlocked, so game-over and class-select copy can explain progress.
 - `seenUnlockIds` lets the UI show a "new" state once without building a larger achievement system.
 - `bestRunByClass`, `runsStarted`, and `deaths` are optional summary fields. They can support game-over copy and tuning, but should not unlock rewards by themselves.
-- Opponent Showdowns do not belong in this save shape. They are controlled by opponent deck definitions.
+- Opponent Oaths do not belong in this save shape. They are controlled by opponent deck definitions.
 
 ## Reset Behavior
 
 Persists after death:
 
-- unlocked player Showdown ids by class
+- unlocked player Oath ids by class
 - achieved unlock milestones
 - one-time "seen" state for unlock presentation
 - optional best-run and run/death summary stats
@@ -120,12 +120,12 @@ Use deterministic class milestones, not repeatable currency.
 
 Recommended target:
 
-- Each class has five player Showdowns in the catalog.
+- Each class has five player Oaths in the catalog.
 - Slot 1 is available by default for that class's offer pool.
 - Slot 2 unlocks after first Town 1 boss clear with that class.
 - Slot 3 unlocks after first Town 2 boss clear with that class.
 - Slot 4 unlocks after first Town 3 boss clear with that class.
-- Slot 5 unlocks after first Town 4 boss clear, or after the final boss if the game wants the fifth Showdown to be a long-term prestige reward.
+- Slot 5 unlocks after first Town 4 boss clear, or after the final boss if the game wants the fifth Oath to be a long-term prestige reward.
 
 Important pacing guardrails:
 
@@ -155,135 +155,135 @@ Suggested card metadata:
 
 Offer-pool rule:
 
-- Non-Showdown cards continue to follow existing class/opponent/owned filters.
-- Player Showdowns require either `unlockedByDefault === true` or `unlockedShowdownIdsByClass[classId].includes(card.id)`.
-- Class-specific Showdowns still require the active run's `classId` to match.
-- Enemy-only Showdowns stay excluded from player offer pools.
+- Non-Oath cards continue to follow existing class/opponent/owned filters.
+- Player Oaths require either `unlockedByDefault === true` or `unlockedShowdownIdsByClass[classId].includes(card.id)`.
+- Class-specific Oaths still require the active run's `classId` to match.
+- Enemy-only Oaths stay excluded from player offer pools.
 
-This keeps the first implementation small: the card system does not need to understand a broad achievement framework, only whether a player Showdown is available for offers.
+This keeps the first implementation small: the card system does not need to understand a broad achievement framework, only whether a player Oath is available for offers.
 
-## Player Showdown Catalog
+## Player Oath Catalog
 
-Design target: each class should have five Showdowns that create different run fantasies. These are planning concepts, not final tuned card data.
+Design target: each class should have five Oaths that create different run fantasies. These are planning concepts, not final tuned card data.
 
 ### Outlaw
 
-| Slot | Showdown | Unlock | Fun hook |
+| Slot | Oath | Unlock | Fun hook |
 | --- | --- | --- | --- |
-| 1 | No Honor Among Thieves | Default | Existing combo identity: every outlaw combo pushes extra volley pressure. |
-| 2 | Powder-Keg Pact | Town 1 boss | Small combo chains become explosive: Level I adds damage after combo turns; Level III adds extra shots and pierce when the chain is rolling. |
-| 3 | Snake-Eyes Bargain | Town 2 boss | High-risk outlaw luck: big accuracy/damage swings, with Level III rewarding low-nerve or last-card turns. |
-| 4 | Black Hat Crescendo | Town 3 boss | The longer the duel lasts, the louder the outlaw gets: escalating extra volley shots across Showdown levels. |
-| 5 | Wanted Forever | Town 4/final boss | Living on the edge: stronger damage and dodge while hurt, but no starter advantage because the card must be found and played in-run. |
+| 1 | Oath of No Honor | Default | Existing combo identity: every outlaw combo pushes extra volley pressure. |
+| 2 | Powder-Keg Oath | Town 1 boss | Small combo chains become explosive: Level I adds damage after combo turns; Level III adds extra shots and pierce when the chain is rolling. |
+| 3 | Snake-Eyes Oath | Town 2 boss | High-risk outlaw luck: big accuracy/damage swings, with Level III rewarding low-nerve or last-card turns. |
+| 4 | Black Hat Oath | Town 3 boss | The longer the duel lasts, the louder the outlaw gets: escalating extra volley shots across Oath levels. |
+| 5 | Wanted Forever Oath | Town 4/final boss | Living on the edge: stronger damage and dodge while hurt, but no starter advantage because the card must be found and played in-run. |
 
 ### Apache Tracker
 
-| Slot | Showdown | Unlock | Fun hook |
+| Slot | Oath | Unlock | Fun hook |
 | --- | --- | --- | --- |
-| 1 | Great Spirit Bond | Default | Existing Spirit scaling identity: Spirit turns into damage and accuracy as the Showdown levels. |
-| 2 | Coyote Moon | Town 1 boss | Trickster debuffs: Spirit reduces enemy accuracy and bullets, with Level III doubling down on enemy disruption. |
-| 3 | Eagle Above Thunder | Town 2 boss | Focused sniper fantasy: gain Focused, then Focused turns into bullets and accuracy. |
-| 4 | Bear Path | Town 3 boss | Defensive Spirit path: damage reduction, dodge, and healing pressure for players who survive long prep cycles. |
-| 5 | Ghost Dance | Town 4/final boss | Big spiritual payoff: Level III doubles Spirit scaling for the next shootout and rewards a fully built Spirit engine. |
+| 1 | Oath to the Wind | Default | Existing Spirit scaling identity: Spirit turns into damage and accuracy as the Oath levels. |
+| 2 | Oath to Coyote Moon | Town 1 boss | Trickster debuffs: Spirit reduces enemy accuracy and bullets, with Level III doubling down on enemy disruption. |
+| 3 | Oath to Eagle Above Thunder | Town 2 boss | Focused sniper fantasy: gain Focused, then Focused turns into bullets and accuracy. |
+| 4 | Oath to the Bear Path | Town 3 boss | Defensive Spirit path: damage reduction, dodge, and healing pressure for players who survive long prep cycles. |
+| 5 | Oath to the Ancestors | Town 4/final boss | Big spiritual payoff: Level III doubles Spirit scaling for the next shootout and rewards a fully built Spirit engine. |
 
 ### Sheriff
 
-| Slot | Showdown | Unlock | Fun hook |
+| Slot | Oath | Unlock | Fun hook |
 | --- | --- | --- | --- |
-| 1 | Star of Justice | Default | Current HP converts into damage while the Showdown adds bullets, making survival feel offensive. |
+| 1 | Oath of the Star | Default | Current HP converts into damage while the Oath adds bullets, making survival feel offensive. |
 | 2 | Main Street Oath | Town 1 boss | Hold the line: damage reduction plus extra shotgun volume for longer fights. |
-| 3 | Last Badge Standing | Town 2 boss | Tank payoff: healing, damage reduction, and post-shootout recovery keep Respect Aim online. |
-| 4 | Every Door Barred | Town 3 boss | Town protects its sheriff: reduce enemy bullets and accuracy while adding enough pressure to end the duel. |
-| 5 | Legend Never Dies | Town 4/final boss | Late-run Respect extender: raises the Respect cap beyond the baseline and adds accuracy/damage payoff. |
+| 3 | Oath of the Last Badge | Town 2 boss | Tank payoff: healing, damage reduction, and post-shootout recovery keep Respect Aim online. |
+| 4 | Oath of Barred Doors | Town 3 boss | Town protects its sheriff: reduce enemy bullets and accuracy while adding enough pressure to end the duel. |
+| 5 | Oath of the Living Badge | Town 4/final boss | Late-run Respect extender: raises the Respect cap beyond the baseline and adds accuracy/damage payoff. |
 
 ### U.S. Marshal
 
-| Slot | Showdown | Unlock | Fun hook |
+| Slot | Oath | Unlock | Fun hook |
 | --- | --- | --- | --- |
-| 1 | Federal Bounty Program | Default | Existing mark economy: marks become bullets and eventually burst damage. |
-| 2 | Dead to Rights Docket | Town 1 boss | Paperwork as pressure: every mark makes the enemy easier to hit and harder to shoot back with. |
-| 3 | Posse at Sundown | Town 2 boss | Marks call backup: mark count converts into extra bullets, then ricochet at higher levels. |
-| 4 | No Border for the Law | Town 3 boss | Relentless pursuit: accuracy floor and mark burst let the marshal finish evasive opponents. |
-| 5 | Warrant Storm | Town 4/final boss | Big capstone mark deck: Level III turns large mark stacks into bullets, damage, and enemy bullet suppression. |
+| 1 | Oath of Federal Bounty | Default | Existing mark economy: marks become bullets and eventually burst damage. |
+| 2 | Oath of the Docket | Town 1 boss | Paperwork as pressure: every mark makes the enemy easier to hit and harder to shoot back with. |
+| 3 | Oath of the Posse | Town 2 boss | Marks call backup: mark count converts into extra bullets, then ricochet at higher levels. |
+| 4 | Oath Without Borders | Town 3 boss | Relentless pursuit: accuracy floor and mark burst let the marshal finish evasive opponents. |
+| 5 | Oath of the Warrant Storm | Town 4/final boss | Big capstone mark deck: Level III turns large mark stacks into bullets, damage, and enemy bullet suppression. |
 
 ### Vaquero
 
-| Slot | Showdown | Unlock | Fun hook |
+| Slot | Oath | Unlock | Fun hook |
 | --- | --- | --- | --- |
-| 1 | El Doble | Default | Existing dual-wield fantasy: two pistols become overwhelming, eventually removing the dual penalty. |
-| 2 | Cantina Crossfire | Town 1 boss | Stylish bullet spread: extra bullets and ricochet make off-hand play feel flashy. |
-| 3 | Matador's Step | Town 2 boss | Dodge-and-counter rhythm: dodge rises first, then dodged pressure turns into accuracy and bullets. |
-| 4 | Two Suns Draw | Town 3 boss | High Noon burst: first hits auto-land when dual-wielding, with stronger Level III payoff. |
-| 5 | Revolucion de Plomo | Town 4/final boss | Capstone storm of lead: Level III combines extra bullets, reduced dual penalty, and volley damage. |
+| 1 | Oath of El Doble | Default | Existing dual-wield fantasy: two pistols become overwhelming, eventually removing the dual penalty. |
+| 2 | Cantina Oath | Town 1 boss | Stylish bullet spread: extra bullets and ricochet make off-hand play feel flashy. |
+| 3 | Matador's Oath | Town 2 boss | Dodge-and-counter rhythm: dodge rises first, then dodged pressure turns into accuracy and bullets. |
+| 4 | Oath of Two Suns | Town 3 boss | High Noon burst: first hits auto-land when dual-wielding, with stronger Level III payoff. |
+| 5 | Oath of Lead Revolution | Town 4/final boss | Capstone storm of lead: Level III combines extra bullets, reduced dual penalty, and volley damage. |
 
 ### Bounty Hunter
 
-| Slot | Showdown | Unlock | Fun hook |
+| Slot | Oath | Unlock | Fun hook |
 | --- | --- | --- | --- |
-| 1 | Quickdraw Master | Default | Existing quickdraw fantasy: first hits auto-land and accuracy climbs. |
-| 2 | Blood Price Ledger | Town 1 boss | Pay HP, get paid in damage: blood-for-lead cards become a deliberate burst engine. |
-| 3 | Queen's Writ | Town 2 boss | Cold precision: accuracy, first auto-hit, and enemy bullet suppression for controlled duels. |
-| 4 | Coffin Contract | Town 3 boss | Execute marked prey: damage and pierce climb as the duel gets closer to a finish. |
-| 5 | Last Breath Bounty | Town 4/final boss | Dangerous capstone: huge payoff while wounded, tuned carefully so it is exciting without becoming mandatory. |
+| 1 | Oath of First Blood | Default | Existing quickdraw fantasy: first hits auto-land and accuracy climbs. |
+| 2 | Blood Price Oath | Town 1 boss | Pay HP, get paid in damage: blood-for-lead cards become a deliberate burst engine. |
+| 3 | Oath of the Queen's Writ | Town 2 boss | Cold precision: accuracy, first auto-hit, and enemy bullet suppression for controlled duels. |
+| 4 | Coffin Oath | Town 3 boss | Execute marked prey: damage and pierce climb as the duel gets closer to a finish. |
+| 5 | Last Breath Oath | Town 4/final boss | Dangerous capstone: huge payoff while wounded, tuned carefully so it is exciting without becoming mandatory. |
 
-## Opponent Showdown Plan
+## Opponent Oath Plan
 
-Opponent Showdowns should be fun because they make each poster fight differently, not because they enter the player unlock system. The goal is one signature Showdown per opponent, tuned to the opponent's role and town.
+Opponent Oaths should be fun because they make each poster fight differently, not because they enter the player unlock system. The goal is one signature Oath per opponent, tuned to the opponent's role and town.
 
 Design rules:
 
-- Easy opponents should have readable Showdowns with one clear threat.
+- Easy opponents should have readable Oaths with one clear threat.
 - Medium opponents should bend a rule enough to force a response.
 - Boss opponents should create a duel-specific problem the player remembers.
-- Enemy Showdowns can be stronger than player Showdowns because they are attached to a known encounter, not a reusable player pool card.
+- Enemy Oaths can be stronger than player Oaths because they are attached to a known encounter, not a reusable player pool card.
 - Prefer hooks that change player decisions: rush before Level III, conserve bullets, counter accuracy, heal before the volley, or plan around first auto-hits.
 
 Current opponent-aligned concepts:
 
-| Opponent | Showdown | Fun hook |
+| Opponent | Oath | Fun hook |
 | --- | --- | --- |
-| Amos Pike | Deputy's Luck | Cowardly luck: dodge first, then surprise bullets when panic peaks. |
-| Lottie Vale | Curtain Call | Stage-duelist rhythm: accuracy and dodge build until the final level lands a guaranteed opening shot. |
-| Marshal Elias Graves | Town Charter | Law shuts the player down: damage plus bullet suppression, forcing clean prep decisions. |
-| Barrel Ben Cobb | Last Swig | Drunken volatility: reckless bullet gain with just enough dodge to make misses feel dangerous. |
-| Molly Mash | White Lightning | Moonshine burn: accuracy and damage ramp steadily, pressuring the player to end the duel before Level III. |
-| Isaac Stillwater | Stillhouse Tax | Every round costs the player bullets while Isaac's damage climbs. |
-| Needle-Eye Ned | Lookout Whistle | Canyon alarm: extra bullets and dodge make him feel like he is calling shots from cover. |
-| Veda Switchback | Crossfire Trap | Ambush puzzle: reduces player bullets and threatens a guaranteed hit at high level. |
-| Red Jack Calder | Red Jack Charge | Boss rushdown: bullets and damage snowball fast, making delay dangerous. |
-| Hollow Hank Dyer | Cold Grave Grip | Hard-to-kill grave hand: dodge and returned bullets make every hit feel contested. |
-| Mara Voss | Moon Over Graves | Moonlit recursion: returned bullets plus dodge create a patient undead sharpshooter. |
-| Silas Gravesmoke | Dead Man's Toll | Late-town boss tax: damage, dodge, returned bullets, and pierce at Level III. |
-| Dahlia Kane | House Favorite | Casino inevitability: auto-hits and accuracy make the house feel rigged. |
-| Caleb Cross | Ace-High Legend | Dime-novel legend: accuracy, bullets, damage, and one guaranteed hit at the top end. |
-| Judge Obadiah Blackthorn | Last Western Legend | Final boss myth: guaranteed hits, damage, bullets, and pierce, tuned as the ultimate showdown. |
+| Amos Pike | Oath of Deputy's Luck | Cowardly luck: dodge first, then surprise bullets when panic peaks. |
+| Lottie Vale | Oath of the Curtain Call | Stage-duelist rhythm: accuracy and dodge build until the final level lands a guaranteed opening shot. |
+| Marshal Elias Graves | Oath of the Town Charter | Law shuts the player down: damage plus bullet suppression, forcing clean prep decisions. |
+| Barrel Ben Cobb | Oath of the Last Swig | Drunken volatility: reckless bullet gain with just enough dodge to make misses feel dangerous. |
+| Molly Mash | Oath of White Lightning | Moonshine burn: accuracy and damage ramp steadily, pressuring the player to end the duel before Level III. |
+| Isaac Stillwater | Oath of the Stillhouse Tax | Every round costs the player bullets while Isaac's damage climbs. |
+| Needle-Eye Ned | Oath of the Lookout | Canyon alarm: extra bullets and dodge make him feel like he is calling shots from cover. |
+| Veda Switchback | Oath of the Crossfire | Ambush puzzle: reduces player bullets and threatens a guaranteed hit at high level. |
+| Red Jack Calder | Red Jack's Blood Oath | Boss rushdown: bullets and damage snowball fast, making delay dangerous. |
+| Hollow Hank Dyer | Oath of the Cold Grave | Hard-to-kill grave hand: dodge and returned bullets make every hit feel contested. |
+| Mara Voss | Oath Beneath the Grave Moon | Moonlit recursion: returned bullets plus dodge create a patient undead sharpshooter. |
+| Silas Gravesmoke | Oath of the Dead Man's Toll | Late-town boss tax: damage, dodge, returned bullets, and pierce at Level III. |
+| Dahlia Kane | House Oath | Casino inevitability: auto-hits and accuracy make the house feel rigged. |
+| Caleb Cross | Ace-High Oath | Dime-novel legend: accuracy, bullets, damage, and one guaranteed hit at the top end. |
+| Judge Obadiah Blackthorn | Last Western Oath | Final boss myth: guaranteed hits, damage, bullets, and pierce, tuned as the ultimate oath. |
 
-Follow-up opponent content work should upgrade simple stat-ramp Showdowns into more distinct encounter hooks where needed, but it should stay in opponent card data and not affect between-run player progression.
+Follow-up opponent content work should upgrade simple stat-ramp Oaths into more distinct encounter hooks where needed, but it should stay in opponent card data and not affect between-run player progression.
 
 ## UI Surfaces
 
 Class select:
 
-- Show a compact Showdown Catalog summary for the selected class, for example: `Outlaw Showdowns unlocked: 2/5`.
+- Show a compact Oath Catalog summary for the selected class, for example: `Outlaw Oaths unlocked: 2/5`.
 - If there are newly unlocked cards, show their names before the next class pick.
 - Do not add a large collection screen in the first slice.
 
 Game over:
 
-- If the run achieved a new milestone, show `New Outlaw Showdown unlocked: Powder-Keg Pact`.
-- If no unlock happened, show the next clear target, for example: `Defeat a Town 2 boss as Outlaw to unlock the next Showdown.`
+- If the run achieved a new milestone, show `New Outlaw Oath unlocked: Powder-Keg Oath`.
+- If no unlock happened, show the next clear target, for example: `Defeat a Town 2 boss as Outlaw to unlock the next Oath.`
 - Keep the existing quick return flow, but make unlock copy visible before the auto-return.
 
 Shop and future reward screens:
 
-- Locked player Showdowns should simply be absent from offers.
-- Unlocked Showdowns can appear using the existing card rendering.
+- Locked player Oaths should simply be absent from offers.
+- Unlocked Oaths can appear using the existing card rendering.
 - No "locked card" teasers are required in the shop for the first slice.
 
 Duel:
 
-- No new player duel UI is required. Existing stance/showdown display already communicates an active Showdown once the player has acquired and played one in the run.
-- Opponent Showdowns should continue using the same active Showdown display so players understand the encounter's signature threat.
+- No new player duel UI is required. Existing stance/oath display already communicates an active Oath once the player has acquired and played one in the run.
+- Opponent Oaths should continue using the same active Oath display so players understand the encounter's signature threat.
 
 HUD:
 
@@ -291,68 +291,68 @@ HUD:
 
 Reset:
 
-- A full reset affordance should explicitly say that it clears both the current run and unlocked Showdown catalog.
+- A full reset affordance should explicitly say that it clears both the current run and unlocked Oath catalog.
 
 ## Why This Improves Replay Motivation
 
 The current death flow deletes the saved run and sends the player back to class select. That is correct for a blank-start roguelike, but it leaves no long-term goal outside the run.
 
-Showdown Catalog unlocks add long-term motivation without weakening the next run:
+Oath Catalog unlocks add long-term motivation without weakening the next run:
 
 - The next milestone is concrete: beat a boss with a class, unlock one of that class's build-around cards.
 - The reward changes future run variety, not starting power.
 - A new run still begins with the same class starter baseline.
-- Five Showdowns per class gives each class a visible long-term identity arc without adding a broad achievement system.
-- Opponent Showdowns make individual posters more memorable without becoming persistent player power.
+- Five Oaths per class gives each class a visible long-term identity arc without adding a broad achievement system.
+- Opponent Oaths make individual posters more memorable without becoming persistent player power.
 - No repeatable currency means the player is not pushed into grinding easy fights.
 
 ## Implementation Slices
 
 1. Add unlock persistence helpers
-   - Create `defaultUnlocks()`, `loadUnlocks()`, `saveUnlocks()`, and `recordShowdownUnlockMilestone()` under `static/js/app/`, either beside `run-state.js` or in a small `unlock-state.js`.
-   - Validate ids against `CARD_DEFINITIONS`, keep only player-eligible Showdown ids, and tolerate missing/removed cards.
+   - Create `defaultUnlocks()`, `loadUnlocks()`, `saveUnlocks()`, and `unlockShowdownsForBossClear()` under `static/js/app/`, either beside `run-state.js` or in a small `unlock-state.js`.
+   - Validate ids against `CARD_DEFINITIONS`, keep only player-eligible Oath ids, and tolerate missing/removed cards.
 
-2. Add Showdown availability metadata
-   - Add `unlockedByDefault` and/or `unlockId` to player Showdown definitions.
-   - Define the first class catalog split: one default Showdown per class, four locked target slots per class.
+2. Add Oath availability metadata
+   - Add `unlockedByDefault` and/or `unlockId` to player Oath definitions.
+   - Define the first class catalog split: one default Oath per class, four locked target slots per class.
 
 3. Filter offer pools
-   - Update the shop/card-offer pool builder so locked player Showdowns are excluded.
+   - Update the shop/card-offer pool builder so locked player Oaths are excluded.
    - Keep existing class and ownership filters intact.
-   - Leave opponent-only Showdowns out of player pools.
+   - Leave opponent-only Oaths out of player pools.
 
 4. Wire milestone detection
    - On boss victory, check whether the active class achieved a first-time town-boss milestone.
-   - Save any newly unlocked class Showdown ids to `highnoon_duelist_unlocks_v1`.
+   - Save any newly unlocked class Oath ids to `highnoon_duelist_unlocks_v1`.
    - Do not alter `defaultRun()`, `currentTownOrder`, starter decks, or run economy.
 
 5. Expose unlock feedback
    - Pass unlock state into class select and game over.
    - Show new unlock names and next class-specific milestone copy.
 
-6. Add player Showdown content in small batches
-   - First batch: one new locked Showdown per class, targeting the Town 1 boss milestone.
+6. Add player Oath content in small batches
+   - First batch: one new locked Oath per class, targeting the Town 1 boss milestone.
    - Later batches: add Town 2, Town 3, and Town 4/final boss milestone cards.
    - Prefer existing effect tokens in early batches so progression does not require engine work.
 
-7. Upgrade opponent Showdowns in small batches
-   - Review each opponent's signature Showdown against the fun hook table.
+7. Upgrade opponent Oaths in small batches
+   - Review each opponent's signature Oath against the fun hook table.
    - Tune or replace simple stat ramps where a clearer encounter identity is needed.
    - Keep changes in opponent-only card data.
 
 8. Add reset behavior and smoke tests
    - Add a full reset path that clears both localStorage keys.
-   - Smoke test: fresh profile, locked class Showdown absent from offers, boss milestone unlocks it, death clears run only, next fresh run starts blank, unlocked Showdown can appear in offers.
+   - Smoke test: fresh profile, locked class Oath absent from offers, boss milestone unlocks it, death clears run only, next fresh run starts blank, unlocked Oath can appear in offers.
 
 ## Risks And Tuning Questions
 
-- Thirty player Showdowns is meaningful content work. Implement in batches; do not block the first persistence slice on the full catalog.
-- If too many strong Showdowns are locked, early runs may feel flat. Keep one fun default Showdown per class available from the beginning.
+- Thirty player Oaths is meaningful content work. Implement in batches; do not block the first persistence slice on the full catalog.
+- If too many strong Oaths are locked, early runs may feel flat. Keep one fun default Oath per class available from the beginning.
 - If unlocks are too frequent, the catalog will run out quickly. The milestone plan should remain one card per major class boss milestone.
 - If unlocks are tied to repeated low-level clears, players will grind. Use first-time class milestone flags instead.
-- Existing player Showdowns may already be balanced as available content. Implementation needs a deliberate default-vs-locked split before gating any current cards.
-- New Showdown concepts that require new effect tokens should be deferred behind simpler cards that can use the current effect grammar.
-- Opponent Showdowns can become frustrating if they only add accuracy/damage. The fun target is a recognizable encounter problem, not invisible stat inflation.
+- Existing player Oaths may already be balanced as available content. Implementation needs a deliberate default-vs-locked split before gating any current cards.
+- New Oath concepts that require new effect tokens should be deferred behind simpler cards that can use the current effect grammar.
+- Opponent Oaths can become frustrating if they only add accuracy/damage. The fun target is a recognizable encounter problem, not invisible stat inflation.
 - localStorage is browser-local. Clearing site data or changing browsers clears the unlock catalog unless a future account system is added.
 
 ## Non-Goals

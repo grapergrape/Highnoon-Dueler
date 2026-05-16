@@ -1,4 +1,4 @@
-import { duelDisplayedVolleyPreview } from "../duel/duel.js";
+import { duelDisplayedVolleyPreview, estimateVolleyDamage } from "../duel/duel.js";
 
 /**
  * Quad index in 2×2 sheet (author art):
@@ -71,6 +71,7 @@ export function drawGame(ctx, game, w, h) {
   }
 
   drawHud(ctx, w, h, game);
+  syncCombatCanvasOverlay(game);
   drawStatGlows(ctx, w, h, game);
   drawCombatFloats(ctx, w, h, game);
   if (game.duel?.phase === "staredown_reveal") {
@@ -81,6 +82,64 @@ export function drawGame(ctx, game, w, h) {
   }
   drawFx(ctx, w, h, game, t);
   if (sh > 0) ctx.restore();
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[ch]));
+}
+
+export function clearCombatCanvasOverlay() {
+  const el = document.getElementById("combat-canvas-overlay");
+  if (!el) return;
+  el.replaceChildren();
+  el.hidden = true;
+  el.dataset.key = "";
+}
+
+function syncCombatCanvasOverlay(game) {
+  const el = document.getElementById("combat-canvas-overlay");
+  if (!el) return;
+  const { duel, run } = game;
+  if (!duel || duel.phase === "ended" || duel.phase === "staredown_commit") {
+    clearCombatCanvasOverlay();
+    return;
+  }
+  const { player: Pv, enemy: Ev } = duelDisplayedVolleyPreview(duel, run);
+  const outgoing = estimateVolleyDamage(Pv, Ev);
+  const incoming = estimateVolleyDamage(Ev, Pv);
+  const foe = duel.opponentDef?.name ?? "Foe";
+  const key = [
+    duel.phase,
+    foe,
+    Math.round(outgoing.expectedDamage),
+    outgoing.liveShots,
+    outgoing.bullets,
+    Math.round(outgoing.acc * 100),
+    Math.round(incoming.expectedDamage),
+    incoming.liveShots,
+    incoming.bullets,
+    Math.round(incoming.acc * 100),
+  ].join("|");
+  if (el.dataset.key === key && !el.hidden) return;
+  el.dataset.key = key;
+  el.hidden = false;
+  el.innerHTML = `
+    <div class="canvas-forecast-pill canvas-forecast-incoming">
+      <span class="canvas-forecast-label">Incoming</span>
+      <strong>~${Math.round(incoming.expectedDamage)} dmg</strong>
+      <span>${incoming.liveShots}/${incoming.bullets} shots · ${Math.round(incoming.acc * 100)}%</span>
+    </div>
+    <div class="canvas-forecast-pill canvas-forecast-outgoing">
+      <span class="canvas-forecast-label">Expected on ${escapeHtml(foe)}</span>
+      <strong>~${Math.round(outgoing.expectedDamage)} dmg</strong>
+      <span>${outgoing.liveShots}/${outgoing.bullets} shots · ${Math.round(outgoing.acc * 100)}%</span>
+    </div>`;
 }
 
 /** Light overlay so HUD + hand panel stay readable over pixel art */
@@ -313,7 +372,7 @@ function drawHud(ctx, w, h, game) {
   ctx.textAlign = "right";
   ctx.fillStyle = "#f0e6d8";
   ctx.font = "700 13px Georgia, serif";
-  ctx.fillText("OUTLAW", rx + boxW - 14, 20);
+  ctx.fillText(fitCanvasText(ctx, (duel.opponentDef?.name ?? "Outlaw").toUpperCase(), boxW - 28), rx + boxW - 14, 20);
   ctx.font = "11px monospace";
   ctx.fillStyle = "rgba(232,218,196,0.92)";
   ctx.fillText(`${eSta} · ACC ${eAcc}% · VOLLEY ×${Ev.bullets}`, rx + boxW - 14, 40);
@@ -342,6 +401,16 @@ function drawHud(ctx, w, h, game) {
   ctx.fill();
 
   ctx.restore();
+}
+
+function fitCanvasText(ctx, text, maxWidth) {
+  const value = String(text ?? "");
+  if (ctx.measureText(value).width <= maxWidth) return value;
+  let out = value;
+  while (out.length > 3 && ctx.measureText(`${out.slice(0, -1)}...`).width > maxWidth) {
+    out = out.slice(0, -1);
+  }
+  return out.length > 3 ? `${out.slice(0, -1)}...` : value.slice(0, 3);
 }
 
 function drawStatGlows(ctx, w, h, game) {
