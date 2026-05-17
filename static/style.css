@@ -346,6 +346,24 @@ button.shop-card.hand-card-showdown {
   margin-bottom: 0.15rem;
 }
 
+.card-signature {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.08rem 0.26rem;
+  margin: 0 0 0.16rem;
+  border: 1px solid rgba(90, 58, 0, 0.36);
+  background: rgba(184, 134, 11, 0.2);
+  color: #5a3a00;
+  font-size: 0.48rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 .card-rule {
   position: relative;
   z-index: 1;
@@ -494,6 +512,50 @@ button.shop-card:active {
   flex-direction: column;
   gap: 0.75rem;
   margin: 0.65rem 0 0.8rem;
+}
+
+.combat-deeds {
+  border: 1px solid rgba(196, 165, 116, 0.32);
+  background: rgba(10, 8, 6, 0.38);
+  padding: 0.55rem 0.65rem;
+}
+
+.combat-deeds-title {
+  color: var(--sand);
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+}
+
+.combat-deed-row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) auto;
+  gap: 0.35rem 0.65rem;
+  align-items: center;
+  min-height: 1.65rem;
+  font-size: 0.72rem;
+}
+
+.combat-deed-row strong {
+  color: #f0d17c;
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.68rem;
+}
+
+.combat-deed-row em {
+  grid-column: 1 / -1;
+  height: 0.28rem;
+  background: rgba(255, 245, 220, 0.12);
+  overflow: hidden;
+}
+
+.combat-deed-row i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #b8860b, #d8b35a);
 }
 
 .forecast-grid {
@@ -1126,6 +1188,426 @@ button.shop-card:active {
   margin: 0.75rem 0 1rem;
 }
 
+.wanted-board-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.town-deeds-panel,
+.panel-deeds,
+.panel-upgrades {
+  border-color: rgba(196, 165, 116, 0.5);
+}
+
+.town-deeds-panel {
+  padding: 0.75rem;
+  border: 1px solid rgba(196, 165, 116, 0.34);
+  background: rgba(10, 8, 6, 0.34);
+}
+
+.deed-giver-card {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+  border: 1px solid rgba(196, 165, 116, 0.38);
+  background: #120d0a;
+  box-shadow: inset 0 0 0 1px rgba(255, 238, 200, 0.08);
+}
+
+.deed-giver-card img,
+.deed-ledger-portrait img {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+  object-position: 36% 50%;
+  filter: contrast(1.04) saturate(0.95);
+}
+
+.deed-giver-card img {
+  height: 10.75rem;
+}
+
+.deed-giver-copy {
+  padding: 0.68rem 0.75rem 0.78rem;
+  background: linear-gradient(180deg, rgba(20, 14, 10, 0.84), rgba(8, 6, 4, 0.96));
+  border-top: 1px solid rgba(196, 165, 116, 0.28);
+}
+
+.deed-giver-copy span,
+.deed-ledger-caption span {
+  display: block;
+  color: rgba(240, 209, 124, 0.82);
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.deed-giver-copy h3 {
+  margin: 0.18rem 0 0.25rem;
+  color: #f3e7d0;
+}
+
+.deed-giver-copy p {
+  margin: 0;
+  color: rgba(232, 220, 196, 0.76);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.deed-giver-card > strong,
+.deed-ledger-head > strong {
+  color: #f0d17c;
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.deed-giver-card > strong {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  padding: 0.22rem 0.42rem;
+  border: 1px solid rgba(240, 209, 124, 0.38);
+  background: rgba(12, 8, 5, 0.78);
+}
+
+.town-deeds-list,
+.deed-result-list,
+.upgrade-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.equipment-panel {
+  margin-top: 0.75rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(196, 165, 116, 0.32);
+  background: rgba(10, 8, 6, 0.32);
+}
+
+.equipment-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+  color: #f0d17c;
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.equipment-head strong {
+  text-align: right;
+}
+
+.equipment-subhead {
+  margin: 0.45rem 0 0.3rem;
+  color: rgba(232, 220, 196, 0.62);
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.equipment-subhead-trinkets {
+  margin-top: 0.62rem;
+}
+
+.gear-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 0.38rem;
+}
+
+.gear-slot {
+  min-height: 3.25rem;
+  padding: 0.42rem 0.5rem;
+  border: 1px solid rgba(196, 165, 116, 0.22);
+  background: rgba(22, 16, 12, 0.45);
+}
+
+.gear-slot span {
+  display: block;
+  color: rgba(232, 220, 196, 0.54);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.gear-slot strong {
+  display: block;
+  margin-top: 0.22rem;
+  color: rgba(232, 220, 196, 0.76);
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.gear-filled {
+  border-color: rgba(216, 179, 90, 0.45);
+  background: rgba(70, 50, 30, 0.35);
+}
+
+.gear-filled strong {
+  color: #f0e6d2;
+}
+
+.trinket-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+}
+
+.trinket-chip {
+  padding: 0.18rem 0.4rem;
+  border: 1px solid rgba(196, 165, 116, 0.22);
+  background: rgba(22, 16, 12, 0.36);
+  color: rgba(232, 220, 196, 0.54);
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.62rem;
+}
+
+.trinket-filled {
+  border-color: rgba(116, 158, 190, 0.42);
+  background: rgba(38, 55, 70, 0.42);
+  color: #d9e8f2;
+}
+
+button.shop-card.hand-card-item,
+button.shop-card.hand-card-trinket {
+  --card-accent: #76623d;
+}
+
+button.shop-card.item-rarity-uncommon { --card-accent: #4f7b52; }
+button.shop-card.item-rarity-rare { --card-accent: #4f6f9e; }
+
+.item-card-inner .card-flavor {
+  min-height: 2.2rem;
+}
+
+.starting-gear-list {
+  margin-top: 0.85rem;
+}
+
+.deed-card,
+.deed-result {
+  padding: 0.62rem 0.68rem;
+  border: 1px solid rgba(196, 165, 116, 0.28);
+  background: rgba(22, 16, 12, 0.48);
+}
+
+.deed-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  align-items: baseline;
+}
+
+.deed-card-head strong {
+  color: #f0e6d2;
+  font-size: 0.78rem;
+}
+
+.deed-card-head span {
+  color: #f0d17c;
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.deed-card p,
+.deed-result p {
+  margin: 0.28rem 0 0.38rem;
+  color: rgba(232, 220, 196, 0.76);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.deed-card em,
+.deed-result em {
+  display: block;
+  margin-top: 0.32rem;
+  color: rgba(240, 209, 124, 0.86);
+  font-size: 0.68rem;
+}
+
+.deed-progress {
+  height: 0.42rem;
+  background: rgba(255, 245, 220, 0.12);
+  border: 1px solid rgba(42, 33, 24, 0.5);
+  overflow: hidden;
+}
+
+.deed-progress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #8c6230, #d8b35a);
+}
+
+.deed-complete {
+  border-color: rgba(120, 170, 100, 0.62);
+  background: rgba(42, 72, 42, 0.34);
+}
+
+.deed-actions {
+  margin-top: 0.8rem;
+}
+
+.deed-shop-shell {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.78fr) minmax(0, 1.22fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.deed-ledger-portrait {
+  overflow: hidden;
+  border: 1px solid rgba(196, 165, 116, 0.42);
+  background: #120d0a;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 238, 200, 0.08),
+    0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.deed-ledger-portrait img {
+  height: 100%;
+  min-height: 28rem;
+}
+
+.deed-ledger-caption {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(196, 165, 116, 0.34);
+  background: rgba(9, 6, 4, 0.82);
+}
+
+.deed-ledger-portrait {
+  position: relative;
+}
+
+.deed-ledger-caption strong {
+  display: block;
+  margin: 0.22rem 0;
+  color: #f3e7d0;
+  font-size: 1.1rem;
+}
+
+.deed-ledger-caption em {
+  display: block;
+  color: rgba(240, 209, 124, 0.86);
+  font-size: 0.75rem;
+}
+
+.deed-ledger-main {
+  padding: 0.85rem;
+  border: 1px solid rgba(196, 165, 116, 0.3);
+  background: rgba(10, 8, 6, 0.32);
+}
+
+.deed-ledger-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.85rem;
+  align-items: flex-start;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px dashed rgba(232, 200, 122, 0.24);
+}
+
+.deed-ledger-head h2 {
+  margin-bottom: 0.25rem;
+}
+
+.deed-ledger-head p {
+  margin: 0;
+  color: rgba(232, 220, 196, 0.76);
+  font-size: 0.86rem;
+}
+
+.panel-deeds .deed-result-list {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.btn-signatures {
+  margin-top: 0;
+}
+
+.upgrade-card-row {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: stretch;
+  padding: 0.7rem;
+  border: 1px solid rgba(196, 165, 116, 0.28);
+  background: rgba(10, 8, 6, 0.34);
+}
+
+.upgrade-base {
+  min-height: 210px;
+  position: relative;
+}
+
+.upgrade-base .shop-card {
+  width: 154px;
+  height: 216px;
+  position: relative;
+  display: block;
+}
+
+.upgrade-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.upgrade-choice {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.72rem;
+  color: var(--parchment);
+  border: 2px solid rgba(196, 165, 116, 0.36);
+  background: linear-gradient(180deg, rgba(75, 52, 22, 0.7), rgba(18, 12, 8, 0.76));
+  text-align: left;
+  cursor: pointer;
+}
+
+.upgrade-choice:hover:not(:disabled) {
+  border-color: rgba(240, 209, 124, 0.85);
+  filter: brightness(1.08);
+}
+
+.upgrade-choice:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.upgrade-choice-name {
+  color: #f0d17c;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.upgrade-choice-desc,
+.upgrade-preview-cost {
+  color: rgba(232, 220, 196, 0.78);
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
 .wanted-map-image {
   min-height: 220px;
   border: 2px solid rgba(196, 165, 116, 0.55);
@@ -1635,6 +2117,28 @@ button.shop-card.iron-rarity-legendary,
 
   .wanted-map {
     grid-template-columns: 1fr;
+  }
+
+  .wanted-board-layout,
+  .deed-shop-shell,
+  .upgrade-card-row,
+  .upgrade-choices {
+    grid-template-columns: 1fr;
+  }
+
+  .deed-ledger-portrait img {
+    height: 16rem;
+    min-height: 16rem;
+  }
+
+  .deed-ledger-caption {
+    left: 0.65rem;
+    right: 0.65rem;
+    bottom: 0.65rem;
+  }
+
+  .upgrade-base {
+    min-height: 0;
   }
 
   .wanted-grid {

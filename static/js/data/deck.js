@@ -11,8 +11,14 @@ export function shuffle(arr) {
 
 export function buildDeckFromIds(ids) {
   const instances = [];
-  for (const id of ids) {
-    if (getCardDef(id)) instances.push(cloneCardInstance(id));
+  for (const entry of ids) {
+    const id = typeof entry === "string" ? entry : entry?.id;
+    if (getCardDef(id)) {
+      instances.push(cloneCardInstance(id, typeof entry === "string" ? {} : {
+        uid: entry.uid,
+        upgradeId: entry.upgradeId ?? null,
+      }));
+    }
   }
   return shuffle(instances);
 }

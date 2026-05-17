@@ -1,8 +1,11 @@
 import { defaultRun } from "../static/js/app/run-state.js";
 import { CLASSES } from "../static/js/data/classes.js";
-import { CARD_DEFINITIONS, effectsForCardLevel, getCardDef, parseEffect } from "../static/js/data/cards.js";
+import { CARD_DEFINITIONS, effectsForCardLevel, getCardDef, getCardUpgradeOptions, parseEffect, upgradedCardDef } from "../static/js/data/cards.js";
+import { addDeckCard, deckCardEntries, normalizeDeck, replaceDeckCardAt, upgradeDeckCard } from "../static/js/data/deck-state.js";
+import { applyDuelDeedProgress, ensureDeedState } from "../static/js/data/deeds.js";
 import { WHISKEY_HEAL_AMOUNT, whiskeyPriceFromBounty } from "../static/js/data/economy.js";
 import { getGun, gunsForClass, starterGunIdForClass } from "../static/js/data/guns.js";
+import { equipItem, itemBonuses, rollBossGearDrop, rollMerchantTrinket, rollStartingGearChoices, rollTrinketDrop, trinketPrice } from "../static/js/data/items.js";
 import { OPPONENTS } from "../static/js/data/opponents.js";
 import {
   createDuel,
@@ -47,7 +50,7 @@ for (const cls of classesToRun) {
     console.log(`\n${cls.id}${suffix}: ${clears}/${runsPerClass} clears`);
     rows.forEach((r, i) => {
       const status = r.clear ? "CLEAR " : "DIED  ";
-      console.log(`${i + 1}. ${status} wins=${r.wins} hp=${r.hp}/${r.maxHp} money=$${r.money} last=${r.last}`);
+      console.log(`${i + 1}. ${status} wins=${r.wins} hp=${r.hp}/${r.maxHp} upgrades=${r.upgrades} deeds=${r.deeds} money=$${r.money} last=${r.last}`);
     });
   }
 }
@@ -139,7 +142,10 @@ function searchTurn(duel, run, rng, depth = 0, seen = 0) {
   }
 
   const hand = [...duel.playerHand]
-    .sort((a, b) => cardScore(getCardDef(b.id), { duel, run }) - cardScore(getCardDef(a.id), { duel, run }))
+    .sort((a, b) => (
+      cardScore(upgradedCardDef(getCardDef(b.id), b.upgradeId), { duel, run })
+      - cardScore(upgradedCardDef(getCardDef(a.id), a.upgradeId), { duel, run })
+    ))
     .slice(0, 4);
   for (const card of hand) {
     rng.restore(rng0);
@@ -198,6 +204,7 @@ function isUniqueDeckCard(cardDef) {
 }
 
 function cardPool(run) {
+  normalizeDeck(run);
   const owned = new Set(run.deckIds);
   return CARD_DEFINITIONS.filter((c) =>
     c.type !== "gun" &&
@@ -210,6 +217,7 @@ function cardPool(run) {
 }
 
 function gunPool(run) {
+  normalizeDeck(run);
   const owned = new Set(run.deckIds);
   const starter = starterGunIdForClass(run.classId);
   const secondary = run.permanent?.startSecondaryGunId ?? null;
@@ -322,6 +330,49 @@ function effectScore(raw, ctx) {
   }
 }
 
+function itemScore(itemDef, ctx = {}) {
+  if (!itemDef) return -999;
+  const cls = ctx.run?.classId;
+  let score = 0;
+  for (const effect of itemDef.effects ?? []) {
+    const v = Number(effect.value) || 0;
+    switch (effect.kind) {
+      case "maxHp": score += v * 2.2; break;
+      case "startNerve": score += v * 18; break;
+      case "maxNerve": score += v * 15; break;
+      case "nerveGain": score += v * 22; break;
+      case "startArmor": score += v * 2.1; break;
+      case "armorPerRound": score += v * 13; break;
+      case "startLoaded": score += v * 16; break;
+      case "loadPerRound": score += v * 19; break;
+      case "capacity": score += v * 12; break;
+      case "bulletDamage": score += v * 24; break;
+      case "position": score += v * 12; break;
+      case "positionCap": score += v * 10; break;
+      case "positionPerRound": score += v * 17; break;
+      case "evadeFirstRound": score += v * 12; break;
+      case "enemyWeakFirstRound": score += v * 7; break;
+      case "firstCardFree": score += v * 30; break;
+      case "firstGunFree": score += v * 12; break;
+      case "healAfterDuel": score += v * 7; break;
+      case "healAfterBoss": score += v * 2.5; break;
+      case "bountyFlat": score += v * 0.65; break;
+      case "bountyMult": score += v * 90; break;
+      case "cardDiscount":
+      case "gunDiscount":
+      case "trinketDiscount": score += v * 70; break;
+      default: break;
+    }
+  }
+  if (cls === "outlaw" && itemDef.effects?.some((e) => e.kind === "firstCardFree" || e.kind === "startNerve")) score += 8;
+  if (cls === "sheriff" && itemDef.effects?.some((e) => e.kind === "armorPerRound" || e.kind === "maxHp")) score += 8;
+  if (cls === "marshal" && itemDef.effects?.some((e) => e.kind === "bountyFlat" || e.kind === "bountyMult")) score += 6;
+  if (cls === "apache_tracker" && itemDef.effects?.some((e) => e.kind === "position" || e.kind === "positionPerRound")) score += 7;
+  if (cls === "vaquero" && itemDef.effects?.some((e) => e.kind === "capacity" || e.kind === "startLoaded" || e.kind === "bulletDamage")) score += 8;
+  if (cls === "bounty_hunter" && itemDef.effects?.some((e) => e.kind === "healAfterDuel" || e.kind === "maxHp")) score += 8;
+  return score;
+}
+
 function cardScore(card, ctx = {}) {
   if (!card) return -999;
   const effects = effectsForCardLevel(card, card.showdownLevel || 1);
@@ -355,41 +406,51 @@ function gunScore(gun, ctx = {}) {
     + effects.reduce((sum, e) => sum + effectScore(e, ctx), 0);
 }
 
+function takeStartingGear(run) {
+  const pick = rollStartingGearChoices(3)
+    .sort((a, b) => itemScore(b, { run }) - itemScore(a, { run }))[0];
+  if (pick) equipItem(run, pick.id);
+}
+
 function worstCardIndex(run) {
+  normalizeDeck(run);
   let worst = { ix: -1, score: Infinity };
-  run.deckIds.forEach((id, ix) => {
+  run.deckCards.forEach((entry, ix) => {
+    const id = entry.id;
     if (id.startsWith("gun_")) return;
-    const score = cardScore(getCardDef(id), { run });
+    const score = cardScore(upgradedCardDef(getCardDef(id), entry.upgradeId), { run });
     if (score < worst.score) worst = { ix, score };
   });
   return worst;
 }
 
 function takeCard(run, card, force = false) {
+  normalizeDeck(run);
   if (!card) return false;
   const pickScore = cardScore(card, { run });
   if (!force && pickScore < 20) return false;
   if (run.deckIds.length < MAX_DECK) {
-    run.deckIds.push(card.id);
+    addDeckCard(run, card.id);
     return true;
   }
   const worst = worstCardIndex(run);
   if (worst.ix >= 0 && pickScore > worst.score + 8) {
-    run.deckIds.splice(worst.ix, 1, card.id);
+    replaceDeckCardAt(run, worst.ix, card.id);
     return true;
   }
   return false;
 }
 
 function takeGun(run, gun, force = false) {
+  normalizeDeck(run);
   if (!gun) return false;
   const pickScore = gunScore(gun, { run });
-  const guns = run.deckIds
-    .map((id, ix) => ({ id, ix, gun: getGun(id) }))
+  const guns = run.deckCards
+    .map((entry, ix) => ({ id: entry.id, ix, gun: getGun(entry.id) }))
     .filter((x) => x.id.startsWith("gun_") && x.gun);
   if (!force && pickScore < 65) return false;
   if (guns.length < 2 && run.deckIds.length < MAX_DECK) {
-    run.deckIds.push(gun.id);
+    addDeckCard(run, gun.id);
     return true;
   }
   if (guns.length >= 2) {
@@ -397,25 +458,55 @@ function takeGun(run, gun, force = false) {
       .map((x) => ({ ...x, score: gunScore(x.gun, { run }) }))
       .sort((a, b) => a.score - b.score)[0];
     if (worst && pickScore > worst.score + 15) {
-      run.deckIds.splice(worst.ix, 1, gun.id);
+      replaceDeckCardAt(run, worst.ix, gun.id);
       return true;
     }
     return false;
   }
   const worst = worstCardIndex(run);
   if (worst.ix >= 0 && pickScore > worst.score + 25) {
-    run.deckIds.splice(worst.ix, 1, gun.id);
+    replaceDeckCardAt(run, worst.ix, gun.id);
     return true;
   }
   return false;
 }
 
+function upgradeScore(run, entry, upgradeId) {
+  const base = getCardDef(entry.id);
+  const upgraded = upgradedCardDef(base, upgradeId);
+  return cardScore(upgraded, { run }) - cardScore(base, { run });
+}
+
+function takeBestUpgrade(run) {
+  normalizeDeck(run);
+  let guard = 0;
+  while ((run.signaturePoints || 0) > 0 && guard++ < 20) {
+    let best = null;
+    for (const entry of deckCardEntries(run, (card) => {
+      const def = getCardDef(card.id);
+      return !!def && def.type !== "gun" && !card.upgradeId && getCardUpgradeOptions(def).length > 0;
+    })) {
+      for (const option of getCardUpgradeOptions(entry.id)) {
+        const score = upgradeScore(run, entry, option.id);
+        if (!best || score > best.score) best = { uid: entry.uid, upgradeId: option.id, score };
+      }
+    }
+    if (!best || best.score <= 0) return;
+    if (!upgradeDeckCard(run, best.uid, best.upgradeId)) return;
+    run.signaturePoints = Math.max(0, (run.signaturePoints || 0) - 1);
+  }
+}
+
 function shop(run, bountyEarned) {
+  run.merchantVisits = Math.max(0, run.merchantVisits || 0) + 1;
+  const bonuses = itemBonuses(run);
   const cardOffers = [...cardPool(run)].sort(() => Math.random() - 0.5).slice(0, 5);
   const gunOffers = [...gunPool(run)].sort(() => Math.random() - 0.5).slice(0, 4);
+  const trinketOffer = rollMerchantTrinket(run);
   const purchases = [
-    ...cardOffers.map((card) => ({ type: "card", item: card, price: 8 + (card.cost || 0) * 3, score: cardScore(card, { run }) })),
-    ...gunOffers.map((gun) => ({ type: "gun", item: gun, price: PRICE_BY_RARITY[gun.rarity] ?? 40, score: gunScore(gun, { run }) })),
+    ...cardOffers.map((card) => ({ type: "card", item: card, price: Math.max(5, Math.round((8 + (card.cost || 0) * 3) * (1 - Math.min(0.35, Math.max(0, bonuses.cardDiscount || 0))))), score: cardScore(card, { run }) })),
+    ...gunOffers.map((gun) => ({ type: "gun", item: gun, price: Math.max(20, Math.round((PRICE_BY_RARITY[gun.rarity] ?? 40) * (1 - Math.min(0.35, Math.max(0, bonuses.gunDiscount || 0))))), score: gunScore(gun, { run }) })),
+    ...(trinketOffer ? [{ type: "trinket", item: trinketOffer, price: trinketPrice(trinketOffer, run), score: itemScore(trinketOffer, { run }) }] : []),
   ]
     .filter((p) => p.price <= run.money)
     .map((p) => ({ ...p, value: p.score - p.price * 0.18 }))
@@ -433,10 +524,11 @@ function shop(run, bountyEarned) {
 
   const best = purchases[0];
   if (best && best.value > 8 && run.money >= best.price) {
-    const before = run.deckIds.join("|");
+    const before = `${run.deckIds.join("|")}::${JSON.stringify(run.equipment)}`;
     if (best.type === "card") takeCard(run, best.item, true);
-    else takeGun(run, best.item, true);
-    if (run.deckIds.join("|") !== before) run.money -= best.price;
+    else if (best.type === "gun") takeGun(run, best.item, true);
+    else if (best.type === "trinket") equipItem(run, best.item.id);
+    if (`${run.deckIds.join("|")}::${JSON.stringify(run.equipment)}` !== before) run.money -= best.price;
   }
 
   if (!healed && hpMissing >= 16 && run.hp <= Math.ceil(run.maxHp * 0.72) && run.money >= healPrice) {
@@ -446,12 +538,25 @@ function shop(run, bountyEarned) {
 }
 
 function afterWin(run, opp, duel) {
+  normalizeDeck(run);
+  ensureDeedState(run);
   const mult = run.permanent?.bountyMult ?? 1;
-  const bounty = Math.round((opp.bounty ?? (35 + opp.difficultyTier * 12)) * mult)
+  const bonuses = itemBonuses(run);
+  const bounty = Math.round(((opp.bounty ?? (35 + opp.difficultyTier * 12)) + Math.max(0, bonuses.bountyFlat || 0)) * (mult + Math.max(0, bonuses.bountyMult || 0)))
     + Math.max(0, Math.round(duel.bonusBounty || 0));
   run.money += bounty;
   if (!run.defeatedOpponentIds.includes(opp.id)) run.defeatedOpponentIds.push(opp.id);
-  if (opp.role === "boss") run.currentTownOrder = Math.min(5, opp.townOrder + 1);
+  applyDuelDeedProgress(run, duel);
+  takeBestUpgrade(run);
+  if (opp.role === "boss") {
+    run.currentTownOrder = Math.min(5, opp.townOrder + 1);
+    ensureDeedState(run);
+    const gear = rollBossGearDrop(run);
+    if (gear) equipItem(run, gear.id);
+  } else {
+    const trinket = rollTrinketDrop(run);
+    if (trinket) equipItem(run, trinket.id);
+  }
   const growth = run.permanent?.bountyGrowthPerWin ?? 0;
   if (growth > 0) run.permanent.bountyMult = Math.min(3.0, mult + growth);
 
@@ -468,24 +573,48 @@ function afterWin(run, opp, duel) {
   const reward = rewardCards(run, 3).sort((a, b) => cardScore(b, { run }) - cardScore(a, { run }))[0];
   takeCard(run, reward);
   takeGun(run, rewardGun(run));
+  const heal = Math.max(0, Math.round(bonuses.healAfterDuel || 0))
+    + (opp.role === "boss" ? Math.max(0, Math.round(bonuses.healAfterBoss || 0)) : 0);
+  if (heal > 0) run.hp = Math.min(run.maxHp, run.hp + heal);
   shop(run, bounty);
 }
 
 function runOne(classId, seed, buildPath = null) {
   return withSeed(seed, (rng) => {
     const run = defaultRun(classId);
+    normalizeDeck(run);
+    ensureDeedState(run);
     if (buildPath) run.preferredBuildPath = buildPath;
+    takeStartingGear(run);
     let wins = 0;
     let last = null;
     for (const opp of route) {
       const duel = fight(run, opp, rng);
       last = `${opp.name}:${duel.winner}:${run.hp}`;
       if (duel.winner !== "player") {
-        return { clear: false, wins, hp: run.hp, maxHp: run.maxHp, money: run.money, last };
+        return {
+          clear: false,
+          wins,
+          hp: run.hp,
+          maxHp: run.maxHp,
+          upgrades: deckCardEntries(run, (card) => !!card.upgradeId).length,
+          deeds: run.completedDeedIds?.length ?? 0,
+          money: run.money,
+          last,
+        };
       }
       wins += 1;
       afterWin(run, opp, duel);
     }
-    return { clear: true, wins, hp: run.hp, maxHp: run.maxHp, money: run.money, last };
+    return {
+      clear: true,
+      wins,
+      hp: run.hp,
+      maxHp: run.maxHp,
+      upgrades: deckCardEntries(run, (card) => !!card.upgradeId).length,
+      deeds: run.completedDeedIds?.length ?? 0,
+      money: run.money,
+      last,
+    };
   });
 }

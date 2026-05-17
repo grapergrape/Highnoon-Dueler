@@ -110,11 +110,11 @@ export const CLASSES = [
       freeFirstCardPerRound: true,
       spiritMax: 10,
       spiritDamagePerSpirit: 1,
-      spiritDamageCap: 5,
+      spiritDamageCap: 4,
       spiritArmorPerSpirit: 1,
-      spiritArmorCap: 6,
+      spiritArmorCap: 5,
       maxNerve: 7,
-      nerveGain: 3,
+      nerveGain: 2,
       startPosition: 1,
     },
     portraitTint: "#5a6e3e",
@@ -131,7 +131,7 @@ export const CLASSES = [
     permanent: {
       respect: 0,
       respectMax: 10,
-      respectMaxHpEach: 3,
+      respectMaxHpEach: 2,
       maxNerve: 7,
       nerveGain: 3,
       startPosition: 1,
@@ -166,12 +166,12 @@ export const CLASSES = [
     backstory: "Born south of the Rio Grande, rode with revolutionaries one summer and rurales the next. The desert taught him patience. The cantinas taught him the rest. Twin Colts and a flask of mescal — the rest is rumor.",
     abilityName: "Dos Pistolas",
     abilityBlurb: "Starts each duel dual-wielding. First gun card each duel is free and replaces the off-hand. High load density strains Position.",
-    startingMaxHp: 82,
+    startingMaxHp: 76,
     starterDeckIds: [...VAQUERO_STARTER_DECK],
     permanent: {
       maxNerve: 7,
       nerveGain: 3,
-      startPosition: 2,
+      startPosition: 1,
       dualWieldEnabled: true,
       startSecondaryGunId: "gun_offhand_iron",
       freeFirstGunEachDuel: true,
@@ -185,11 +185,11 @@ export const CLASSES = [
     backstory: "Crossed an ocean from Britain with a starched collar and a Queen's English the frontier hates. Quotes Shakespeare to corpses, drinks his whiskey slow, and draws faster than any man who's lived to argue it.",
     abilityName: "Blood for Lead",
     abilityBlurb: "Spends HP to load violent life-stealing rounds or keep Position. Quickdraw ties are wins, but bad trades still bleed the run.",
-    startingMaxHp: 76,
+    startingMaxHp: 68,
     starterDeckIds: [...BOUNTY_HUNTER_STARTER_DECK],
     permanent: {
       quickdrawWin: true,
-      quickdrawHealPct: 0.15,
+      quickdrawHealPct: 0.12,
       maxNerve: 7,
       nerveGain: 3,
       startPosition: 1,
@@ -219,6 +219,7 @@ export function applyClassToRun(run, classId) {
   run.maxHp = cls.startingMaxHp;
   run.hp = cls.startingMaxHp;
   run.deckIds = [...cls.starterDeckIds];
+  run.deckCards = [];
   run.permanent = { ...cls.permanent };
   return run;
 }

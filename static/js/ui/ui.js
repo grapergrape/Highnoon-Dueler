@@ -1,11 +1,24 @@
 import { OPPONENTS, TOWNS } from "../data/opponents.js";
-import { CARD_DEFINITIONS, effectsForCardLevel, getCardDef } from "../data/cards.js";
+import { CARD_DEFINITIONS, effectsForCardLevel, getCardDef, getCardUpgradeOptions, upgradedCardDef } from "../data/cards.js";
+import { activeDeedsForRun, deedProgressPct } from "../data/deeds.js";
 import { getClass, CLASSES } from "../data/classes.js";
 import { gunsForClass, getGun, starterGunIdForClass } from "../data/guns.js";
+import {
+  GEAR_SLOTS,
+  TRINKET_SLOTS,
+  describeItemEffect,
+  equippedItems,
+  getItem,
+  itemBonuses,
+  normalizeEquipment,
+  rollMerchantTrinket,
+  trinketPrice,
+} from "../data/items.js";
 import { whiskeyOfferForGame } from "../data/economy.js";
 import { describeIntent, duelDisplayedVolleyPreview, estimateVolleyDamage } from "../duel/duel.js";
 
 const RARITY_PRICE = { common: 25, uncommon: 40, rare: 65, epic: 110, legendary: 180 };
+const DEED_GIVER_IMAGE = "/static/img/deed-giver.jpg";
 
 function hasStaredownOnlyEffect(cardDef) {
   return Array.isArray(cardDef?.effects) && cardDef.effects.includes("staredownOnly");
@@ -282,6 +295,26 @@ function buildEffectsHtml(def) {
   return `<span class="card-effects">${lines.join('')}</span>`;
 }
 
+function buildItemEffectsHtml(itemDef) {
+  const lines = (itemDef?.effects ?? [])
+    .map((effect) => describeItemEffect(effect))
+    .filter(Boolean)
+    .map((text) => `<span class="card-eff card-eff-pos">${escapeHtml(text)}</span>`);
+  return lines.length ? `<span class="card-effects">${lines.join("")}</span>` : "";
+}
+
+function buildItemCardHtml(itemDef, ribbon = null, price = null) {
+  const label = ribbon ?? (itemDef.slot === "trinket" ? "Trinket" : itemDef.slot);
+  const cost = price ? `$${price}` : itemDef.rarity.toUpperCase();
+  return `<span class="shop-card-inner hand-card-inner item-card-inner">
+    <span class="card-ribbon">${escapeHtml(label.toUpperCase())}</span>
+    <span class="card-cost">${escapeHtml(cost)}</span>
+    <span class="card-name-text">${escapeHtml(itemDef.name)}</span>
+    <span class="card-flavor">${escapeHtml(itemDef.description)}</span>
+    ${buildItemEffectsHtml(itemDef)}
+  </span>`;
+}
+
 /** Render a compact "Drawn Iron" badge for an active gun. */
 function buildActiveGunBadgeHtml(activeGun, label = "Drawn Iron") {
   if (!activeGun) {
@@ -317,7 +350,7 @@ export function updateHud(game) {
     if (hudHealth()) hudHealth().textContent = `— HP`;
     return;
   }
-  if (hudRun()) hudRun().textContent = `Bounty: $${game.run.money | 0}`;
+  if (hudRun()) hudRun().textContent = `Bounty: $${game.run.money | 0} · Signatures: ${game.run.signaturePoints || 0}`;
   if (hudHealth()) hudHealth().textContent = `${game.run.hp | 0} / ${game.run.maxHp} HP`;
   const chip = hudClass();
   if (chip) {
@@ -333,7 +366,62 @@ export function updateHud(game) {
   }
 }
 
-export function renderWanted(game, onPick) {
+function buildDeedsPanelHtml(run) {
+  const deeds = activeDeedsForRun(run);
+  const rows = deeds.map((deed) => {
+    const pct = deedProgressPct(deed);
+    return `<div class="deed-card ${deed.completed ? "deed-complete" : ""}">
+      <div class="deed-card-head">
+        <strong>${escapeHtml(deed.name)}</strong>
+        <span>${deed.completed ? "Complete" : `${deed.progress || 0}/${deed.target}`}</span>
+      </div>
+      <p>${escapeHtml(deed.description)}</p>
+      <div class="deed-progress"><span style="width:${pct}%"></span></div>
+      <em>Reward: +1 Signature Point</em>
+    </div>`;
+  }).join("");
+  return `<aside class="town-deeds-panel">
+    <div class="deed-giver-card">
+      <img src="${DEED_GIVER_IMAGE}" alt="Deed giver">
+      <div class="deed-giver-copy">
+        <span>Deed Giver</span>
+        <h3>Town Deeds</h3>
+        <p>Hard work signs hard cards.</p>
+      </div>
+      <strong>${run.signaturePoints || 0} SP</strong>
+    </div>
+    <div class="town-deeds-list">${rows}</div>
+  </aside>`;
+}
+
+function buildEquipmentPanelHtml(run) {
+  normalizeEquipment(run);
+  const gearRows = GEAR_SLOTS.map((slot) => {
+    const itemDef = getItem(run.equipment.gear[slot]);
+    return `<div class="gear-slot ${itemDef ? "gear-filled" : ""}">
+      <span>${escapeHtml(slot)}</span>
+      <strong>${itemDef ? escapeHtml(itemDef.name) : "Empty"}</strong>
+    </div>`;
+  }).join("");
+  const trinkets = run.equipment.trinkets ?? [];
+  const trinketRows = Array.from({ length: TRINKET_SLOTS }, (_, ix) => {
+    const itemDef = getItem(trinkets[ix]);
+    return `<span class="trinket-chip ${itemDef ? "trinket-filled" : ""}" title="${itemDef ? escapeHtml(itemDef.description) : "Empty trinket slot"}">${itemDef ? escapeHtml(itemDef.name) : "Empty"}</span>`;
+  }).join("");
+  const gearCount = GEAR_SLOTS.filter((slot) => run.equipment.gear[slot]).length;
+  return `<aside class="equipment-panel">
+    <div class="equipment-head">
+      <span>Equipment</span>
+      <strong>Gear ${gearCount}/${GEAR_SLOTS.length} · Trinkets ${trinkets.length}/${TRINKET_SLOTS}</strong>
+    </div>
+    <div class="equipment-subhead">Gear Slots</div>
+    <div class="gear-grid">${gearRows}</div>
+    <div class="equipment-subhead equipment-subhead-trinkets">Trinket Slots</div>
+    <div class="trinket-row">${trinketRows}</div>
+  </aside>`;
+}
+
+export function renderWanted(game, onPick, onUpgrade) {
   const el = panel();
   el.className = "panel";
   const cls = getClass(game.run.classId);
@@ -378,13 +466,22 @@ export function renderWanted(game, onPick) {
   el.innerHTML = `${head}
     <h2>Wanted Board</h2>
     <p>Pick a soul to send to judgment.</p>
-    <div class="wanted-map">
-      <div class="wanted-map-image">
-        <img src="${currentTown.mapImage}" alt="${currentTown.name} trail map">
+    <div class="wanted-board-layout">
+      <div>
+        <div class="wanted-map">
+          <div class="wanted-map-image">
+            <img src="${currentTown.mapImage}" alt="${currentTown.name} trail map">
+          </div>
+          <div class="town-track">${townTrack}</div>
+        </div>
+        <button class="btn btn-signatures" id="open-upgrades" ${(game.run.signaturePoints || 0) > 0 ? "" : "disabled"}>Sign Cards (${game.run.signaturePoints || 0})</button>
+        ${buildEquipmentPanelHtml(game.run)}
       </div>
-      <div class="town-track">${townTrack}</div>
+      ${buildDeedsPanelHtml(game.run)}
     </div>
     <div class="town-roster"></div>`;
+  const upgradeBtn = el.querySelector("#open-upgrades");
+  if (upgradeBtn && onUpgrade) upgradeBtn.onclick = onUpgrade;
 
   const roster = el.querySelector(".town-roster");
   for (const town of TOWNS) {
@@ -482,20 +579,24 @@ function shopGunPool(game) {
 }
 
 export function rollShopInventory(game) {
+  const trinket = rollMerchantTrinket(game.run);
   return {
     cardIds: shuffle([...shopCardPool(game)]).slice(0, 5).map((c) => c.id),
     gunIds: shuffle([...shopGunPool(game)]).slice(0, 4).map((g) => g.id),
+    trinketId: trinket?.id ?? null,
     healUsed: false,
     purchaseUsed: false,
   };
 }
 
-function priceForCard(c) {
-  return 8 + (c.cost || 0) * 3;
+function priceForCard(c, game = null) {
+  const discount = Math.max(0, Math.min(0.35, itemBonuses(game?.run).cardDiscount || 0));
+  return Math.max(5, Math.round((8 + (c.cost || 0) * 3) * (1 - discount)));
 }
 
-function priceForGun(g) {
-  return RARITY_PRICE[g.rarity] ?? 40;
+function priceForGun(g, game = null) {
+  const discount = Math.max(0, Math.min(0.35, itemBonuses(game?.run).gunDiscount || 0));
+  return Math.max(20, Math.round((RARITY_PRICE[g.rarity] ?? 40) * (1 - discount)));
 }
 
 function ownedGunIdsInDeck(deckIds) {
@@ -506,7 +607,7 @@ function ownedNonGunIdsInDeck(deckIds) {
   return deckIds.filter((id) => !id.startsWith("gun_"));
 }
 
-export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
+export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue, onUpgrade) {
   const el = panel();
   el.className = "panel";
   const offers = shopInventory ?? rollShopInventory(game);
@@ -518,6 +619,7 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
   const gunPool = (offers.gunIds ?? [])
     .map((id) => getGun(id))
     .filter(Boolean);
+  const trinketOffer = offers.trinketId ? getItem(offers.trinketId) : null;
   const deckSize = game.run.deckIds.length;
   const atDeckCap = deckSize >= 24;
   const whiskey = whiskeyOfferForGame(game);
@@ -525,6 +627,9 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
 
   el.innerHTML = `<h2>Merchant</h2><p>Spend your bounty. Health does not refill between fights.</p>
     <p>Wallet: <strong>$${game.run.money}</strong></p>
+    <button class="btn btn-signatures" id="shop-upgrades" ${(game.run.signaturePoints || 0) > 0 ? "" : "disabled"}>Sign Cards (${game.run.signaturePoints || 0})</button>
+    <h3 class="shop-section-title">Trinket <span class="shop-section-sub">(appears from merchant visit 2, one purchase per visit)</span></h3>
+    <div class="shop-list" id="shop-trinkets"></div>
     <h3 class="shop-section-title">Guns <span class="shop-section-sub">(deck holds up to 2 extra guns, one purchase per visit)</span></h3>
     <div class="shop-list" id="shop-guns"></div>
     <h3 class="shop-section-title">Cards & Tricks <span class="shop-section-sub">(deck cap 24)</span></h3>
@@ -535,8 +640,29 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
     <button class="btn" id="done">Ride On</button>`;
 
   const ironRow = el.querySelector("#shop-guns");
+  const trinketRow = el.querySelector("#shop-trinkets");
+  const upgradeBtn = el.querySelector("#shop-upgrades");
+  if (upgradeBtn && onUpgrade) upgradeBtn.onclick = onUpgrade;
+  if (trinketOffer) {
+    const price = trinketPrice(trinketOffer, game.run);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.disabled = purchaseUsed || game.run.money < price;
+    b.className = `shop-card hand-card-trinket item-rarity-${trinketOffer.rarity}`;
+    b.innerHTML = buildItemCardHtml(trinketOffer, "Trinket", price);
+    b.onclick = () => {
+      if (purchaseUsed) return;
+      onBuyCard(trinketOffer.id, price);
+    };
+    trinketRow.appendChild(b);
+  } else {
+    const reason = (game.run.merchantVisits || 0) < 2
+      ? "Trinket dealer reaches the second merchant stop."
+      : "No open trinket slots or no trinkets left.";
+    trinketRow.innerHTML = `<p class="shop-empty"><em>${reason}</em></p>`;
+  }
   for (const g of gunPool) {
-    const price = priceForGun(g);
+    const price = priceForGun(g, game);
     const card = document.createElement("button");
     card.type = "button";
     card.disabled = purchaseUsed;
@@ -572,7 +698,7 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
   const sc = el.querySelector("#shop-cards");
   for (const c of cardPool) {
     const b = document.createElement("button");
-    const price = priceForCard(c);
+    const price = priceForCard(c, game);
     b.type = "button";
     b.disabled = purchaseUsed;
     b.className = `shop-card hand-card-${c.type}`;
@@ -804,6 +930,136 @@ export function renderPostDuelGunReward(game, reward, onTakeGun, onSkip) {
   }
   el.querySelector("#skip-gun-reward").onclick = onSkip;
 }
+
+export function renderPostDuelItemReward(game, reward, onTakeItem, onSkip) {
+  const el = panel();
+  el.className = "panel";
+  const rewardItems = Array.isArray(reward.rewardItems) ? reward.rewardItems : [];
+  const mandatory = !!reward.mandatory;
+  const noRewards = rewardItems.length === 0;
+  const opponentTitle = reward.opponentTitle ? `<em>${reward.opponentTitle}</em>` : "";
+  const title = rewardItems.some((itemDef) => itemDef.slot === "trinket") ? "Trinket Drop" : "Boss Gear";
+  const copy = mandatory
+    ? "Bosses always leave one piece of gear for an empty slot."
+    : "A small trinket shook loose in the dust.";
+  el.innerHTML = `<h2>${title}</h2>
+    <p>You defeated <strong>${reward.opponentName ?? "Outlaw"}</strong> ${opponentTitle}.</p>
+    <p>${copy}</p>
+    <div class="shop-list" id="reward-items"></div>
+    ${mandatory ? "" : `<button class="btn" id="skip-item-reward">${noRewards ? "Continue to Merchant" : "Skip Trinket"}</button>`}`;
+
+  const rewardRow = el.querySelector("#reward-items");
+  for (const itemDef of rewardItems) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = `shop-card hand-card-item item-rarity-${itemDef.rarity}`;
+    b.innerHTML = buildItemCardHtml(itemDef, itemDef.slot === "trinket" ? "Trinket Drop" : `${itemDef.slot} Gear`);
+    b.onclick = () => onTakeItem(itemDef.id);
+    rewardRow.appendChild(b);
+  }
+  if (noRewards) {
+    rewardRow.innerHTML = `<p class="shop-empty"><em>No gear slots are open.</em></p>`;
+  }
+  const skip = el.querySelector("#skip-item-reward");
+  if (skip) skip.onclick = onSkip;
+}
+
+export function renderPostDuelDeeds(game, summary, onUpgrade, onContinue) {
+  const el = panel();
+  el.className = "panel panel-deeds";
+  const rows = Array.isArray(summary?.rows) ? summary.rows : [];
+  const earned = summary?.earnedSignaturePoints || 0;
+  el.innerHTML = `<div class="deed-shop-shell">
+    <aside class="deed-ledger-portrait">
+      <img src="${DEED_GIVER_IMAGE}" alt="Deed giver">
+      <div class="deed-ledger-caption">
+        <span>Deed Giver</span>
+        <strong>The Ledger Man</strong>
+        <em>${earned ? `Signed credit earned: +${earned}` : "No new signatures yet"}</em>
+      </div>
+    </aside>
+    <section class="deed-ledger-main">
+      <div class="deed-ledger-head">
+        <div>
+          <h2>Deed Ledger</h2>
+          <p>${escapeHtml(summary?.opponentName ?? "The duel")} moved the town ledger.</p>
+        </div>
+        <strong>${game.run.signaturePoints || 0} SP</strong>
+      </div>
+      <div class="deed-result-list"></div>
+      <div class="deed-actions">
+        <button class="btn" id="deed-upgrade" ${(game.run.signaturePoints || 0) > 0 ? "" : "disabled"}>Sign Cards</button>
+        <button class="btn" id="deed-continue">Continue</button>
+      </div>
+    </section>
+  </div>`;
+  const list = el.querySelector(".deed-result-list");
+  for (const row of rows) {
+    const pct = Math.max(0, Math.min(100, Math.round((row.progressAfter / Math.max(1, row.target)) * 100)));
+    const node = document.createElement("div");
+    node.className = `deed-result ${row.completed ? "deed-complete" : ""}`;
+    node.innerHTML = `<div class="deed-card-head">
+        <strong>${escapeHtml(row.name)}</strong>
+        <span>${row.progressAfter}/${row.target}${row.delta ? ` (+${row.delta})` : ""}</span>
+      </div>
+      <p>${escapeHtml(row.description)}</p>
+      <div class="deed-progress"><span style="width:${pct}%"></span></div>
+      ${row.justCompleted ? `<em>Completed: +1 Signature Point</em>` : ""}`;
+    list.appendChild(node);
+  }
+  el.querySelector("#deed-upgrade").onclick = onUpgrade;
+  el.querySelector("#deed-continue").onclick = onContinue;
+}
+
+export function renderCardUpgrade(game, eligibleCards, onUpgrade, onDone) {
+  const el = panel();
+  el.className = "panel panel-upgrades";
+  const points = game.run.signaturePoints || 0;
+  const cards = Array.isArray(eligibleCards) ? eligibleCards : [];
+  el.innerHTML = `<h2>Sign Cards</h2>
+    <p>Spend Signature Points earned from Deeds. Each point signs one card once.</p>
+    <p>Signature Points: <strong>${points}</strong></p>
+    <div class="upgrade-list"></div>
+    <button class="btn" id="done-upgrades">Done</button>`;
+  const list = el.querySelector(".upgrade-list");
+  if (!cards.length) {
+    list.innerHTML = `<p class="shop-empty"><em>No unsigned non-gun cards are available.</em></p>`;
+  }
+  for (const entry of cards) {
+    const base = getCardDef(entry.id);
+    if (!base) continue;
+    const options = getCardUpgradeOptions(base);
+    const row = document.createElement("section");
+    row.className = "upgrade-card-row";
+    row.innerHTML = `<div class="upgrade-base">
+      <div class="shop-card hand-card-${base.type}">
+        <span class="shop-card-inner hand-card-inner">
+          <span class="card-ribbon">${RIBBON_LABEL[base.type] ?? base.type}</span>
+          <span class="card-cost">${base.cost}</span>
+          <span class="card-name-text">${escapeHtml(base.name)}</span>
+          ${buildEffectsHtml(base)}
+        </span>
+      </div>
+    </div>
+    <div class="upgrade-choices"></div>`;
+    const choices = row.querySelector(".upgrade-choices");
+    for (const option of options) {
+      const upgraded = upgradedCardDef(base, option.id);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "upgrade-choice";
+      btn.disabled = points <= 0;
+      btn.innerHTML = `<span class="upgrade-choice-name">${escapeHtml(option.name)}</span>
+        <span class="upgrade-choice-desc">${escapeHtml(option.description)}</span>
+        <span class="upgrade-preview-cost">Cost ${upgraded.cost}</span>
+        ${buildEffectsHtml(upgraded)}`;
+      btn.onclick = () => onUpgrade(entry.uid, option.id);
+      choices.appendChild(btn);
+    }
+    list.appendChild(row);
+  }
+  el.querySelector("#done-upgrades").onclick = onDone;
+}
 function shuffle(a) {
   const x = [...a];
   for (let i = x.length - 1; i > 0; i--) {
@@ -957,16 +1213,35 @@ function buildCombatDashboardHtml(game) {
   if (!d || d.phase === "ended") return "";
   return `<div class="combat-dashboard">
     ${buildForecastPanelHtml(d, game.run)}
+    ${buildCombatDeedsHtml(game.run)}
+  </div>`;
+}
+
+function buildCombatDeedsHtml(run) {
+  const deeds = activeDeedsForRun(run).filter((deed) => !deed.completed);
+  if (!deeds.length) return "";
+  return `<div class="combat-deeds">
+    <div class="combat-deeds-title">Deeds</div>
+    ${deeds.map((deed) => {
+      const pct = deedProgressPct(deed);
+      return `<div class="combat-deed-row">
+        <span>${escapeHtml(deed.name)}</span>
+        <strong>${deed.progress || 0}/${deed.target}</strong>
+        <em><i style="width:${pct}%"></i></em>
+      </div>`;
+    }).join("")}
   </div>`;
 }
 
 function buildCardHtml(def, costLabel = 'free') {
   const ribbon = hasStaredownOnlyEffect(def) ? "Legacy" : (RIBBON_LABEL[def.type] ?? def.type);
+  const upgrade = def.upgradeName ? `<span class="card-signature">${escapeHtml(def.upgradeName)}</span>` : "";
   return `
     <span class="hand-card-inner">
       <span class="card-ribbon">${escapeHtml(ribbon)}</span>
       <span class="card-cost">${escapeHtml(costLabel)}</span>
       <span class="card-name-text">${escapeHtml(def.name)}</span>
+      ${upgrade}
       ${def.flavorText ? `<span class="card-flavor">${escapeHtml(def.flavorText)}</span>` : ''}
       ${buildEffectsHtml(def)}
     </span>`;
@@ -1104,12 +1379,14 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onContinueDuel) {
   if (d.phase === "player_turn") {
     const row = el.querySelector("#hand");
     for (const c of d.playerHand) {
-      const def = getCardDef(c.id);
+      const def = upgradedCardDef(getCardDef(c.id), c.upgradeId);
       if (!def) continue;
       const card = document.createElement("div");
       const isFreeEligible = d.freeCardAvailable && def.type !== "gun" && !def.noFree;
       const isComboFree = false;
-      const isGunFree = def.type === "gun" && !!game.run.permanent?.freeFirstGunEachDuel && !d.freeGunPlayed;
+      const isGunFree = def.type === "gun"
+        && (!!game.run.permanent?.freeFirstGunEachDuel || Math.max(0, itemBonuses(game.run).firstGunFree || 0) > 0)
+        && !d.freeGunPlayed;
       let payHpAmount = 0;
       for (const raw of def.effects ?? []) {
         const m = raw.match(/^payHp([+-]?\d+)/);
@@ -1159,5 +1436,23 @@ export function renderClassSelect(onPick) {
       <p>${cls.abilityBlurb}</p>`;
     d.onclick = () => onPick(cls.id);
     g.appendChild(d);
+  }
+}
+
+export function renderStartingGear(game, choices, onPick) {
+  const el = panel();
+  el.className = "panel panel-starting-gear";
+  const cls = getClass(game.run.classId);
+  el.innerHTML = `<h2>Choose Starting Gear</h2>
+    <p>${cls ? `${cls.name} rides out with one piece of shared gear.` : "Pick one piece of gear to start the run."}</p>
+    <div class="shop-list starting-gear-list"></div>`;
+  const list = el.querySelector(".starting-gear-list");
+  for (const itemDef of choices ?? []) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = `shop-card hand-card-item item-rarity-${itemDef.rarity}`;
+    b.innerHTML = buildItemCardHtml(itemDef, `${itemDef.slot} Gear`);
+    b.onclick = () => onPick(itemDef.id);
+    list.appendChild(b);
   }
 }

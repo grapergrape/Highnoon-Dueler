@@ -20,9 +20,11 @@ Default settings:
 - Linear wanted-board route through all 15 opponents.
 - Class-only card rewards after wins.
 - 20% class-only gun drop chance after wins.
+- Deeds and Signature Points are tracked; low-skill mode does not spend upgrades, while tactical mode spends them on scored card-copy upgrades.
+- Shared items are tracked: one starting gear choice, boss gear drops into empty gear slots, 5% non-boss trinket drops, and expensive merchant trinkets from the second merchant visit.
 - No whiskey healing.
 - No shop card/gun purchases.
-- No relics, smithing, or potions.
+- No smithing or potions.
 
 For faster iteration:
 
@@ -75,12 +77,12 @@ node tools/balance-sim.mjs --runs 200 --mode greedy
 
 ## Current Target
 
-The current no-relic/no-smithing/no-potion target separates low-skill simulation from deliberate play:
+The current item/no-smithing/no-potion target separates low-skill simulation from deliberate play:
 
 - Low-skill sim: 0-5% full clears per class.
 - Tactical/manual-decision play: around 50% full clears across build-guided runs.
 
-Current low-skill baseline from May 17, 2026, 200 runs per class:
+Pre-item low-skill baseline from May 17, 2026 after Deeds tuning, 200 runs per class:
 
 | Class | Full clears |
 | --- | ---: |
@@ -91,6 +93,8 @@ Current low-skill baseline from May 17, 2026, 200 runs per class:
 | Vaquero | 0.0% |
 | Bounty Hunter | 0.0% |
 
+After item changes, rerun this baseline before accepting balance numbers. The first item implementation was too strong because free bullets, recurring Armor, starting Position, and max-Nerve stacking raised tactical clears sharply. The current item pool keeps those effects rare, but tactical play is still above target because several class paths remain highly consistent.
+
 This low-skill sim is intentionally harsh and should fail almost all runs. For stronger shop-aware tactical/manual-decision play, run:
 
 ```bash
@@ -98,6 +102,7 @@ node tools/tactical-shop-sim.mjs --runs 10
 ```
 
 The tactical sim searches card sequences on each player turn, takes rewards, buys one useful shop card/gun per merchant visit, and buys whiskey when the run is low enough to justify the price. It is slower than `balance-sim.mjs` and should be treated as a manual-decision proxy for solved routes, not literal UI play.
+The tactical sim is Deed-aware: it applies post-duel Deed progress, earns Signature Points, and upgrades eligible card copies with the strongest scored branch.
 
 To pressure-test the two-build class model, run:
 
@@ -112,6 +117,8 @@ node tools/tactical-shop-sim.mjs --runs 10 --class vaquero --build flourish
 ```
 
 `--build-paths` does not hard-lock rewards to that path. It biases reward and shop valuation toward the requested path while the class-only pool still contains both paths. That makes it useful for checking whether the old build stayed solved after path dilution, and whether the new build can clear when played deliberately.
+
+Current post-item Deed-aware tactical baseline is roughly 88/120 clears across 12 class paths after shared gear and trinkets. The pre-item baseline was 69/120. The per-path tables live in [build-paths.md](build-paths.md).
 
 Do not overreact to a single 50-run sample. Use 50 runs to catch obvious breakage, 200 runs for normal low-skill sim checks, and tactical 10-run build-path passes for manual-decision pressure testing.
 
@@ -155,6 +162,7 @@ The default low-skill sim is deliberately not a good player:
 - It takes the first rolled reward.
 - It takes early gun drops without judging build fit.
 - It skips whiskey.
+- It tracks Deed progress but does not spend Signature Points.
 
 `--mode greedy` uses a deterministic card evaluator:
 
@@ -162,6 +170,7 @@ The default low-skill sim is deliberately not a good player:
 - `cardScore()` adds type, rarity, cost, gun, class, and combo context.
 - `playTurn()` plays the best affordable cards until no high-scoring card remains.
 - `takeReward()` takes high-scoring card rewards and gun drops.
+- Greedy mode spends Signature Points, but it is still much weaker than the tactical search runner.
 
 This makes the low-skill sim useful for checking that autopilot play fails, and the greedy mode useful for relative balance and death distribution. Neither is proof that the game is fun, and neither replaces tactical/manual playtests for UI clarity, pacing, or whether choices feel interesting.
 

@@ -1,6 +1,7 @@
-import { getCardDef, parseEffect, cloneCardInstance, effectsForCardLevel } from "../data/cards.js";
+import { getCardDef, parseEffect, effectsForCardLevel, upgradedCardDef } from "../data/cards.js";
 import { feedbackLinesForCard } from "../ui/combat-ui.js";
 import { getGun, FALLBACK_GUN_ID, starterGunIdForClass } from "../data/guns.js";
+import { itemBonuses } from "../data/items.js";
 import { makeEnemyRuntime } from "../data/opponents.js";
 import { buildDeckFromIds, drawCards } from "../data/deck.js";
 
@@ -102,7 +103,9 @@ function setPosition(duel, value) {
 }
 
 function addPosition(duel, value) {
-  setPosition(duel, (duel.position ?? 1) + roundInt(value));
+  const before = roundInt(duel.position ?? 1);
+  setPosition(duel, before + roundInt(value));
+  return Math.max(0, roundInt(duel.position ?? before) - before);
 }
 
 function positionMultiplier(position) {
@@ -116,7 +119,9 @@ export function positionName(position) {
 }
 
 function currentCapacity(duel) {
-  return combinedGunStats(duel).capacity + Math.max(0, roundInt(duel.overcap || 0));
+  return combinedGunStats(duel).capacity
+    + Math.max(0, roundInt(duel.itemCapacityBonus || 0))
+    + Math.max(0, roundInt(duel.overcap || 0));
 }
 
 function loadBullets(duel, value) {
@@ -126,6 +131,34 @@ function loadBullets(duel, value) {
   const cap = currentCapacity(duel);
   duel.loadedBullets = clamp(before + add, 0, cap);
   return duel.loadedBullets - before;
+}
+
+function ensureDeedStats(duel) {
+  if (!duel.deedStats) {
+    duel.deedStats = {
+      bulletDamageDealt: 0,
+      armorPrevented: 0,
+      classResourceApplied: 0,
+      maxLoadedShowdowns: 0,
+      hpPaid: 0,
+    };
+  }
+  return duel.deedStats;
+}
+
+function recordClassResource(duel, run, kind, amount) {
+  const n = Math.max(0, roundInt(amount || 0));
+  if (n <= 0) return;
+  const classId = run?.classId || duel?.classId;
+  const counts = (
+    (classId === "outlaw" && ["infamy", "infamyPerRound", "infamyOnHit", "infamyLoad", "infamyDamage", "infamyArmor", "outlawCombo"].includes(kind))
+    || (classId === "sheriff" && ["deputy", "deputies", "deputyArmorPerRound", "deputyLoadOnAttack", "deputyBlock"].includes(kind))
+    || (classId === "marshal" && ["markEnemy", "markBurst", "markBulletPerMark", "caseFile", "casePerRound", "casePath", "caseOnMark", "caseSpendLoad", "caseSpendArmor"].includes(kind))
+    || (classId === "apache_tracker" && ["spirit", "spiritScaleDamage", "spiritScaleAcc", "spiritScaleEnemyAcc", "track", "trackDamage", "trackLoad", "snare", "snarePerRound"].includes(kind))
+    || (classId === "vaquero" && ["position", "positionPerRound", "flourishDamage"].includes(kind))
+    || (classId === "bounty_hunter" && ["bountyOnHit", "lifestealOnHit", "infection", "infectionWeak", "infectionLeech", "consumeInfection"].includes(kind))
+  );
+  if (counts) ensureDeedStats(duel).classResourceApplied += n;
 }
 
 function discardHand(duel) {
@@ -250,6 +283,7 @@ export function describeIntent(intent) {
 
 export function createDuel(oppDef, run) {
   const enemy = makeEnemyRuntime(oppDef);
+  const gearBonuses = itemBonuses(run);
   const playerStartGun = resolveStartingGun(run);
   const playerActiveGun = makeActiveGun(playerStartGun);
   const playerSecondaryGun = run?.permanent?.dualWieldEnabled && run?.permanent?.startSecondaryGunId
@@ -266,28 +300,35 @@ export function createDuel(oppDef, run) {
 
   const duel = {
     opponentDef: oppDef,
+    classId: run?.classId ?? null,
     enemy,
     phase: "player_turn",
     roundNumber: 1,
     cycleNumber: 1,
     cycleCount: 0,
     playerHand: [],
-    playerDrawPile: buildDeckFromIds(run.deckIds),
+    playerDrawPile: buildDeckFromIds(run.deckCards ?? run.deckIds),
     playerDiscard: [],
     runPermanent: { ...(run?.permanent ?? {}) },
-    nerve: START_NERVE,
-    maxNerve: run?.permanent?.maxNerve ?? BASE_MAX_NERVE,
-    nerveGain: run?.permanent?.nerveGain ?? BASE_NERVE_GAIN,
+    itemBonuses: gearBonuses,
+    nerve: START_NERVE + Math.max(0, roundInt(gearBonuses.startNerve || 0)),
+    maxNerve: (run?.permanent?.maxNerve ?? BASE_MAX_NERVE) + Math.max(0, roundInt(gearBonuses.maxNerve || 0)),
+    nerveGain: (run?.permanent?.nerveGain ?? BASE_NERVE_GAIN) + Math.max(0, roundInt(gearBonuses.nerveGain || 0)),
     nextNerveBonus: 0,
     rattled: 0,
-    playerArmor: 0,
+    playerArmor: Math.max(0, roundInt(gearBonuses.startArmor || 0)),
     enemyArmor: 0,
-    position: run?.permanent?.startPosition ?? 1,
-    positionCapBonus: 0,
+    position: (run?.permanent?.startPosition ?? 1) + roundInt(gearBonuses.position || 0),
+    positionCapBonus: Math.max(0, roundInt(gearBonuses.positionCap || 0)),
     evadeBullets: 0,
     evadeAttack: false,
     overcap: 0,
-    loadedBullets: Math.min(startStats.capacity, Math.max(0, startStats.startLoaded || 0)),
+    itemCapacityBonus: Math.max(0, roundInt(gearBonuses.capacity || 0)),
+    itemBulletDamage: roundInt(gearBonuses.bulletDamage || 0),
+    loadedBullets: Math.min(
+      startStats.capacity + Math.max(0, roundInt(gearBonuses.capacity || 0)),
+      Math.max(0, roundInt(startStats.startLoaded || 0) + roundInt(gearBonuses.startLoaded || 0))
+    ),
     playerActiveGun,
     playerSecondaryGun,
     freeGunPlayed: false,
@@ -336,6 +377,13 @@ export function createDuel(oppDef, run) {
     nextComboFree: false,
     duelComboTriggers: 0,
     bonusBounty: 0,
+    deedStats: {
+      bulletDamageDealt: 0,
+      armorPrevented: 0,
+      classResourceApplied: 0,
+      maxLoadedShowdowns: 0,
+      hpPaid: 0,
+    },
     shootoutLog: [],
     shootoutSummary: null,
     playLog: [],
@@ -356,7 +404,9 @@ function startPlayerRound(duel, run, { first = false } = {}) {
   duel.enemyIntent = selectEnemyIntent(duel);
   duel.enemyIntentHistory.push({ roundNumber: duel.roundNumber, intent: cloneIntent(duel.enemyIntent) });
   applyRoundStartBuildEffects(duel);
-  duel.freeCardAvailable = !!run?.permanent?.freeFirstCardPerRound;
+  applyRoundStartItemEffects(duel);
+  duel.freeCardAvailable = !!run?.permanent?.freeFirstCardPerRound
+    || (first && Math.max(0, roundInt(duel.itemBonuses?.firstCardFree || 0)) > 0);
   duel.roundOutlawCount = 0;
   duel.roundOutlawCards = [];
   if (!first) {
@@ -398,6 +448,20 @@ function applyRoundStartBuildEffects(duel) {
   }
   if (duel.snarePerRound > 0 && duel.enemyIntent?.type === "attack") {
     duel.evadeBullets += Math.max(0, roundInt(duel.snarePerRound));
+  }
+}
+
+function applyRoundStartItemEffects(duel) {
+  const bonuses = duel?.itemBonuses ?? {};
+  if (!duel) return;
+  const armor = Math.max(0, roundInt(bonuses.armorPerRound || 0));
+  if (armor > 0) duel.playerArmor += armor;
+  if (duel.roundNumber === 1) {
+    duel.evadeBullets += Math.max(0, roundInt(bonuses.evadeFirstRound || 0));
+    duel.enemyWeak += Math.max(0, roundInt(bonuses.enemyWeakFirstRound || 0));
+  } else {
+    loadBullets(duel, bonuses.loadPerRound || 0);
+    if (bonuses.positionPerRound) addPosition(duel, bonuses.positionPerRound);
   }
 }
 
@@ -444,7 +508,7 @@ function applyCardEffects(duel, run, def, effects = effectsForCardLevel(def, def
         break;
       case "position":
       case "accShootout":
-        addPosition(duel, e.kind === "accShootout" ? Math.sign(value) : value);
+        recordClassResource(duel, run, "position", addPosition(duel, e.kind === "accShootout" ? Math.sign(value) : value));
         break;
       case "positionSet":
         setPosition(duel, value);
@@ -499,33 +563,43 @@ function applyCardEffects(duel, run, def, effects = effectsForCardLevel(def, def
         break;
       case "markEnemy": {
         const extra = run?.permanent?.extraMarkPerApply ?? 0;
-        duel.enemyMarked += Math.max(0, roundInt(value) + roundInt(extra));
+        const added = Math.max(0, roundInt(value) + roundInt(extra));
+        duel.enemyMarked += added;
+        recordClassResource(duel, run, e.kind, added);
         if (duel.caseOnMark > 0) {
           duel.caseFile = Math.max(0, roundInt(duel.caseFile || 0) + roundInt(duel.caseOnMark));
+          recordClassResource(duel, run, "caseFile", duel.caseOnMark);
         }
         break;
       }
       case "markBurst":
         duel.tempMarkBurst += Math.max(0, roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "markBulletPerMark":
         duel.tempMarkBulletPerMark += Math.max(0, roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "damagePerHp":
         duel.tempDamagePerHp = Math.max(duel.tempDamagePerHp || 0, Math.max(0, roundInt(value)));
         break;
       case "spirit": {
         const cap = run?.permanent?.spiritMax ?? 10;
+        const before = roundInt(duel.spirit || 0);
         duel.spirit = Math.min(cap, Math.max(0, roundInt(duel.spirit || 0) + roundInt(value)));
+        recordClassResource(duel, run, e.kind, duel.spirit - before);
         break;
       }
       case "spiritScaleDamage":
+        recordClassResource(duel, run, e.kind, Math.ceil(Math.abs(value) * 100));
         if (duel.spirit > 0) duel.tempDamageMult *= Math.max(0.25, 1 + duel.spirit * value);
         break;
       case "spiritScaleAcc":
+        recordClassResource(duel, run, e.kind, Math.ceil(Math.abs(value) * 100));
         if (duel.spirit > 0) addPosition(duel, Math.sign(value));
         break;
       case "spiritScaleEnemyAcc":
+        recordClassResource(duel, run, e.kind, Math.ceil(Math.abs(value) * 100));
         if (duel.spirit > 0) duel.enemyWeak += Math.max(0, Math.round(Math.abs(value) * 20 * duel.spirit));
         break;
       case "spiritDoubleNext":
@@ -533,78 +607,99 @@ function applyCardEffects(duel, run, def, effects = effectsForCardLevel(def, def
         break;
       case "lifestealOnHit":
         duel.lifestealOnHit += Math.max(0, roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "bountyOnHit":
         duel.bountyOnHit += Math.max(0, roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "infamy":
         duel.infamy = Math.max(0, roundInt(duel.infamy || 0) + roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "infamyPerRound":
         duel.infamyPerRound += Math.max(0, roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "infamyOnHit":
         duel.infamyOnHit += Math.max(0, roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "infamyLoad": {
         const spent = Math.min(Math.max(0, roundInt(duel.infamy || 0)), Math.max(0, roundInt(value)));
         duel.infamy -= spent;
         loadBullets(duel, spent);
+        recordClassResource(duel, run, e.kind, spent);
         break;
       }
       case "infamyDamage":
         duel.tempBulletDamage += Math.min(Math.max(0, roundInt(duel.infamy || 0)), Math.max(0, roundInt(value)));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "infamyArmor":
         duel.playerArmor += Math.min(Math.max(0, roundInt(duel.infamy || 0)), Math.max(0, roundInt(value))) * 3;
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "deputy":
       case "deputies":
         duel.deputies = Math.max(0, roundInt(duel.deputies || 0) + roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "deputyArmorPerRound":
         duel.deputyArmorPerRound += Math.max(0, roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "deputyLoadOnAttack":
         duel.deputyLoadOnAttack += Math.max(0, roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "deputyBlock":
         duel.playerArmor += Math.max(0, roundInt(duel.deputies || 0) * roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "caseFile":
         duel.caseFile = Math.max(0, roundInt(duel.caseFile || 0) + roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "casePerRound":
         duel.casePerRound += Math.max(0, roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "casePath":
         duel.casePath += Math.max(0, roundInt(value));
+        recordClassResource(duel, run, e.kind, value * 2);
         break;
       case "caseOnMark":
         duel.caseOnMark += Math.max(0, roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "caseSpendLoad": {
         const spent = Math.min(Math.max(0, roundInt(duel.caseFile || 0)), Math.max(0, roundInt(value)));
         duel.caseFile -= spent;
         loadBullets(duel, spent);
+        recordClassResource(duel, run, e.kind, spent);
         break;
       }
       case "caseSpendArmor": {
         const spent = Math.min(Math.max(0, roundInt(duel.caseFile || 0)), Math.max(0, roundInt(value)));
         duel.caseFile -= spent;
         duel.playerArmor += spent * 4;
+        recordClassResource(duel, run, e.kind, spent);
         break;
       }
       case "track":
         duel.track = Math.max(0, roundInt(duel.track || 0) + roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "trackDamage":
         duel.tempBulletDamage += Math.min(Math.max(0, roundInt(duel.track || 0)), Math.max(0, roundInt(value)));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "trackLoad": {
         const spent = Math.min(Math.max(0, roundInt(duel.track || 0)), Math.max(0, roundInt(value)));
         duel.track -= spent;
         loadBullets(duel, spent);
+        recordClassResource(duel, run, e.kind, spent);
         break;
       }
       case "snare":
@@ -613,39 +708,48 @@ function applyCardEffects(duel, run, def, effects = effectsForCardLevel(def, def
         } else {
           duel.playerArmor += Math.max(0, roundInt(value)) * 3;
         }
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "snarePerRound":
         duel.snarePerRound += Math.max(0, roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "positionPerRound":
         duel.positionPerRound += Math.max(0, roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "flourishDamage":
         if (roundInt(duel.position || 0) >= 3) {
           duel.flourishTempDamage += Math.max(0, roundInt(value));
         } else {
-          addPosition(duel, 1);
+          recordClassResource(duel, run, "position", addPosition(duel, 1));
         }
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "infection":
         duel.enemyInfection = Math.max(0, roundInt(duel.enemyInfection || 0) + roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "infectionWeak":
         if (duel.enemyInfection > 0) duel.enemyWeak += Math.max(0, roundInt(value));
+        recordClassResource(duel, run, e.kind, value);
         break;
       case "infectionLeech":
         duel.infectionLeech += Math.max(0, amount);
+        recordClassResource(duel, run, e.kind, Math.ceil(amount * 10));
         break;
       case "consumeInfection": {
         const stacks = Math.max(0, roundInt(duel.enemyInfection || 0));
         if (stacks > 0) {
           duel.enemy.hp -= Math.max(0, roundInt(stacks * Math.max(1, amount)));
           duel.enemyInfection = 0;
+          recordClassResource(duel, run, e.kind, stacks);
           pushPlayLogBulletin(duel, `${def.name} cashed in ${stacks} Infection.`);
         }
         break;
       }
       case "payHp":
+        break;
       case "outlawCombo":
       case "firstHitsAuto":
       case "pierce":
@@ -654,6 +758,7 @@ function applyCardEffects(duel, run, def, effects = effectsForCardLevel(def, def
       case "removeDualPenalty":
       case "dualWieldAccPenaltyReduce":
       case "gainFocused":
+        recordClassResource(duel, run, e.kind, 1);
         break;
       default:
         break;
@@ -676,11 +781,13 @@ function applyOutlawComboIfNeeded(duel, run, def) {
       if (tokens.length) applyCardEffects(duel, run, { effects: tokens }, tokens);
     }
     duel.duelComboTriggers += 1;
+    recordClassResource(duel, run, "outlawCombo", 1);
     pushPlayLogBulletin(duel, "Outlaw combo — the second dirty move pays off.");
   } else if (duel.roundOutlawCount > 2) {
     const tokens = comboTokens(def);
     if (tokens.length) applyCardEffects(duel, run, { effects: tokens }, tokens);
     duel.duelComboTriggers += 1;
+    recordClassResource(duel, run, "outlawCombo", 1);
     pushPlayLogBulletin(duel, `Outlaw combo — ${def.name} stacks.`);
   }
 }
@@ -690,11 +797,14 @@ export function tryPlayCard(duel, run, cardUid) {
   const idx = duel.playerHand.findIndex((c) => c.uid === cardUid);
   if (idx < 0) return { ok: false, reason: "No card" };
   const card = duel.playerHand[idx];
-  const def = getCardDef(card.id);
+  const baseDef = getCardDef(card.id);
+  const def = upgradedCardDef(baseDef, card.upgradeId);
   if (!def) return { ok: false, reason: "Bad card" };
 
   const isGun = def.type === "gun";
-  const isGunFree = isGun && !!run?.permanent?.freeFirstGunEachDuel && !duel.freeGunPlayed;
+  const isGunFree = isGun
+    && (!!run?.permanent?.freeFirstGunEachDuel || Math.max(0, roundInt(duel.itemBonuses?.firstGunFree || 0)) > 0)
+    && !duel.freeGunPlayed;
   const usingFreebie = !isGun && !def.noFree && !!duel.freeCardAvailable;
   const cost = (isGunFree || usingFreebie) ? 0 : Math.max(0, roundInt(def.cost || 0));
   if (cost > duel.nerve) return { ok: false, reason: "Not enough Nerve" };
@@ -713,6 +823,8 @@ export function tryPlayCard(duel, run, cardUid) {
   }
   if (hpCost > 0) {
     run.hp = Math.max(1, run.hp - hpCost);
+    ensureDeedStats(duel).hpPaid += hpCost;
+    recordClassResource(duel, run, "payHp", hpCost);
     pushPlayLogBulletin(duel, `Paid ${hpCost} HP for ${def.name}.`);
   }
 
@@ -762,7 +874,7 @@ export function duelDisplayedVolleyPreview(duel, run) {
   const marks = Math.max(0, roundInt(duel.enemyMarked || 0));
   let bullets = Math.max(0, roundInt(duel.loadedBullets || 0));
   bullets += Math.max(0, roundInt(duel.tempMarkBulletPerMark || 0)) * marks;
-  let baseDamage = gun.bulletDamage + roundInt(duel.tempBulletDamage || 0);
+  let baseDamage = gun.bulletDamage + roundInt(duel.itemBulletDamage || 0) + roundInt(duel.tempBulletDamage || 0);
   if (bullets > 0 && bullets <= 3) {
     baseDamage += roundInt(duel.flourishTempDamage || 0);
   }
@@ -899,6 +1011,7 @@ export function resolveShootout(duel, run) {
 
   duel.enemy.hp -= outgoing.expectedDamage;
   run.hp -= incoming.expectedDamage;
+  ensureDeedStats(duel).bulletDamageDealt += Math.max(0, roundInt(outgoing.expectedDamage || 0));
 
   const playerHits = outgoing.liveShots;
   if (playerHits > 0 && outgoing.expectedDamage > 0) {
@@ -932,6 +1045,7 @@ export function resolveShootout(duel, run) {
 
   const outgoingBlocked = Math.min(outgoing.rawDamage, outgoing.armor);
   const incomingBlocked = Math.min(incoming.rawDamage, incoming.armor);
+  ensureDeedStats(duel).armorPrevented += Math.max(0, roundInt(incomingBlocked || 0));
   const playerShots = shotList(outgoing.liveShots, outgoing.damagePerHit, outgoingBlocked, "hit");
   for (let i = 0; i < outgoing.dodge; i++) {
     playerShots.unshift({ i: i + 1, outcome: "dodged", dmg: 0, blocked: 0 });
@@ -1027,6 +1141,9 @@ export function resolveShootout(duel, run) {
 
 export function lockInPrep(duel, run) {
   if (!duel || duel.phase !== "player_turn") return { toShootout: false, enemyFeedback: [] };
+  if (roundInt(duel.loadedBullets || 0) >= currentCapacity(duel)) {
+    ensureDeedStats(duel).maxLoadedShowdowns += 1;
+  }
   discardHand(duel);
   duel.phase = "showdown";
   duel.highNoonT = SHOWDOWN_SECONDS;

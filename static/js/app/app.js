@@ -1,7 +1,29 @@
 import { STARTER_DECK_IDS, shuffle } from "../data/deck.js";
+import {
+  addDeckCard,
+  countDeckCards,
+  deckCardEntries,
+  deckHasCardId,
+  makeDeckCard,
+  normalizeDeck,
+  removeFirstDeckCardById,
+  replaceFirstDeckCardById,
+  syncDeckIds,
+  upgradeDeckCard,
+} from "../data/deck-state.js";
+import { activeDeedsForRun, applyDuelDeedProgress, ensureDeedState } from "../data/deeds.js";
 import { getGun, gunsForClass, starterGunIdForClass } from "../data/guns.js";
+import {
+  equipItem,
+  getItem,
+  itemBonuses,
+  normalizeEquipment,
+  rollBossGearDrop,
+  rollStartingGearChoices,
+  rollTrinketDrop,
+} from "../data/items.js";
 import { getOpponent, OPPONENTS, TOWNS } from "../data/opponents.js";
-import { CARD_DEFINITIONS, getCardDef } from "../data/cards.js";
+import { CARD_DEFINITIONS, getCardDef, getCardUpgradeOptions } from "../data/cards.js";
 import { whiskeyOfferForGame } from "../data/economy.js";
 import {
   createDuel,
@@ -15,12 +37,16 @@ import { bindInput } from "../ui/input.js";
 import {
   updateHud,
   renderClassSelect,
+  renderStartingGear,
   renderWanted,
   renderShop,
   rollShopInventory,
   renderDuelPanel,
+  renderPostDuelDeeds,
   renderPostDuelReward,
   renderPostDuelGunReward,
+  renderPostDuelItemReward,
+  renderCardUpgrade,
   renderGameOver,
 } from "../ui/ui.js";
 import { getClass } from "../data/classes.js";
@@ -68,6 +94,7 @@ const game = {
     enemyKind: "buff",
   },
   shopVisitInventory: null,
+  startingGearChoices: [],
 };
 
 function loadAsset(url) {
@@ -92,11 +119,13 @@ function syncDeckFromDuel() {
     ...(d.playerStances ?? []),
     ...(d.playerShowdown ? [d.playerShowdown] : []),
   ];
-  const all = [...d.playerDrawPile, ...d.playerDiscard, ...d.playerHand, ...persistent].map((c) => c.id);
+  const all = [...d.playerDrawPile, ...d.playerDiscard, ...d.playerHand, ...persistent]
+    .map((c) => makeDeckCard(c.id, { uid: c.deckUid, upgradeId: c.upgradeId ?? null }));
   const fallback = game.run?.classId
     ? (getClass(game.run.classId)?.starterDeckIds ?? STARTER_DECK_IDS)
     : STARTER_DECK_IDS;
-  game.run.deckIds = shuffle(all.length ? all : [...fallback]);
+  game.run.deckCards = shuffle(all.length ? all : fallback.map((id) => makeDeckCard(id)));
+  syncDeckIds(game.run);
 }
 
 function clearNavTimers() {
@@ -109,12 +138,15 @@ function clearNavTimers() {
 function goWanted() {
   clearNavTimers();
   resetCombatUi(game);
+  normalizeDeck(game.run);
+  normalizeEquipment(game.run);
+  ensureDeedState(game.run);
   game.screen = "wanted";
   game.duel = null;
   game.shopVisitInventory = null;
   saveRun(game.run);
   updateHud(game);
-  renderWanted(game, startDuel);
+  renderWanted(game, startDuel, () => openCardUpgrade(goWanted));
 }
 
 function goClassSelect() {
@@ -131,9 +163,18 @@ function goClassSelect() {
 function pickClass(classId) {
   game.run = defaultRun(classId);
   game.run.activeGunId = starterGunIdForClass(classId);
-  saveRun(game.run);
+  normalizeDeck(game.run);
+  normalizeEquipment(game.run);
+  ensureDeedState(game.run);
   updateHud(game);
-  goWanted();
+  game.startingGearChoices = rollStartingGearChoices(3);
+  game.screen = "starting-gear";
+  renderStartingGear(game, game.startingGearChoices, (itemId) => {
+    equipItem(game.run, itemId);
+    saveRun(game.run);
+    updateHud(game);
+    goWanted();
+  });
 }
 
 function normalizeTownOrder(order) {
@@ -163,6 +204,9 @@ function recordOpponentWin(opp) {
 
 function startDuel(oppId) {
   resetCombatUi(game);
+  normalizeDeck(game.run);
+  normalizeEquipment(game.run);
+  ensureDeedState(game.run);
   const opp = getOpponent(oppId);
   const highestUnlockedTown = unlockedTownOrder();
   if (opp.townOrder > highestUnlockedTown) return;
@@ -213,9 +257,7 @@ function onLockIn() {
 }
 
 function gunCountInDeck(deckIds) {
-  let n = 0;
-  for (const id of deckIds) if (id.startsWith("gun_")) n++;
-  return n;
+  return countDeckCards(game.run, (card) => card.id.startsWith("gun_"));
 }
 
 function hasStaredownOnlyEffect(cardDef) {
@@ -228,6 +270,7 @@ function isUniqueDeckCard(cardDef) {
 
 function rewardCardPool(gameState) {
   const run = gameState.run;
+  normalizeDeck(run);
   const classId = run.classId;
   const owned = new Set(run.deckIds);
   return CARD_DEFINITIONS.filter((c) =>
@@ -246,6 +289,7 @@ function rewardCardPool(gameState) {
 
 function rewardGunPool(gameState) {
   const run = gameState.run;
+  normalizeDeck(run);
   const classId = run.classId;
   const owned = new Set(run.deckIds);
   if (!classId) return [];
@@ -283,6 +327,12 @@ function rollPostDuelRewardGun(gameState) {
   return candidates[(Math.random() * candidates.length) | 0] ?? null;
 }
 
+function rollPostDuelItemReward(gameState, duel) {
+  const role = duel?.opponentDef?.role;
+  if (role === "boss") return rollBossGearDrop(gameState.run);
+  return rollTrinketDrop(gameState.run);
+}
+
 function rollPostDuelRewardCards(gameState, count = 3) {
   const pool = rewardCardPool(gameState);
   const picks = [];
@@ -300,29 +350,29 @@ function rollPostDuelRewardCards(gameState, count = 3) {
 }
 
 function applyRewardCard(cardId, opts) {
+  normalizeDeck(game.run);
   if (!cardId || cardId.startsWith("gun_")) return false;
   const def = getCardDef(cardId);
   if (!def || def.classId !== game.run.classId) return false;
-  if (isUniqueDeckCard(def) && game.run.deckIds.includes(cardId)) return false;
+  if (isUniqueDeckCard(def) && deckHasCardId(game.run, cardId)) return false;
   const replacingCard = !!opts?.replaceCardId;
   if (game.run.deckIds.length >= MAX_DECK_SIZE && !replacingCard) return false;
   if (opts?.replaceCardId) {
     if (opts.replaceCardId.startsWith("gun_")) return false;
-    const ix = game.run.deckIds.indexOf(opts.replaceCardId);
-    if (ix < 0) return false;
-    game.run.deckIds.splice(ix, 1);
+    if (!removeFirstDeckCardById(game.run, opts.replaceCardId)) return false;
   }
-  game.run.deckIds.push(cardId);
+  addDeckCard(game.run, cardId);
   saveRun(game.run);
   updateHud(game);
   return true;
 }
 
 function applyRewardGun(gunId, opts) {
+  normalizeDeck(game.run);
   if (!gunId) return false;
   const gun = getGun(gunId);
   if (!gun || gun.id !== gunId || gun.opponentOnly || gun.classId !== game.run.classId) return false;
-  if (game.run.deckIds.includes(gunId)) return false;
+  if (deckHasCardId(game.run, gunId)) return false;
 
   const replacingGun = !!opts?.replaceGunId;
   const replacingCard = !!opts?.replaceCardId;
@@ -331,17 +381,13 @@ function applyRewardGun(gunId, opts) {
 
   if (replacingGun) {
     if (!opts.replaceGunId.startsWith("gun_")) return false;
-    const ix = game.run.deckIds.indexOf(opts.replaceGunId);
-    if (ix < 0) return false;
-    game.run.deckIds.splice(ix, 1, gunId);
+    if (!replaceFirstDeckCardById(game.run, opts.replaceGunId, gunId)) return false;
   } else {
     if (replacingCard) {
       if (opts.replaceCardId.startsWith("gun_")) return false;
-      const ix = game.run.deckIds.indexOf(opts.replaceCardId);
-      if (ix < 0) return false;
-      game.run.deckIds.splice(ix, 1);
+      if (!removeFirstDeckCardById(game.run, opts.replaceCardId)) return false;
     }
-    game.run.deckIds.push(gunId);
+    addDeckCard(game.run, gunId);
   }
 
   saveRun(game.run);
@@ -349,9 +395,44 @@ function applyRewardGun(gunId, opts) {
   return true;
 }
 
+function applyRewardItem(itemId) {
+  normalizeEquipment(game.run);
+  const itemDef = getItem(itemId);
+  if (!itemDef) return false;
+  if (!equipItem(game.run, itemId)) return false;
+  saveRun(game.run);
+  updateHud(game);
+  return true;
+}
+
+function openPostDuelItemReward(itemReward, rewardContext) {
+  if (!itemReward) {
+    openShop();
+    return;
+  }
+  game.screen = "post-duel-item-reward";
+  renderPostDuelItemReward(
+    game,
+    {
+      ...rewardContext,
+      rewardItems: [itemReward],
+      mandatory: itemReward.slot !== "trinket",
+    },
+    (itemId) => {
+      if (!applyRewardItem(itemId)) return;
+      openShop();
+    },
+    () => {
+      saveRun(game.run);
+      updateHud(game);
+      openShop();
+    }
+  );
+}
+
 function openPostDuelGunReward(gunReward, rewardContext) {
   if (!gunReward) {
-    openShop();
+    openPostDuelItemReward(rewardContext.itemReward, rewardContext);
     return;
   }
   game.screen = "post-duel-gun-reward";
@@ -364,12 +445,12 @@ function openPostDuelGunReward(gunReward, rewardContext) {
     },
     (gunId, opts) => {
       if (!applyRewardGun(gunId, opts)) return;
-      openShop();
+      openPostDuelItemReward(rewardContext.itemReward, rewardContext);
     },
     () => {
       saveRun(game.run);
       updateHud(game);
-      openShop();
+      openPostDuelItemReward(rewardContext.itemReward, rewardContext);
     }
   );
 }
@@ -377,10 +458,12 @@ function openPostDuelGunReward(gunReward, rewardContext) {
 function openPostDuelReward(duel, bountyEarned) {
   const rewardCards = rollPostDuelRewardCards(game, 3);
   const gunReward = rollPostDuelRewardGun(game);
+  const itemReward = rollPostDuelItemReward(game, duel);
   const rewardContext = {
     opponentName: duel?.opponentDef?.name ?? "Outlaw",
     opponentTitle: duel?.opponentDef?.title ?? "",
     bountyEarned,
+    itemReward,
   };
   game.screen = "post-duel-reward";
   renderPostDuelReward(
@@ -389,7 +472,7 @@ function openPostDuelReward(duel, bountyEarned) {
       ...rewardContext,
       rewardCards,
       deckCap: MAX_DECK_SIZE,
-      skipLabel: gunReward ? "Continue to Gun Drop" : undefined,
+      skipLabel: gunReward ? "Continue to Gun Drop" : (itemReward ? "Continue to Gear" : undefined),
     },
     (cardId, opts) => {
       if (!applyRewardCard(cardId, opts)) return;
@@ -403,9 +486,52 @@ function openPostDuelReward(duel, bountyEarned) {
   );
 }
 
+function eligibleUpgradeCards() {
+  return deckCardEntries(game.run, (card) => {
+    const def = getCardDef(card.id);
+    return !!def && def.type !== "gun" && !card.upgradeId && getCardUpgradeOptions(def).length > 0;
+  });
+}
+
+function openCardUpgrade(onDone) {
+  normalizeDeck(game.run);
+  game.screen = "card-upgrade";
+  renderCardUpgrade(
+    game,
+    eligibleUpgradeCards(),
+    (deckUid, upgradeId) => {
+      if ((game.run.signaturePoints || 0) <= 0) return;
+      if (!upgradeDeckCard(game.run, deckUid, upgradeId)) return;
+      game.run.signaturePoints = Math.max(0, (game.run.signaturePoints || 0) - 1);
+      saveRun(game.run);
+      updateHud(game);
+      openCardUpgrade(onDone);
+    },
+    () => {
+      saveRun(game.run);
+      updateHud(game);
+      onDone?.();
+    }
+  );
+}
+
+function openPostDuelDeeds(deedSummary, onContinue) {
+  game.screen = "post-duel-deeds";
+  renderPostDuelDeeds(
+    game,
+    deedSummary,
+    () => openCardUpgrade(() => openPostDuelDeeds(deedSummary, onContinue)),
+    onContinue
+  );
+}
+
 function openShop() {
+  normalizeDeck(game.run);
+  normalizeEquipment(game.run);
   if (!game.shopVisitInventory) {
+    game.run.merchantVisits = Math.max(0, game.run.merchantVisits || 0) + 1;
     game.shopVisitInventory = rollShopInventory(game);
+    saveRun(game.run);
   }
   if (typeof game.shopVisitInventory.healUsed !== "boolean") {
     game.shopVisitInventory.healUsed = false;
@@ -420,32 +546,40 @@ function openShop() {
     (cardId, price, opts) => {
       if (game.shopVisitInventory?.purchaseUsed) return;
       if (game.run.money < price) return;
+      const itemDef = getItem(cardId);
+      if (itemDef) {
+        if (!equipItem(game.run, cardId)) return;
+        game.run.money -= price;
+        game.shopVisitInventory.purchaseUsed = true;
+        if (game.shopVisitInventory.trinketId === cardId) game.shopVisitInventory.trinketId = null;
+        saveRun(game.run);
+        updateHud(game);
+        openShop();
+        return;
+      }
       const isGun = cardId.startsWith("gun_");
       const cardDef = getCardDef(cardId);
       const replacingGun = isGun && !!opts?.replaceGunId;
       const replacingCard = !isGun && !!opts?.replaceCardId;
+      normalizeDeck(game.run);
       if (game.run.deckIds.length >= MAX_DECK_SIZE && !replacingGun && !replacingCard) return;
       if (isGun) {
-        if (game.run.deckIds.includes(cardId)) return; // no duplicate guns
+        if (deckHasCardId(game.run, cardId)) return; // no duplicate guns
         const owned = gunCountInDeck(game.run.deckIds);
         if (owned >= 2) {
           if (!opts?.replaceGunId) return; // shop should re-prompt
-          const ix = game.run.deckIds.indexOf(opts.replaceGunId);
-          if (ix < 0) return;
-          game.run.deckIds.splice(ix, 1);
+          if (!removeFirstDeckCardById(game.run, opts.replaceGunId)) return;
         }
       } else if (!cardDef || cardDef.classId !== game.run.classId) {
         return;
-      } else if (isUniqueDeckCard(cardDef) && game.run.deckIds.includes(cardId)) {
+      } else if (isUniqueDeckCard(cardDef) && deckHasCardId(game.run, cardId)) {
         return;
       } else if (opts?.replaceCardId) {
         if (opts.replaceCardId.startsWith("gun_")) return;
-        const ix = game.run.deckIds.indexOf(opts.replaceCardId);
-        if (ix < 0) return;
-        game.run.deckIds.splice(ix, 1);
+        if (!removeFirstDeckCardById(game.run, opts.replaceCardId)) return;
       }
       game.run.money -= price;
-      game.run.deckIds.push(cardId);
+      addDeckCard(game.run, cardId);
       if (game.shopVisitInventory) {
         game.shopVisitInventory.purchaseUsed = true;
         if (isGun) {
@@ -471,7 +605,8 @@ function openShop() {
     },
     () => {
       goWanted();
-    }
+    },
+    () => openCardUpgrade(openShop)
   );
 }
 
@@ -481,11 +616,14 @@ function endDuelFlow() {
   resetCombatUi(game);
   syncDeckFromDuel();
   if (d.winner === "player") {
+    normalizeEquipment(game.run);
     const mult = game.run.permanent?.bountyMult ?? 1;
+    const gearBonuses = itemBonuses(game.run);
     const bonusBounty = Math.max(0, Math.round(d.bonusBounty || 0));
-    const bountyEarned = Math.round(game.lastBounty * mult) + bonusBounty;
+    const bountyEarned = Math.round((game.lastBounty + Math.max(0, gearBonuses.bountyFlat || 0)) * (mult + Math.max(0, gearBonuses.bountyMult || 0))) + bonusBounty;
     game.lastBountyEarned = bountyEarned;
     game.run.money += bountyEarned;
+    const deedSummary = applyDuelDeedProgress(game.run, d);
     recordOpponentWin(d.opponentDef);
 
     // Apply cumulative growth for next time (Outlaw class: bountyGrowthPerWin = 0.25, cap 3.0)
@@ -509,11 +647,22 @@ function endDuelFlow() {
       }
     }
 
+    const postWinHeal = Math.max(0, Math.round(gearBonuses.healAfterDuel || 0))
+      + (d.opponentDef?.role === "boss" ? Math.max(0, Math.round(gearBonuses.healAfterBoss || 0)) : 0);
+    if (postWinHeal > 0) {
+      game.run.hp = Math.min(game.run.maxHp, game.run.hp + postWinHeal);
+    }
+
 
     saveRun(game.run);
     updateHud(game);
     game.duel = null;
-    openPostDuelReward(d, bountyEarned);
+    const continueRewards = () => openPostDuelReward(d, bountyEarned);
+    if ((deedSummary?.rows ?? []).length) {
+      openPostDuelDeeds(deedSummary, continueRewards);
+    } else {
+      continueRewards();
+    }
     return;
   } else {
     game.screen = "gameover";

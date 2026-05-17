@@ -3,6 +3,7 @@
 This document describes the current card/deck implementation after the deterministic combat rework.
 
 Two-build class identities and reward-pool expectations are defined in [build-paths.md](build-paths.md).
+The current upgrade layer is defined in [deeds.md](deeds.md).
 
 ## Card Types
 
@@ -161,6 +162,7 @@ Each class starter deck contains 12 cards. Starter guns are equipped separately 
 - Rewards and shop card offers are class-only.
 - Wanted-board progression is linear inside each town: easy poster, then medium poster, then boss. Defeated posters cannot be refarmed.
 - Town identity and opponent progression baselines live in [towns.md](towns.md).
+- Each town has 3 active Deeds. Completing a Deed grants 1 Signature Point, and each Signature Point upgrades one non-gun deck card copy once.
 - Each win has a 20% chance to add a separate class-only gun drop screen after the card reward. Gun drops exclude the class starter/currently equipped gun.
 - Feats can repeat, which lets a class build a focused engine.
 - Stances are unique deck cards; once owned, they stop appearing in reward/shop card offers.

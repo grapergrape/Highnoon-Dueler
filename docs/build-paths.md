@@ -115,7 +115,7 @@ Second path: Frontier Doctor
 
 ## Tactical Playtest Baseline
 
-May 17, 2026 build-guided tactical run:
+May 17, 2026 Deed-aware build-guided tactical run before the shared item layer:
 
 ```bash
 node tools/tactical-shop-sim.mjs --runs 10 --build-paths
@@ -125,15 +125,38 @@ This is a pressure test, not the high-volume balance target. The runner searches
 
 | Class | Current path | Clears | Second path | Clears | Read |
 | --- | --- | ---: | --- | ---: | --- |
-| Outlaw | `combo` | 3/10 | `infamy` | 6/10 | Original combo is no longer solved; Infamy is playable. |
-| Sheriff | `street` | 5/10 | `posse` | 6/10 | Both are acceptable pressure-test bands. |
-| U.S. Marshal | `marks` | 6/10 | `procedure` | 6/10 | Procedure Path fixed the weak Case File route without exceeding Marks. |
-| Apache Tracker | `spirit` | 4/10 | `trail` | 6/10 | Trail is down after the passive Armor trim. |
-| Vaquero | `dual` | 6/10 | `flourish` | 5/10 | Dual was reduced without killing the class; Flourish now works as a precision path. |
-| Bounty Hunter | `blood` | 6/10 | `doctor` | 4/10 | Blood is down after non-starter lifesteal trims; Doctor remains playable. |
+| Outlaw | `combo` | 6/10 | `infamy` | 5/10 | Harder Deeds lower upgrade count, but signed combo cards still feel strong. |
+| Sheriff | `street` | 6/10 | `posse` | 6/10 | Both paths benefit cleanly from bigger Armor/deputy Signatures. |
+| U.S. Marshal | `marks` | 6/10 | `procedure` | 4/10 | Marks needed a defensive cap bump; Procedure remains viable but less explosive. |
+| Apache Tracker | `spirit` | 4/10 | `trail` | 7/10 | Trail spikes harder from Track/Snare Signatures; Spirit is more demanding. |
+| Vaquero | `dual` | 7/10 | `flourish` | 4/10 | Dual uses fewer but stronger Signatures well; Flourish is swingier. |
+| Bounty Hunter | `blood` | 6/10 | `doctor` | 8/10 | Doctor is the current broken-side path when Infection Signatures line up. |
 
-Aggregate: 63/120 clears, or 52.5%.
+Aggregate: 69/120 clears, or 57.5%.
 
-Honest balance read: the two-path model reduced several original solved routes, especially Outlaw combo, Apache Spirit, Vaquero dual, and Bounty Blood. It is not finished balance, but the current tactical spread is close enough to the 50% manual target to stop tuning here. The next likely watch points are Apache Trail at 6/10 and Bounty Doctor at 4/10.
+Honest balance read: this intentionally moved the system toward rare, high-impact upgrades instead of frequent modest upgrades. It is more exciting, but less flat. Bounty Doctor and Vaquero Dual are the current high-roll watch points; Marshal Procedure and Vaquero Flourish are the low-end watch points.
+
+The later shared item layer adds starting gear, boss gear drops, and trinkets. Treat the table above as a pre-item card/deed baseline, not the final post-item balance target.
+
+## Post-Item Tactical Check
+
+May 17, 2026 after adding shared gear and trinkets:
+
+```bash
+node tools/tactical-shop-sim.mjs --runs 10 --build-paths
+```
+
+| Class | Current path | Clears | Second path | Clears | Read |
+| --- | --- | ---: | --- | ---: | --- |
+| Outlaw | `combo` | 9/10 | `infamy` | 2/10 | Combo remains too reliable; Infamy still collapses at the final boss without enough scaling. |
+| Sheriff | `street` | 8/10 | `posse` | 7/10 | Sheriff likes even small defensive gear and is currently forgiving. |
+| U.S. Marshal | `marks` | 8/10 | `procedure` | 8/10 | Marshal is high-consistency under tactical play; the class, not shared gear, needs the next pass. |
+| Apache Tracker | `spirit` | 8/10 | `trail` | 9/10 | Both paths are strong when tactical routing finds enough scaling. |
+| Vaquero | `dual` | 8/10 | `flourish` | 7/10 | The item pass lifted Flourish, but Dual is still the cleaner route. |
+| Bounty Hunter | `blood` | 7/10 | `doctor` | 7/10 | Both paths are durable under tactical play; Doctor is less absurd than the pre-item high roll but still strong. |
+
+Aggregate: 88/120 clears, or 73.3%.
+
+Honest balance read: shared items are now modest enough that the remaining high clear rate is mostly class/opponent balance debt. Outlaw Combo, Marshal, Apache Trail, and Sheriff Street are the watch points. Do not nerf the whole item pool further to fix those specific routes; tune the strongest class cards, Deed upgrades, and final-town pressure instead.
 
 The matching low-skill sim target is tracked in [simulation-balancing.md](simulation-balancing.md). Current default low-skill sim is 0/200 clears for every class, which is inside the requested 0-5% band but intentionally too weak to represent manual play.

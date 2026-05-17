@@ -1,8 +1,11 @@
 import { defaultRun } from "../static/js/app/run-state.js";
 import { CLASSES } from "../static/js/data/classes.js";
-import { CARD_DEFINITIONS, effectsForCardLevel, getCardDef, getClassShowdownCatalog, parseEffect } from "../static/js/data/cards.js";
+import { CARD_DEFINITIONS, effectsForCardLevel, getCardDef, getCardUpgradeOptions, getClassShowdownCatalog, parseEffect, upgradedCardDef } from "../static/js/data/cards.js";
+import { addDeckCard, deckCardEntries, deckHasCardId, normalizeDeck, replaceDeckCardAt, upgradeDeckCard } from "../static/js/data/deck-state.js";
+import { applyDuelDeedProgress, ensureDeedState } from "../static/js/data/deeds.js";
 import { WHISKEY_HEAL_AMOUNT, whiskeyPriceFromBounty } from "../static/js/data/economy.js";
 import { getGun, gunsForClass, starterGunIdForClass } from "../static/js/data/guns.js";
+import { equipItem, itemBonuses, rollBossGearDrop, rollMerchantTrinket, rollStartingGearChoices, rollTrinketDrop, trinketPrice } from "../static/js/data/items.js";
 import { OPPONENTS } from "../static/js/data/opponents.js";
 import {
   createDuel,
@@ -102,6 +105,9 @@ function runSimulation({ runsPerClass, baseSeed, simMode }) {
     for (let i = 0; i < runsPerClass; i++) {
       Math.random = mulberry32(baseSeed + i * 97 + stableClassSeed(cls.id));
       const run = defaultRun(cls.id);
+      normalizeDeck(run);
+      ensureDeedState(run);
+      takeStartingGear(run, simMode);
       const unlocks = defaultUnlocks();
       let wins = 0;
 
@@ -157,6 +163,7 @@ function runSimulation({ runsPerClass, baseSeed, simMode }) {
       whiskeyHealing: simMode === "greedy",
       shopPurchases: false,
       relics: false,
+      items: true,
       smithing: false,
       potions: false,
     },
@@ -252,10 +259,13 @@ function playTurn(duel, run) {
 }
 
 function canAffordCard(card, duel, run) {
-  const def = getCardDef(card.id);
+  const def = upgradedCardDef(getCardDef(card.id), card.upgradeId);
   if (!def) return false;
   let cost = def.cost ?? 0;
-  const isFreeGun = def.type === "gun" && !!run.permanent?.freeFirstGunEachDuel && !duel.freeGunPlayed;
+  const bonuses = itemBonuses(run);
+  const isFreeGun = def.type === "gun"
+    && (!!run.permanent?.freeFirstGunEachDuel || Math.max(0, bonuses.firstGunFree || 0) > 0)
+    && !duel.freeGunPlayed;
   const usingFreebie = def.type !== "gun" && !def.noFree && duel.freeCardAvailable === true;
   if (isFreeGun || usingFreebie) cost = 0;
   let hpCost = 0;
@@ -267,17 +277,62 @@ function canAffordCard(card, duel, run) {
 }
 
 function afterWin(run, opp, duel, unlocks, simMode) {
-  const bounty = Math.round((opp.bounty ?? (35 + opp.difficultyTier * 12)) * (run.permanent?.bountyMult ?? 1))
+  normalizeDeck(run);
+  ensureDeedState(run);
+  const bonuses = itemBonuses(run);
+  const bounty = Math.round(((opp.bounty ?? (35 + opp.difficultyTier * 12)) + Math.max(0, bonuses.bountyFlat || 0)) * ((run.permanent?.bountyMult ?? 1) + Math.max(0, bonuses.bountyMult || 0)))
     + Math.max(0, Math.round(duel.bonusBounty || 0));
   run.money += bounty;
   if (!run.defeatedOpponentIds.includes(opp.id)) run.defeatedOpponentIds.push(opp.id);
+  applyDuelDeedProgress(run, duel);
+  if (simMode === "greedy") takeBestUpgrade(run);
   if (opp.role === "boss") {
     unlockBoss(unlocks, run.classId, opp.townOrder);
     run.currentTownOrder = Math.min(5, opp.townOrder + 1);
+    ensureDeedState(run);
+    takeBossGear(run);
+  } else {
+    takeTrinketDrop(run);
   }
   applySheriffRespect(run);
+  const postWinHeal = Math.max(0, Math.round(bonuses.healAfterDuel || 0))
+    + (opp.role === "boss" ? Math.max(0, Math.round(bonuses.healAfterBoss || 0)) : 0);
+  if (postWinHeal > 0) run.hp = Math.min(run.maxHp, run.hp + postWinHeal);
   takeReward(run, unlocks, simMode);
-  if (simMode === "greedy") buyWhiskeyIfUseful(run, bounty);
+  run.merchantVisits = Math.max(0, run.merchantVisits || 0) + 1;
+  if (simMode === "greedy") {
+    buyMerchantTrinketIfUseful(run);
+    buyWhiskeyIfUseful(run, bounty);
+  }
+}
+
+function takeStartingGear(run, simMode) {
+  const choices = rollStartingGearChoices(3);
+  const pick = simMode === "low-skill"
+    ? choices[0]
+    : choices.sort((a, b) => itemScore(b, run) - itemScore(a, run))[0];
+  if (pick) equipItem(run, pick.id);
+}
+
+function takeBossGear(run) {
+  const item = rollBossGearDrop(run);
+  if (item) equipItem(run, item.id);
+}
+
+function takeTrinketDrop(run) {
+  const item = rollTrinketDrop(run);
+  if (item) equipItem(run, item.id);
+}
+
+function buyMerchantTrinketIfUseful(run) {
+  const item = rollMerchantTrinket(run);
+  if (!item) return;
+  const price = trinketPrice(item, run);
+  const score = itemScore(item, run);
+  if (run.money >= price && score > price * 0.12) {
+    run.money -= price;
+    equipItem(run, item.id);
+  }
 }
 
 function applySheriffRespect(run) {
@@ -306,12 +361,12 @@ function takeReward(run, unlocks, simMode) {
   const pick = simMode === "low-skill" ? cards[0] : chooseBestCard(cards, { run }, 5);
   if (pick) {
     if (run.deckIds.length < MAX_DECK) {
-      run.deckIds.push(pick.id);
+      addDeckCard(run, pick.id);
     } else if (simMode === "greedy") {
       const worst = worstDeckCard(run);
       const pickScore = cardScore(pick, { run });
       if (worst.id && pickScore > worst.score + 8) {
-        run.deckIds.splice(run.deckIds.indexOf(worst.id), 1, pick.id);
+        replaceDeckCardAt(run, worst.ix, pick.id);
       }
     }
   }
@@ -321,7 +376,7 @@ function takeReward(run, unlocks, simMode) {
 function takeGunDrop(run, simMode) {
   if (Math.random() >= GUN_DROP_CHANCE) return;
   const pool = gunsForClass(run.classId).filter((gun) =>
-    !run.deckIds.includes(gun.id)
+    !deckHasCardId(run, gun.id)
     && gun.id !== starterGunIdForClass(run.classId)
     && gun.id !== run.permanent?.startSecondaryGunId
   );
@@ -332,12 +387,12 @@ function takeGunDrop(run, simMode) {
   const gun = candidates[(Math.random() * candidates.length) | 0];
   const gunCards = run.deckIds.filter((id) => id.startsWith("gun_"));
   if (simMode === "low-skill") {
-    if (gunCards.length < 2 && run.deckIds.length < MAX_DECK) run.deckIds.push(gun.id);
+    if (gunCards.length < 2 && run.deckIds.length < MAX_DECK) addDeckCard(run, gun.id);
     return;
   }
   const gunScore = cardScore(getCardDef(gun.id), { run });
   if (gunCards.length < 2 && gunScore > 4) {
-    run.deckIds.push(gun.id);
+    addDeckCard(run, gun.id);
     return;
   }
   if (!gunCards.length) return;
@@ -351,7 +406,10 @@ function takeGunDrop(run, simMode) {
       worstGun = id;
     }
   }
-  if (gunScore > worstScore + 8) run.deckIds.splice(run.deckIds.indexOf(worstGun), 1, gun.id);
+  if (gunScore > worstScore + 8) {
+    const ix = run.deckCards.findIndex((entry) => entry.id === worstGun);
+    replaceDeckCardAt(run, ix, gun.id);
+  }
 }
 
 function rollRewardCards(run, unlocks, count = 3) {
@@ -368,6 +426,7 @@ function rollRewardCards(run, unlocks, count = 3) {
 }
 
 function availableRewardCards(run, unlocks) {
+  normalizeDeck(run);
   const owned = new Set(run.deckIds);
   const unlocked = new Set(unlocks.unlockedShowdownIdsByClass[run.classId] ?? []);
   return CARD_DEFINITIONS.filter((card) =>
@@ -394,26 +453,31 @@ function drawRarity(pool) {
 }
 
 function worstDeckCard(run) {
+  normalizeDeck(run);
   let worstId = null;
   let worst = Infinity;
-  for (const id of run.deckIds) {
+  let worstIx = -1;
+  for (let ix = 0; ix < run.deckCards.length; ix++) {
+    const entry = run.deckCards[ix];
+    const id = entry.id;
     if (id.startsWith("gun_")) continue;
-    const def = getCardDef(id);
+    const def = upgradedCardDef(getCardDef(id), entry.upgradeId);
     const uniquePenalty = def?.type === "stance" ? 20 : 0;
     const score = cardScore(def, { run }) - uniquePenalty;
     if (score < worst) {
       worst = score;
       worstId = id;
+      worstIx = ix;
     }
   }
-  return { id: worstId, score: worst };
+  return { id: worstId, ix: worstIx, score: worst };
 }
 
 function chooseBestCard(cards, ctx, minScore = 0) {
   let best = null;
   let bestScore = -Infinity;
   for (const card of cards) {
-    const def = getCardDef(card.id ?? card);
+    const def = upgradedCardDef(getCardDef(card.id ?? card), card.upgradeId);
     const score = cardScore(def, ctx);
     if (score > bestScore) {
       bestScore = score;
@@ -421,6 +485,27 @@ function chooseBestCard(cards, ctx, minScore = 0) {
     }
   }
   return bestScore >= minScore ? best : null;
+}
+
+function takeBestUpgrade(run) {
+  normalizeDeck(run);
+  let guard = 0;
+  while ((run.signaturePoints || 0) > 0 && guard++ < 20) {
+    let best = null;
+    for (const entry of deckCardEntries(run, (card) => {
+      const def = getCardDef(card.id);
+      return !!def && def.type !== "gun" && !card.upgradeId && getCardUpgradeOptions(def).length > 0;
+    })) {
+      const base = getCardDef(entry.id);
+      for (const option of getCardUpgradeOptions(base)) {
+        const score = cardScore(upgradedCardDef(base, option.id), { run }) - cardScore(base, { run });
+        if (!best || score > best.score) best = { uid: entry.uid, upgradeId: option.id, score };
+      }
+    }
+    if (!best || best.score <= 0) return;
+    if (!upgradeDeckCard(run, best.uid, best.upgradeId)) return;
+    run.signaturePoints = Math.max(0, (run.signaturePoints || 0) - 1);
+  }
 }
 
 function cardScore(def, ctx = {}) {
@@ -454,7 +539,7 @@ function gunScoreDelta(def, ctx) {
     currentValue = (starter.capacity ?? starter.mag ?? 5) * (starter.bulletDamage ?? starter.damage ?? 6);
   }
   let score = (gunValue - currentValue) * 0.55;
-  if (ctx.run?.permanent?.freeFirstGunEachDuel && !ctx.duel?.freeGunPlayed) score += 10;
+  if ((ctx.run?.permanent?.freeFirstGunEachDuel || itemBonuses(ctx.run).firstGunFree > 0) && !ctx.duel?.freeGunPlayed) score += 10;
   return score;
 }
 
@@ -555,13 +640,51 @@ function effectScore(raw, ctx = {}) {
   }
 }
 
+function itemScore(itemDef, run) {
+  if (!itemDef) return -999;
+  let score = 0;
+  for (const effect of itemDef.effects ?? []) {
+    const v = Number(effect.value) || 0;
+    switch (effect.kind) {
+      case "maxHp": score += v * 2.2; break;
+      case "startNerve": score += v * 18; break;
+      case "maxNerve": score += v * 15; break;
+      case "nerveGain": score += v * 22; break;
+      case "startArmor": score += v * 2.1; break;
+      case "armorPerRound": score += v * 13; break;
+      case "startLoaded": score += v * 16; break;
+      case "loadPerRound": score += v * 19; break;
+      case "capacity": score += v * 12; break;
+      case "bulletDamage": score += v * 24; break;
+      case "position": score += v * 12; break;
+      case "positionCap": score += v * 10; break;
+      case "positionPerRound": score += v * 17; break;
+      case "evadeFirstRound": score += v * 12; break;
+      case "enemyWeakFirstRound": score += v * 7; break;
+      case "firstCardFree": score += v * 30; break;
+      case "firstGunFree": score += v * 12; break;
+      case "healAfterDuel": score += v * 7; break;
+      case "healAfterBoss": score += v * 2.5; break;
+      case "bountyFlat": score += v * 0.65; break;
+      case "bountyMult": score += v * 90; break;
+      case "cardDiscount":
+      case "gunDiscount":
+      case "trinketDiscount": score += v * 70; break;
+      default: break;
+    }
+  }
+  if (run?.classId === "vaquero" && itemDef.effects?.some((e) => e.kind === "capacity" || e.kind === "startLoaded")) score += 8;
+  if (run?.classId === "sheriff" && itemDef.effects?.some((e) => e.kind === "armorPerRound" || e.kind === "maxHp")) score += 8;
+  return score;
+}
+
 function printMarkdown(data) {
   console.log(`# Balance Simulation`);
   console.log(`Runs per class: ${data.settings.runsPerClass}`);
   console.log(`Seed: ${data.settings.baseSeed}`);
   console.log(`Mode: ${data.settings.simMode}`);
   const whiskey = data.settings.whiskeyHealing ? "whiskey healing" : "no whiskey healing";
-  console.log(`Model: card rewards, 20% gun drops, ${whiskey}, no shop purchases, no relics, no smithing, no potions\n`);
+  console.log(`Model: card rewards, 20% gun drops, boss gear, rare trinkets, ${whiskey}, no normal shop card/gun purchases, no smithing, no potions\n`);
 
   console.log(`## Class Clears\n`);
   console.log(`| Class | Clears | Clear % | Avg wins | Top deaths |`);

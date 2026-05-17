@@ -17,6 +17,7 @@ This frontend ships as browser-native ES modules (no bundler). `static/index.htm
   - Static game data and data helpers:
     - cards, guns, classes, opponents
     - deck construction/shuffle helpers
+    - Deed definitions and card-copy Signature state helpers
   - Should not own DOM or canvas rendering logic.
 
 - `static/js/duel/`
@@ -56,6 +57,11 @@ Ownership split:
 
 - `static/js/data/cards.js`
   - Owns the new effect vocabulary: `load`, `armor`, `position`, `evadeBullets`, `evadeAttack`, `nerve`, `nextNerve`, `draw`, `rattled`, and rare `overcap`.
+  - Owns generated Signature upgrade branches for non-gun cards.
+
+- `static/js/data/deeds.js` and `static/js/data/deck-state.js`
+  - Own town Deed objectives, Signature Point progress, and per-copy card upgrade state.
+  - Keep `run.deckCards` as canonical card-copy state and mirror `run.deckIds` for older helpers.
 
 - `static/js/data/opponents.js`
   - Owns authored enemy intent tables and patterns.

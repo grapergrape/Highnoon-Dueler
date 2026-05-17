@@ -1498,35 +1498,35 @@ export const CARD_DEFINITIONS = [
     id: "atk_name_on_every_poster", name: "Name on Every Poster", type: "feat", rarity: "common", cost: 1,
     classId: "outlaw",
     buildPath: "infamy",
-    effects: ["infamy+3", "armor+10"],
+    effects: ["infamy+3", "armor+8"],
     flavorText: "The town knows the face. The face knows how to live with that.",
   },
   {
     id: "char_wanted_legend", name: "Wanted Legend", type: "stance", rarity: "uncommon", cost: 0,
     classId: "outlaw",
     buildPath: "infamy",
-    effects: ["infamyPerRound+2", "infamyOnHit+1", "armor+4"],
+    effects: ["infamyPerRound+1", "armor+3"],
     flavorText: "Every witness makes the story harder to kill.",
   },
   {
     id: "atk_no_witnesses", name: "No Witnesses", type: "feat", rarity: "uncommon", cost: 1,
     classId: "outlaw",
     buildPath: "infamy",
-    effects: ["infamy+1", "infamyLoad+5"],
+    effects: ["infamy+1", "infamyLoad+4"],
     flavorText: "A famous man can still leave nobody talking.",
   },
   {
     id: "atk_bounty_scare", name: "Bounty Scare", type: "feat", rarity: "rare", cost: 2,
     classId: "outlaw",
     buildPath: "infamy",
-    effects: ["infamyDamage+6", "enemyWeak+6", "infamy+2", "infamyLoad+2"],
+    effects: ["infamyDamage+5", "enemyWeak+5", "infamy+1", "infamyLoad+1"],
     flavorText: "They flinch before the draw. They have read the posters.",
   },
   {
     id: "char_bad_reputation", name: "Bad Reputation", type: "stance", rarity: "rare", cost: 0,
     classId: "outlaw",
     buildPath: "infamy",
-    effects: ["infamy+5", "infamyArmor+5", "infamyDamage+3", "healNow+6"],
+    effects: ["infamy+4", "infamyArmor+3", "infamyDamage+3"],
     flavorText: "Even the bullets hesitate around a name that ugly.",
   },
   {
@@ -1554,7 +1554,7 @@ export const CARD_DEFINITIONS = [
     id: "atk_town_behind_me", name: "Town Behind Me", type: "feat", rarity: "uncommon", cost: 2,
     classId: "sheriff",
     buildPath: "posse",
-    effects: ["deputyBlock+3", "load+2"],
+    effects: ["deputyBlock+2", "load+2"],
     flavorText: "He stands alone only from the front.",
   },
   {
@@ -1575,28 +1575,28 @@ export const CARD_DEFINITIONS = [
     id: "char_federal_procedure", name: "Federal Procedure", type: "stance", rarity: "common", cost: 0,
     classId: "marshal",
     buildPath: "procedure",
-    effects: ["casePath+1", "caseFile+1", "armor+4", "enemyWeak+2", "nextNerve+1"],
+    effects: ["casePath+1", "caseFile+1", "armor+2", "enemyWeak+2"],
     flavorText: "The law moves slow until it arrives everywhere.",
   },
   {
     id: "atk_serve_warrant", name: "Serve Warrant", type: "feat", rarity: "uncommon", cost: 1,
     classId: "marshal",
     buildPath: "procedure",
-    effects: ["caseFile+1", "caseSpendLoad+3", "enemyWeak+3", "damage+1"],
+    effects: ["caseFile+1", "caseSpendLoad+2", "enemyWeak+3", "damage+1"],
     flavorText: "The paper has done its waiting.",
   },
   {
     id: "atk_evidence_locker", name: "Evidence Locker", type: "feat", rarity: "uncommon", cost: 1,
     classId: "marshal",
     buildPath: "procedure",
-    effects: ["caseFile+3", "caseSpendArmor+2", "draw+1"],
+    effects: ["caseFile+2", "caseSpendArmor+2", "draw+1"],
     flavorText: "Every tag and parcel becomes cover.",
   },
   {
     id: "char_circuit_judge", name: "Circuit Judge", type: "stance", rarity: "rare", cost: 0,
     classId: "marshal",
     buildPath: "procedure",
-    effects: ["casePath+1", "caseFile+2", "armor+6"],
+    effects: ["casePath+1", "caseFile+1", "armor+4"],
     flavorText: "The judge rides late, but the verdict rides with him.",
   },
   {
@@ -1608,7 +1608,7 @@ export const CARD_DEFINITIONS = [
     flavorText: "The ground tells on every boot.",
   },
   {
-    id: "atk_snare_line", name: "Snare Line", type: "feat", rarity: "common", cost: 2,
+    id: "atk_snare_line", name: "Snare Line", type: "feat", rarity: "common", cost: 1,
     classId: "apache_tracker",
     buildPath: "trail",
     noFree: true,
@@ -1628,7 +1628,7 @@ export const CARD_DEFINITIONS = [
     classId: "apache_tracker",
     buildPath: "trail",
     noFree: true,
-    effects: ["trackLoad+1", "trackDamage+1"],
+    effects: ["trackLoad+2", "trackDamage+1"],
     flavorText: "A watched trail becomes a firing line.",
   },
   {
@@ -1664,7 +1664,7 @@ export const CARD_DEFINITIONS = [
     id: "atk_left_hand_low", name: "Left Hand Low", type: "feat", rarity: "uncommon", cost: 1,
     classId: "vaquero",
     buildPath: "flourish",
-    effects: ["armor+9", "flourishDamage+2", "load+1"],
+    effects: ["armor+8", "flourishDamage+1", "load+1"],
     flavorText: "One pistol hides below the story.",
   },
   {
@@ -2597,21 +2597,21 @@ const COMBAT_REWORK_CARD_OVERRIDES = {
   char_cantina_fame: { cost: 0, effects: ["load+1", "position+1"] },
   char_saddle_trick: { cost: 0, effects: ["armor+6", "draw+1"] },
 
-  atk_blood_for_lead: { cost: 1, effects: ["payHp+3", "load+1", "lifestealOnHit+1"] },
+  atk_blood_for_lead: { cost: 1, effects: ["payHp+4", "load+1", "lifestealOnHit+1"] },
   atk_dead_mans_cover: { cost: 1, effects: ["armor+10", "position+1"] },
-  atk_patch_job: { cost: 1, effects: ["healNow+8", "armor+8"] },
-  atk_vendetta_shot: { cost: 1, effects: ["payHp+6", "load+2", "lifestealOnHit+1"] },
+  atk_patch_job: { cost: 1, effects: ["healNow+8", "armor+7"] },
+  atk_vendetta_shot: { cost: 1, effects: ["payHp+6", "load+2", "armor+2"] },
   atk_reckless_aim: { cost: 1, effects: ["payHp+3", "position+2", "armor+4"] },
-  atk_last_bullet: { cost: 2, effects: ["payHp+6", "load+1", "damage+3", "lifestealOnHit+1"] },
+  atk_last_bullet: { cost: 2, effects: ["payHp+6", "load+1", "damage+3"] },
   atk_bloodlust: { cost: 2, effects: ["load+2", "position-1"] },
   atk_no_tomorrow: { cost: 3, effects: ["payHp+10", "load+3", "damage+2", "lifestealOnHit+1"] },
   atk_collectors_cut: { cost: 1, effects: ["bountyOnHit+2", "load+1"] },
-  atk_grit_teeth: { cost: 1, effects: ["healNow+8", "armor+9"] },
+  atk_grit_teeth: { cost: 1, effects: ["healNow+8", "armor+8"] },
   atk_final_notice: { cost: 2, effects: ["payHp+8", "load+2", "bountyOnHit+2"] },
   char_blood_money: { cost: 0, effects: ["bountyOnHit+1", "armor+4"] },
-  char_stitched_coat: { cost: 0, effects: ["armor+8", "healNow+4"] },
+  char_stitched_coat: { cost: 0, effects: ["armor+7", "healNow+4"] },
   char_dead_or_alive: { cost: 0, effects: ["position+1", "bountyOnHit+1"] },
-  char_undertakers_credit: { cost: 0, effects: ["healNow+8", "armor+5"] },
+  char_undertakers_credit: { cost: 0, effects: ["healNow+8", "armor+4"] },
   char_crown_contract: { cost: 0, effects: ["damage+1", "bountyOnHit+1", "payHp+2"] },
 };
 
@@ -2786,11 +2786,87 @@ export function effectsForCardLevel(def, level = 1) {
   return def.showdownLevels[ix] ?? def.effects ?? [];
 }
 
-export function cloneCardInstance(id) {
+function effectKindsFor(def) {
+  return new Set((effectsForCardLevel(def, def?.showdownLevel || 1) ?? [])
+    .map((raw) => raw.startsWith("comboBonus:") ? raw.slice("comboBonus:".length) : raw)
+    .map((raw) => parseEffect(raw).kind));
+}
+
+function reliableUpgradeFor(def) {
+  const kinds = effectKindsFor(def);
+  if (kinds.has("load") || kinds.has("bullets")) return { id: "reliable", name: "Reliable Signature", description: "Adds 2 damage to loaded shots.", effects: ["damage+2"] };
+  if (kinds.has("armor") || kinds.has("damageTaken")) return { id: "reliable", name: "Reliable Signature", description: "Gains 6 extra Armor.", effects: ["armor+6"] };
+  if (kinds.has("draw")) return { id: "reliable", name: "Reliable Signature", description: "Gains 4 Armor.", effects: ["armor+4"] };
+  if (kinds.has("healNow")) return { id: "reliable", name: "Reliable Signature", description: "Adds 4 Armor.", effects: ["armor+4"] };
+  if (kinds.has("markEnemy")) return { id: "reliable", name: "Reliable Signature", description: "Applies 3 extra Marks.", effects: ["markEnemy+3"] };
+  if (kinds.has("spirit")) return { id: "reliable", name: "Reliable Signature", description: "Gains 2 extra Spirit.", effects: ["spirit+2"] };
+  if (kinds.has("infection")) return { id: "reliable", name: "Reliable Signature", description: "Applies 2 extra Infection.", effects: ["infection+2"] };
+  if (kinds.has("position")) return { id: "reliable", name: "Reliable Signature", description: "Gains 2 extra Position.", effects: ["position+2"] };
+  return { id: "reliable", name: "Reliable Signature", description: "Gains 4 Armor.", effects: ["armor+4"] };
+}
+
+function legendaryUpgradeFor(def) {
+  const kinds = effectKindsFor(def);
+  const classId = def.classId ?? "";
+  const buildPath = def.buildPath ?? "";
+  if (classId === "outlaw") {
+    if (buildPath === "combo" || kinds.has("outlawCombo")) return { id: "legendary", name: "Tall-Tale Signature", description: "Outlaw combo adds real cover.", effects: ["comboBonus:armor+5"] };
+    return { id: "legendary", name: "Tall-Tale Signature", description: "Builds a lot more Infamy.", effects: ["infamy+3"] };
+  }
+  if (classId === "sheriff") {
+    if (buildPath === "posse" || kinds.has("deputies") || kinds.has("deputy")) return { id: "legendary", name: "Tall-Tale Signature", description: "Deputies block much harder.", effects: ["deputyBlock+2"] };
+    return { id: "legendary", name: "Tall-Tale Signature", description: "Adds serious street cover.", effects: ["armor+6"] };
+  }
+  if (classId === "marshal") {
+    if (buildPath === "procedure" || kinds.has("caseFile") || kinds.has("casePath")) return { id: "legendary", name: "Tall-Tale Signature", description: "Adds heavy Case File pressure.", effects: ["caseFile+2"] };
+    return { id: "legendary", name: "Tall-Tale Signature", description: "Marks hit brutally hard.", effects: ["markBurst+3"] };
+  }
+  if (classId === "apache_tracker") {
+    if (buildPath === "trail" || kinds.has("track") || kinds.has("snare")) return { id: "legendary", name: "Tall-Tale Signature", description: "Track adds heavy damage.", effects: ["trackDamage+2"] };
+    return { id: "legendary", name: "Tall-Tale Signature", description: "Spirit adds much more damage this volley.", effects: ["spiritScaleDamage+0.03"] };
+  }
+  if (classId === "vaquero") {
+    if (buildPath === "flourish" || kinds.has("flourishDamage")) return { id: "legendary", name: "Tall-Tale Signature", description: "Flourish hits much harder.", effects: ["flourishDamage+2"] };
+    return { id: "legendary", name: "Tall-Tale Signature", description: "Keeps the off-hand well covered.", effects: ["armor+5"] };
+  }
+  if (classId === "bounty_hunter") {
+    if (buildPath === "doctor" || kinds.has("infection")) return { id: "legendary", name: "Tall-Tale Signature", description: "Adds brutal Infection pressure.", effects: ["infection+2"] };
+    return { id: "legendary", name: "Tall-Tale Signature", description: "Pays out much more on hits.", effects: ["bountyOnHit+2"] };
+  }
+  if (kinds.has("load") || kinds.has("bullets")) return { id: "legendary", name: "Tall-Tale Signature", description: "Adds heavy damage to loaded shots.", effects: ["damage+2"] };
+  if (kinds.has("armor")) return { id: "legendary", name: "Tall-Tale Signature", description: "Adds serious cover.", effects: ["armor+6"] };
+  return { id: "legendary", name: "Tall-Tale Signature", description: "Greatly improves Position.", effects: ["position+2"] };
+}
+
+export function getCardUpgradeOptions(cardOrId) {
+  const def = typeof cardOrId === "string" ? getCardDef(cardOrId) : getCardDef(cardOrId?.id) ?? cardOrId;
+  if (!def || def.type === "gun" || def.type === "showdown" || def.opponentOnly) return [];
+  return [reliableUpgradeFor(def), legendaryUpgradeFor(def)];
+}
+
+export function upgradedCardDef(cardOrId, upgradeId) {
+  const original = typeof cardOrId === "string" ? getCardDef(cardOrId) : getCardDef(cardOrId?.id) ?? cardOrId;
+  if (!original || !upgradeId) return original;
+  const branch = getCardUpgradeOptions(original).find((option) => option.id === upgradeId);
+  if (!branch) return original;
+  const base = getCardDef(original.id) ?? original;
+  return {
+    ...base,
+    cost: Math.max(0, (base.cost ?? 0) + (branch.costDelta || 0)),
+    effects: [...effectsForCardLevel(base, base.showdownLevel || 1), ...(branch.effects ?? [])],
+    upgradeId,
+    upgradeName: branch.name,
+    upgradeDescription: branch.description,
+  };
+}
+
+export function cloneCardInstance(id, opts = {}) {
   const d = getCardDef(id);
   if (!d) return null;
   return {
     ...d,
+    deckUid: opts.deckUid || opts.uid || undefined,
+    upgradeId: opts.upgradeId ?? null,
     showdownLevel: d.type === "showdown" ? 1 : undefined,
     uid: `${id}_${Math.random().toString(36).slice(2, 9)}`,
   };
