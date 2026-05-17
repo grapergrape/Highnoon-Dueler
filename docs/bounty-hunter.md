@@ -2,131 +2,74 @@
 
 ## Identity
 
-Bounty Hunter is the blood-price quickdraw class. He should feel like a professional killer who spends HP to load violent, life-stealing rounds, then earns that HP back only if the volley lands.
+Bounty Hunter is the blood-price quickdraw class. He spends HP for loaded bullets, then needs those bullets or doctor tools to recover enough health to survive the route.
 
-The class is not a generic self-damage berserker. HP is the wager, but accuracy, first hits, cover, and life-steal decide whether the wager pays.
+He should feel dangerous, not stable. The class is allowed to win ugly.
 
 ## Current Core Rules
 
 - Passive: `Blood for Lead`
-- Starting HP: 120
-- +1 Nerve each prep round.
-- At 60% HP or lower, gains +20% accuracy, +6 damage, and the first 3 shots auto-hit.
-- If both duelists die in the same volley, Bounty Hunter wins and heals 30% max HP.
-- Life-steal bullets heal HP per successful player hit.
-
-The class should want to dip into danger, not sit at 1 HP forever. Brink bonuses should make low HP exciting, while life-steal gives a route back out if the player built enough hit density.
+- Starting HP: 76
+- Nerve: max 7, gain 3 per round, carries over.
+- Start Position: 1.
+- The old passive low-HP damage bonus is disabled for now; low-HP cards can still carry risk/reward identity.
+- If both duelists die in the same Showdown, Bounty Hunter wins and heals 15% max HP.
+- Starter gun: `.41 Derringer`, capacity 3, bullet damage 8.
 
 ## Starter Deck
 
 | Card | Count |
 | --- | ---: |
 | `One in the Chamber` | 2 |
-| `Dodge` | 2 |
-| `Beer Heal` | 1 |
+| `Sidestep` | 2 |
+| `Whiskey Brace` | 1 |
 | `Blood for Lead` | 2 |
 | `Dead Man's Cover` | 2 |
 | `Vendetta Shot` | 1 |
 | `Reckless Aim` | 1 |
 | `Patch Job` | 1 |
 
-Bounty Hunter starts with `.41 Derringer` equipped.
-
 ## Card Identity
 
 Bounty Hunter cards should mostly do one of these jobs:
 
-- Spend HP for immediate pressure: `payHp`, bullets, damage, first auto-hits.
-- Pay back that HP through `lifestealOnHit`.
-- Keep the wager survivable with deterministic cover: `dodgeRecv`, `damageTaken`, `enemyAccNext`.
-- Create tempo so HP-spend cards do not consume the entire prep round: `extraPlay`.
-- Turn clean hits into money without letting bounty economy replace combat power: `bountyOnHit`.
-
-Healthy examples:
-
-- `Blood for Lead`: HP spend, damage, bullet, life-steal, and an extra play.
-- `Dead Man's Cover`: deterministic defense that refunds the play.
-- `Patch Job`: immediate recovery and tempo.
-- `Vendetta Shot`: efficient blood-round pressure.
-- `Final Notice`: paid burst with life-steal and bounty upside.
-- `Blood Money` and `Crown Contract`: persistent life-steal/bounty engines.
-
-Avoid giving every Bounty Hunter card raw damage. The fun is deciding when to pay HP, when to cover, and when the current hand can earn the blood back.
+- Spend HP for immediate loaded bullets or Position.
+- Add limited life-steal to make the HP wager recoverable without making it free.
+- Use Infection for slower doctor-style pressure.
+- Build Armor before taking a bad trade.
+- Add bounty per hit as a small economy upside, not the main engine.
+- Create high-risk finishers that are strong only when the player can survive the Showdown.
 
 ## Gun Identity
 
-Bounty Hunter guns are concealed pistols and odd contract weapons. They should be precise, front-loaded, and good with life-steal, but not large-magazine safety tools.
-
-Current gun split:
+Bounty Hunter guns are concealed pistols and contract weapons:
 
 | Gun | Role |
 | --- | --- |
-| `.41 Derringer` | Starter concealed pistol: small magazine, high accuracy, first auto-hit, dodge, and modest life-steal. |
-| `Twin Contract Derringer` | Rare upgrade: sharper first hits, life-steal, and small bounty economy. |
-| `Pepperbox Revolver` | Epic upgrade: more shots and steadier life-steal, but less lethal per bullet. |
-| `Doc Holliday's Hideout` | Legendary upgrade: high precision, pierce, life-steal, and some bounty gain without becoming a full economy engine. |
-
-Upgrade guns equip only for the current duel. The next duel starts from `.41 Derringer` again until another gun card is played.
-
-## Balance Targets
-
-Bounty Hunter should:
-
-- Feel dangerous from the first duel.
-- Make HP spending a real decision, not a pure downside.
-- Recover through landed hits, not passive full healing.
-- Use cover and Patch Job to bridge bad hands.
-- Have scary final-town burst if the deck has enough blood rounds.
-
-Bounty Hunter should not:
-
-- Become immortal through life-steal.
-- Use bounty money to trivialize shop healing.
-- Require the legendary gun to function.
-- Win by drafting only `payHp` damage cards with no recovery.
-- Be safer than Sheriff or Marshal.
+| `.41 Derringer` | Starter high-damage concealed pistol. |
+| `Twin Contract Derringer` | Rare life-steal/bounty sidearm. |
+| `Pepperbox Revolver` | Epic more-shot concealed weapon. |
+| `Doc Holliday's Hideout` | Legendary high-damage life-steal finisher. |
 
 ## Tuning Levers
 
-Buff Bounty Hunter through:
+Buff Bounty Hunter through life-steal on paid starter/core cards, doctor healing, or a little more starting HP. Nerf through non-starter `lifestealOnHit`, quickdraw healing, and paid load density.
 
-- More `lifestealOnHit` on paid cards.
-- More bullets on blood-round cards if enemy bullet denial hard-stops him.
-- More `extraPlay+1` on defensive/recovery cards.
-- Slightly better starter gun accuracy or life-steal.
-- Stronger brink bonuses if low HP does not feel rewarding.
+Be careful with low-HP bonuses. The current passive value is intentionally off because the blood build was too stable when it could both buy tempo with HP and gain free damage for being hurt.
 
-Nerf Bounty Hunter through:
+## Build Paths
 
-- Lowering `lifestealOnHit` on guns.
-- Reducing `bountyOnHit` if shop healing becomes automatic.
-- Lowering `No Tomorrow` and `Vendetta Shot` bullet counts.
-- Reducing the brink damage/auto-hit bonus.
-- Dropping starting HP if early towns become too safe.
+- `blood`: current Blood Contract path. Pay HP, load bullets, then recover with life-steal and quickdraw tie rules.
+- `doctor`: Frontier Doctor path. Infection deals delayed damage after Showdown, decays slowly, and can be consumed for burst.
 
-Be careful when changing:
+Doctor should feel like attrition and bad medicine, not a direct copy of poison. It gives Bounty Hunter a defensive control route when blood payoffs do not appear.
 
-- `lifestealOnHit`: it is both survivability and the core fantasy.
-- `bountyOnHit`: extra money compounds through shops.
-- `payHp`: costs that look small stack quickly across prep rounds.
-- Brink bonuses: too weak and the class is miserable; too strong and low HP becomes the best stable state.
+## Current Simulation Baseline
 
-## Current Playtest Baseline
+May 17, 2026 routed Node simulation, 200 Bounty Hunter runs:
 
-May 16, 2026 routed Node simulation, 200 Bounty Hunter runs with card rewards, 20% gun drops, and whiskey healing, no shop purchases:
+- Clears: 76/200 (38.0%).
+- Average wins: 14.11/15.
+- Main deaths: `Judge Obadiah Blackthorn`, `Caleb Cross`, then `Silas Gravesmoke`.
 
-- Clears: 58/200 (29%).
-- Average wins: 13.66/15.
-- Main deaths: `Judge Obadiah Blackthorn`, then `Silas Gravesmoke`.
-- Winning decks leaned on repeated `Vendetta Shot`, `Blood for Lead`, `Bloodlust`, `No Tomorrow`, and either `Twin Contract Derringer`, `Pepperbox Revolver`, or `Doc Holliday's Hideout`.
-
-Honest read: slightly hard but acceptable. The class can clear when blood rounds line up with life-steal and a good concealed gun, but final bosses still punish hands that pay HP without enough cover or first-hit pressure.
-
-## Baseline For Other Classes
-
-Bounty Hunter is the reference for HP-as-resource classes:
-
-- HP payment needs a payoff that is visible in the same duel.
-- Recovery should depend on execution, not passive regeneration.
-- Low-HP passives should create tension without making low HP always correct.
-- Economy bonuses must be capped or modest because shop healing compounds quickly.
+Honest read: high edge of acceptable. The HP trade is finally viable, but further life-steal buffs would likely make him too safe.

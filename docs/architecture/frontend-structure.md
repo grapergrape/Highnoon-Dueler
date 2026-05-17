@@ -11,7 +11,7 @@ This frontend ships as browser-native ES modules (no bundler). `static/index.htm
 - `static/js/app/`
   - App bootstrap and screen/flow orchestration (`app.js`).
   - Run persistence and saved-run fallback behavior (`run-state.js`).
-  - Owns localStorage key `highnoon_duelist_v2`.
+  - Owns localStorage key `highnoon_duelist_v3`.
 
 - `static/js/data/`
   - Static game data and data helpers:
@@ -40,3 +40,29 @@ This frontend ships as browser-native ES modules (no bundler). `static/index.htm
   - `app` -> `data` / `duel` / `ui` / `rendering`
   - `duel` -> `data` / `ui/combat-ui`
   - `ui` and `rendering` can read duel/app state but should not mutate long-term run persistence directly.
+
+## Combat Ownership
+
+The active combat loop is documented in [../combat-rework-technical-plan.md](../combat-rework-technical-plan.md).
+
+Ownership split:
+
+- `static/js/duel/duel.js`
+  - Owns the new `player_turn/showdown/ended` state machine.
+  - Owns Armor, Position, loaded bullets, Nerve carryover, Rattled, enemy intent resolution, and Showdown damage math.
+
+- `static/js/data/guns.js`
+  - Owns gun capacity, start-loaded bullets, bullet damage, and current-duel gun upgrade data.
+
+- `static/js/data/cards.js`
+  - Owns the new effect vocabulary: `load`, `armor`, `position`, `evadeBullets`, `evadeAttack`, `nerve`, `nextNerve`, `draw`, `rattled`, and rare `overcap`.
+
+- `static/js/data/opponents.js`
+  - Owns authored enemy intent tables and patterns.
+  - Should not rely on hidden enemy card draws once the rework is active.
+
+- `static/js/ui/ui.js` and `static/js/ui/combat-ui.js`
+  - Own exact intent, incoming damage, outgoing damage, Position, Armor, loaded bullet, and Nerve displays.
+
+- `static/js/rendering/render.js`
+  - Keeps the short Showdown visual moment and reads combat state without owning combat decisions.

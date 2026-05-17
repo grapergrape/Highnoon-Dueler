@@ -2,15 +2,15 @@ import { duelDisplayedVolleyPreview, estimateVolleyDamage } from "../duel/duel.j
 
 /**
  * Quad index in 2×2 sheet (author art):
- * 0 = top-left — prep / playing cards
+ * 0 = top-left — player turn / playing cards
  * 1 = top-right — shootout (between rounds)
  * 2 = bottom-left — player wins
  * 3 = bottom-right — opponent wins
  */
 export function duelSceneQuad(duel) {
   if (!duel) return 0;
-  if (duel.phase === "prep") return 0;
-  if (duel.phase === "highnoon") return 1;
+  if (duel.phase === "player_turn") return 0;
+  if (duel.phase === "showdown") return 1;
   if (duel.phase === "ended") {
     if (duel.winner === "player") return 2;
     if (duel.winner === "enemy") return 3;
@@ -74,10 +74,7 @@ export function drawGame(ctx, game, w, h) {
   syncCombatCanvasOverlay(game);
   drawStatGlows(ctx, w, h, game);
   drawCombatFloats(ctx, w, h, game);
-  if (game.duel?.phase === "staredown_reveal") {
-    drawStaredownReveal(ctx, w, h, game.duel.staredownT);
-  }
-  if (game.duel?.phase === "highnoon") {
+  if (game.duel?.phase === "showdown") {
     drawHighNoon(ctx, w, h, game.duel.highNoonT);
   }
   drawFx(ctx, w, h, game, t);
@@ -106,7 +103,7 @@ function syncCombatCanvasOverlay(game) {
   const el = document.getElementById("combat-canvas-overlay");
   if (!el) return;
   const { duel, run } = game;
-  if (!duel || duel.phase === "ended" || duel.phase === "staredown_commit") {
+  if (!duel || duel.phase === "ended") {
     clearCombatCanvasOverlay();
     return;
   }
@@ -120,11 +117,9 @@ function syncCombatCanvasOverlay(game) {
     Math.round(outgoing.expectedDamage),
     outgoing.liveShots,
     outgoing.bullets,
-    Math.round(outgoing.acc * 100),
     Math.round(incoming.expectedDamage),
     incoming.liveShots,
     incoming.bullets,
-    Math.round(incoming.acc * 100),
   ].join("|");
   if (el.dataset.key === key && !el.hidden) return;
   el.dataset.key = key;
@@ -132,13 +127,13 @@ function syncCombatCanvasOverlay(game) {
   el.innerHTML = `
     <div class="canvas-forecast-pill canvas-forecast-incoming">
       <span class="canvas-forecast-label">Incoming</span>
-      <strong>~${Math.round(incoming.expectedDamage)} dmg</strong>
-      <span>${incoming.liveShots}/${incoming.bullets} shots · ${Math.round(incoming.acc * 100)}%</span>
+      <strong>${Math.round(incoming.expectedDamage)} hp loss</strong>
+      <span>${incoming.liveShots}/${incoming.bullets} bullets · ${incoming.armor} armor</span>
     </div>
     <div class="canvas-forecast-pill canvas-forecast-outgoing">
       <span class="canvas-forecast-label">Expected on ${escapeHtml(foe)}</span>
-      <strong>~${Math.round(outgoing.expectedDamage)} dmg</strong>
-      <span>${outgoing.liveShots}/${outgoing.bullets} shots · ${Math.round(outgoing.acc * 100)}%</span>
+      <strong>${Math.round(outgoing.expectedDamage)} dmg</strong>
+      <span>${outgoing.liveShots}/${outgoing.bullets} bullets · ${outgoing.armor} armor</span>
     </div>`;
 }
 
@@ -313,14 +308,13 @@ function drawAtmosphere(ctx, w, h, bgKey, t) {
 }
 
 function focusLine(duel, side) {
-  if (duel.phase !== "prep") return "NRV —";
   if (side === "player") {
     const mark = duel.enemyMarked > 0 ? ` ◆×${duel.enemyMarked}` : "";
-    const foc = duel.playerFocused ? " ✦" : "";
-    const plays = Number.isFinite(duel.playerPlaysRemaining) ? ` · PLY ${duel.playerPlaysRemaining}` : "";
-    return `NRV ${duel.playerFocus}/${duel.playerMaxFocus}${plays}${mark}${foc}`;
+    return `NRV ${duel.nerve}/${duel.maxNerve} · POS ${duel.position}${mark}`;
   }
-  return `NRV ${duel.enemy.focus}/${duel.enemy.maxFocus}`;
+  return duel.enemyIntent?.type === "attack"
+    ? `Intent ${duel.enemyIntent.bullets}x${duel.enemyIntent.damage}`
+    : `Intent ${duel.enemyIntent?.label ?? "Special"}`;
 }
 
 function drawHud(ctx, w, h, game) {
@@ -330,8 +324,6 @@ function drawHud(ctx, w, h, game) {
   const ehp = duel.enemy.hp;
   const em = duel.enemy.maxHp;
   const { player: Pv, enemy: Ev } = duelDisplayedVolleyPreview(duel, run);
-  const pAcc = Math.round(Pv.acc * 100);
-  const eAcc = Math.round(Ev.acc * 100);
   const pSta = focusLine(duel, "player");
   const eSta = focusLine(duel, "enemy");
 
@@ -362,12 +354,10 @@ function drawHud(ctx, w, h, game) {
   ctx.fillText("YOU", lx + 14, 20);
   ctx.font = "11px monospace";
   ctx.fillStyle = "rgba(232,218,196,0.92)";
-  ctx.fillText(`${pSta} · ACC ${pAcc}% · VOLLEY ×${Pv.bullets}`, lx + 14, 40);
+  ctx.fillText(`${pSta} · LOAD ${Pv.loaded}/${Pv.capacity}`, lx + 14, 40);
   ctx.font = "10px monospace";
   ctx.fillStyle = "rgba(200,184,164,0.75)";
-  const pDmg = Pv.damageMult !== 1 ? `Dmg ×${Pv.damageMult.toFixed(2)} · ` : "";
-  const pDodge = Pv.dodgeRecv > 0 ? `Dodge ×${Pv.dodgeRecv} · ` : "";
-  ctx.fillText(`${pDmg}${pDodge}HP ${Math.max(0, run.hp | 0)} / ${run.maxHp}`, lx + 14, 56);
+  ctx.fillText(`Armor ${Pv.armor} · ${Pv.positionName} x${Pv.positionMult.toFixed(2)} · HP ${Math.max(0, run.hp | 0)} / ${run.maxHp}`, lx + 14, 56);
 
   ctx.textAlign = "right";
   ctx.fillStyle = "#f0e6d8";
@@ -375,12 +365,10 @@ function drawHud(ctx, w, h, game) {
   ctx.fillText(fitCanvasText(ctx, (duel.opponentDef?.name ?? "Outlaw").toUpperCase(), boxW - 28), rx + boxW - 14, 20);
   ctx.font = "11px monospace";
   ctx.fillStyle = "rgba(232,218,196,0.92)";
-  ctx.fillText(`${eSta} · ACC ${eAcc}% · VOLLEY ×${Ev.bullets}`, rx + boxW - 14, 40);
+  ctx.fillText(`${eSta} · ARMOR ${Ev.armor}`, rx + boxW - 14, 40);
   ctx.font = "10px monospace";
   ctx.fillStyle = "rgba(200,184,164,0.75)";
-  const eDmg = Ev.damageMult !== 1 ? `Dmg ×${Ev.damageMult.toFixed(2)} · ` : "";
-  const eDodge = Ev.dodgeRecv > 0 ? `Dodge ×${Ev.dodgeRecv} · ` : "";
-  ctx.fillText(`${eDmg}${eDodge}HP ${Math.max(0, ehp | 0)} / ${em}`, rx + boxW - 14, 56);
+  ctx.fillText(`HP ${Math.max(0, ehp | 0)} / ${em}`, rx + boxW - 14, 56);
 
   const barYW = 88;
   const barH = 9;

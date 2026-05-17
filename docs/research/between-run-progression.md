@@ -1,5 +1,7 @@
 # Between-Run Progression Proposal
 
+Status: archived pre-rework research. The active May 17, 2026 combat loop disables player Oaths/showdown cards and excludes them from rewards and shops. Do not use this file as current gameplay guidance without first revalidating the Oath system against the deterministic intent combat model.
+
 ## Recommendation
 
 Add one lightweight between-run system: Oath Catalog unlocks.

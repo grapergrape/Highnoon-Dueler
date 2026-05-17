@@ -1,15 +1,13 @@
 import { defaultRun } from "../static/js/app/run-state.js";
 import { CLASSES } from "../static/js/data/classes.js";
 import { CARD_DEFINITIONS, effectsForCardLevel, getCardDef, getClassShowdownCatalog, parseEffect } from "../static/js/data/cards.js";
+import { WHISKEY_HEAL_AMOUNT, whiskeyPriceFromBounty } from "../static/js/data/economy.js";
 import { getGun, gunsForClass, starterGunIdForClass } from "../static/js/data/guns.js";
 import { OPPONENTS } from "../static/js/data/opponents.js";
 import {
-  commitPlayerStaredown,
   createDuel,
-  dealStaredownChoices,
   lockInPrep,
   tickHighNoon,
-  tickStaredown,
   tryPlayCard,
 } from "../static/js/duel/duel.js";
 
@@ -24,9 +22,10 @@ const args = parseArgs(process.argv.slice(2));
 const runsPerClass = args.runs ?? DEFAULT_RUNS_PER_CLASS;
 const baseSeed = args.seed ?? DEFAULT_SEED;
 const outputJson = !!args.json;
+const simMode = args.mode ?? "low-skill";
 const route = [...OPPONENTS].sort((a, b) => a.townOrder - b.townOrder || a.roleOrder - b.roleOrder);
 
-const result = runSimulation({ runsPerClass, baseSeed });
+const result = runSimulation({ runsPerClass, baseSeed, simMode });
 
 if (outputJson) {
   console.log(JSON.stringify(result, null, 2));
@@ -48,6 +47,10 @@ function parseArgs(rawArgs) {
       parsed.seed = readPositiveInt(rawArgs[++i], "--seed");
     } else if (arg.startsWith("--seed=")) {
       parsed.seed = readPositiveInt(arg.slice("--seed=".length), "--seed");
+    } else if (arg === "--mode") {
+      parsed.mode = readMode(rawArgs[++i]);
+    } else if (arg.startsWith("--mode=")) {
+      parsed.mode = readMode(arg.slice("--mode=".length));
     } else if (arg === "--help" || arg === "-h") {
       printHelp();
       process.exit(0);
@@ -64,19 +67,25 @@ function readPositiveInt(value, label) {
   return n;
 }
 
+function readMode(value) {
+  if (value === "low-skill" || value === "greedy") return value;
+  throw new Error("--mode must be low-skill or greedy");
+}
+
 function printHelp() {
-  console.log(`Usage: node tools/balance-sim.mjs [--runs 200] [--seed 100000] [--json]
+  console.log(`Usage: node tools/balance-sim.mjs [--runs 200] [--seed 100000] [--mode low-skill|greedy] [--json]
 
 Runs deterministic full-route balance simulations for each class.
 
 Options:
   --runs N     Runs per class. Default: 200.
   --seed N     Base seed. Default: 100000.
+  --mode NAME  low-skill spams the first affordable card and takes rough rewards; greedy uses score-based play. Default: low-skill.
   --json       Emit machine-readable JSON instead of Markdown tables.
 `);
 }
 
-function runSimulation({ runsPerClass, baseSeed }) {
+function runSimulation({ runsPerClass, baseSeed, simMode }) {
   const bosses = route.filter((opp) => opp.role === "boss");
   const classRows = [];
   const bossDeathMatrix = {};
@@ -106,7 +115,7 @@ function runSimulation({ runsPerClass, baseSeed }) {
           stats.wins += 1;
           stats.hpAfter += run.hp;
           stats.cyclesWin += duel.cycleCount || 0;
-          afterWin(run, opp, duel, unlocks);
+          afterWin(run, opp, duel, unlocks, simMode);
           continue;
         }
 
@@ -142,9 +151,10 @@ function runSimulation({ runsPerClass, baseSeed }) {
     settings: {
       runsPerClass,
       baseSeed,
+      simMode,
       cardRewards: true,
       gunDropChance: GUN_DROP_CHANCE,
-      whiskeyHealing: true,
+      whiskeyHealing: simMode === "greedy",
       shopPurchases: false,
       relics: false,
       smithing: false,
@@ -210,18 +220,13 @@ function unlockBoss(state, classId, townOrder) {
 
 function fight(opp, run) {
   const duel = createDuel(opp, run);
-  dealStaredownChoices(duel, run);
-  const staredown = chooseBestCard(duel.staredownChoices, { duel, run }, -999) ?? duel.staredownChoices[0];
-  commitPlayerStaredown(duel, run, staredown.uid);
 
   let safety = 0;
   while (duel.phase !== "ended" && safety++ < 240) {
-    if (duel.phase === "prep") {
-      playPrep(duel, run);
+    if (duel.phase === "player_turn") {
+      playTurn(duel, run);
       lockInPrep(duel, run);
-    } else if (duel.phase === "staredown_reveal") {
-      tickStaredown(duel, run, 99);
-    } else if (duel.phase === "highnoon") {
+    } else if (duel.phase === "showdown") {
       tickHighNoon(duel, run, 99);
     } else {
       break;
@@ -232,14 +237,17 @@ function fight(opp, run) {
   return duel;
 }
 
-function playPrep(duel, run) {
+function playTurn(duel, run) {
   let guard = 0;
-  while (duel.phase === "prep" && !duel.playerLocked && (duel.playerPlaysRemaining ?? 0) > 0 && guard++ < 8) {
+  while (duel.phase === "player_turn" && guard++ < 12) {
     const playable = duel.playerHand.filter((card) => canAffordCard(card, duel, run));
-    const pick = chooseBestCard(playable, { duel, run }, 1);
+    const pick = simMode === "low-skill"
+      ? playable[0]
+      : chooseBestCard(playable, { duel, run }, 1);
     if (!pick) break;
     const result = tryPlayCard(duel, run, pick.uid);
     if (!result.ok) break;
+    if (simMode === "low-skill") break;
   }
 }
 
@@ -247,15 +255,18 @@ function canAffordCard(card, duel, run) {
   const def = getCardDef(card.id);
   if (!def) return false;
   let cost = def.cost ?? 0;
-  const isPersistent = def.type === "stance" || def.type === "showdown" || def.type === "character";
-  const isComboFree = !isPersistent && def.outlawCombo && duel.nextComboFree;
   const isFreeGun = def.type === "gun" && !!run.permanent?.freeFirstGunEachDuel && !duel.freeGunPlayed;
-  const usingFreebie = def.type !== "gun" && !isPersistent && !isComboFree && duel.freeCardAvailable === true;
-  if (isComboFree || isFreeGun || usingFreebie) cost = 0;
-  return cost <= duel.playerFocus;
+  const usingFreebie = def.type !== "gun" && !def.noFree && duel.freeCardAvailable === true;
+  if (isFreeGun || usingFreebie) cost = 0;
+  let hpCost = 0;
+  for (const raw of effectsForCardLevel(def, def.showdownLevel || 1)) {
+    const e = parseEffect(raw);
+    if (e.kind === "payHp") hpCost += Math.abs(e.value || 0);
+  }
+  return cost <= duel.nerve && run.hp - hpCost > 0;
 }
 
-function afterWin(run, opp, duel, unlocks) {
+function afterWin(run, opp, duel, unlocks, simMode) {
   const bounty = Math.round((opp.bounty ?? (35 + opp.difficultyTier * 12)) * (run.permanent?.bountyMult ?? 1))
     + Math.max(0, Math.round(duel.bonusBounty || 0));
   run.money += bounty;
@@ -265,8 +276,8 @@ function afterWin(run, opp, duel, unlocks) {
     run.currentTownOrder = Math.min(5, opp.townOrder + 1);
   }
   applySheriffRespect(run);
-  takeReward(run, unlocks);
-  buyWhiskeyIfUseful(run);
+  takeReward(run, unlocks, simMode);
+  if (simMode === "greedy") buyWhiskeyIfUseful(run, bounty);
 }
 
 function applySheriffRespect(run) {
@@ -283,19 +294,20 @@ function applySheriffRespect(run) {
   }
 }
 
-function buyWhiskeyIfUseful(run) {
-  if (run.money < 12 || run.hp >= run.maxHp) return;
-  run.money -= 12;
-  run.hp = Math.min(run.maxHp, run.hp + 20);
+function buyWhiskeyIfUseful(run, bountyEarned) {
+  const price = whiskeyPriceFromBounty(bountyEarned);
+  if (run.money < price || run.hp >= run.maxHp) return;
+  run.money -= price;
+  run.hp = Math.min(run.maxHp, run.hp + WHISKEY_HEAL_AMOUNT);
 }
 
-function takeReward(run, unlocks) {
+function takeReward(run, unlocks, simMode) {
   const cards = rollRewardCards(run, unlocks, 3);
-  const pick = chooseBestCard(cards, { run }, 5);
+  const pick = simMode === "low-skill" ? cards[0] : chooseBestCard(cards, { run }, 5);
   if (pick) {
     if (run.deckIds.length < MAX_DECK) {
       run.deckIds.push(pick.id);
-    } else {
+    } else if (simMode === "greedy") {
       const worst = worstDeckCard(run);
       const pickScore = cardScore(pick, { run });
       if (worst.id && pickScore > worst.score + 8) {
@@ -303,10 +315,10 @@ function takeReward(run, unlocks) {
       }
     }
   }
-  takeGunDrop(run);
+  takeGunDrop(run, simMode);
 }
 
-function takeGunDrop(run) {
+function takeGunDrop(run, simMode) {
   if (Math.random() >= GUN_DROP_CHANCE) return;
   const pool = gunsForClass(run.classId).filter((gun) =>
     !run.deckIds.includes(gun.id)
@@ -319,6 +331,10 @@ function takeGunDrop(run) {
   const candidates = rarity ? pool.filter((gun) => gun.rarity === rarity) : pool;
   const gun = candidates[(Math.random() * candidates.length) | 0];
   const gunCards = run.deckIds.filter((id) => id.startsWith("gun_"));
+  if (simMode === "low-skill") {
+    if (gunCards.length < 2 && run.deckIds.length < MAX_DECK) run.deckIds.push(gun.id);
+    return;
+  }
   const gunScore = cardScore(getCardDef(gun.id), { run });
   if (gunCards.length < 2 && gunScore > 4) {
     run.deckIds.push(gun.id);
@@ -356,11 +372,11 @@ function availableRewardCards(run, unlocks) {
   const unlocked = new Set(unlocks.unlockedShowdownIdsByClass[run.classId] ?? []);
   return CARD_DEFINITIONS.filter((card) =>
     card.type !== "gun"
+    && card.type !== "showdown"
     && !card.opponentOnly
     && card.classId === run.classId
     && !(card.effects ?? []).includes("staredownOnly")
-    && (card.type !== "showdown" || unlocked.has(card.id))
-    && ((card.type !== "showdown" && card.type !== "stance") || !owned.has(card.id))
+    && (card.type !== "stance" || !owned.has(card.id))
   );
 }
 
@@ -383,7 +399,7 @@ function worstDeckCard(run) {
   for (const id of run.deckIds) {
     if (id.startsWith("gun_")) continue;
     const def = getCardDef(id);
-    const uniquePenalty = def?.type === "showdown" || def?.type === "stance" ? 20 : 0;
+    const uniquePenalty = def?.type === "stance" ? 20 : 0;
     const score = cardScore(def, { run }) - uniquePenalty;
     if (score < worst) {
       worst = score;
@@ -412,10 +428,7 @@ function cardScore(def, ctx = {}) {
   let score = RARITY_SCORE[def.rarity] ?? 0;
   for (const raw of effectsForCardLevel(def, def.showdownLevel || 1)) score += effectScore(raw, ctx);
 
-  if (def.type === "showdown") {
-    score += 22;
-    if (ctx.duel?.playerShowdown && ctx.duel.playerShowdown.id !== def.id) score -= 35;
-  } else if (def.type === "stance") {
+  if (def.type === "stance") {
     const already = ctx.duel?.playerStances?.some((card) => card.id === def.id);
     score += already ? -8 : 12;
   } else if (def.type === "gun") {
@@ -430,15 +443,15 @@ function cardScore(def, ctx = {}) {
 
 function gunScoreDelta(def, ctx) {
   const gun = getGun(def.id);
-  const gunValue = gun.mag * gun.damage * Math.max(0.1, gun.accuracy)
+  const gunValue = (gun.capacity ?? gun.mag ?? 5) * (gun.bulletDamage ?? gun.damage ?? 6)
     + (gun.effects ?? []).reduce((sum, raw) => sum + effectScore(raw, ctx), 0);
   let currentValue = 0;
   if (ctx.duel?.playerActiveGun?.stats) {
     const current = ctx.duel.playerActiveGun.stats;
-    currentValue = current.mag * current.damage * Math.max(0.1, current.accuracy);
+    currentValue = current.capacity * current.bulletDamage;
   } else {
     const starter = getGun(starterGunIdForClass(ctx.run?.classId));
-    currentValue = starter.mag * starter.damage * starter.accuracy;
+    currentValue = (starter.capacity ?? starter.mag ?? 5) * (starter.bulletDamage ?? starter.damage ?? 6);
   }
   let score = (gunValue - currentValue) * 0.55;
   if (ctx.run?.permanent?.freeFirstGunEachDuel && !ctx.duel?.freeGunPlayed) score += 10;
@@ -451,7 +464,20 @@ function effectScore(raw, ctx = {}) {
   const classId = ctx.run?.classId;
   const hpMissing = Math.max(0, (ctx.run?.maxHp ?? 100) - (ctx.run?.hp ?? 100));
   switch (effect.kind) {
+    case "load":
     case "bullets": return value * 7;
+    case "armor": return value * 1.7;
+    case "position": return value > 0 ? value * 9 : value * 5;
+    case "positionSet": return value <= 0 ? -4 : value * 6;
+    case "evadeBullets": return value * 11;
+    case "evadeAttack": return 18;
+    case "nerve": return value * 10;
+    case "nextNerve": return value * 8;
+    case "draw": return value * 7;
+    case "enemyWeak": return value * 3.5;
+    case "enemyArmor": return -value * 1.5;
+    case "overcap": return value * 9;
+    case "rattled": return -value * 8;
     case "damage": return value * 4.5;
     case "damageShootout": return value * 60;
     case "accShootout": return value * 95;
@@ -471,10 +497,10 @@ function effectScore(raw, ctx = {}) {
     case "gainFocused": return 10;
     case "focusBonusBullets": return value * 8;
     case "focusBonusAcc": return value * 80;
-    case "focusCycle": return value * 12;
+    case "focusCycle": return value * 10;
     case "focusPerRound":
     case "staminaPerRound": return value * 16;
-    case "extraPlay": return value * 13;
+    case "extraPlay": return value * 10;
     case "nextComboFree": return classId === "outlaw" ? 10 : 2;
     case "comboBonus": return classId === "outlaw" ? 9 : 0;
     case "extraVolleyShots": return classId === "outlaw" ? value * 18 : value * 8;
@@ -489,6 +515,34 @@ function effectScore(raw, ctx = {}) {
     case "removeDualPenalty": return classId === "vaquero" ? 18 : 3;
     case "lifestealOnHit": return value * (hpMissing > 0 ? 7 : 4);
     case "bountyOnHit": return value * 0.6;
+    case "infamy": return value * 8;
+    case "infamyPerRound": return value * 16;
+    case "infamyOnHit": return value * 14;
+    case "infamyLoad": return value * 9;
+    case "infamyDamage": return value * 8;
+    case "infamyArmor": return value * 5;
+    case "deputy":
+    case "deputies": return value * 14;
+    case "deputyArmorPerRound": return value * 12;
+    case "deputyLoadOnAttack": return value * 12;
+    case "deputyBlock": return value * 7;
+    case "caseFile": return value * 7;
+    case "casePerRound": return value * 14;
+    case "casePath": return value * 18;
+    case "caseOnMark": return value * 12;
+    case "caseSpendLoad": return value * 9;
+    case "caseSpendArmor": return value * 7;
+    case "track": return value * 8;
+    case "trackDamage": return value * 8;
+    case "trackLoad": return value * 9;
+    case "snare": return value * 12;
+    case "snarePerRound": return value * 16;
+    case "positionPerRound": return value * 14;
+    case "flourishDamage": return value * 9;
+    case "infection": return value * 5;
+    case "infectionWeak": return value * 5;
+    case "infectionLeech": return value * 24;
+    case "consumeInfection": return value * 10;
     case "damagePerHp": return classId === "sheriff" ? 18 : 6;
     case "respectCapSet": return classId === "sheriff" ? 8 : 0;
     case "maxHp": return value * 1.7;
@@ -505,7 +559,9 @@ function printMarkdown(data) {
   console.log(`# Balance Simulation`);
   console.log(`Runs per class: ${data.settings.runsPerClass}`);
   console.log(`Seed: ${data.settings.baseSeed}`);
-  console.log(`Model: card rewards, 20% gun drops, whiskey healing, no shop purchases, no relics, no smithing, no potions\n`);
+  console.log(`Mode: ${data.settings.simMode}`);
+  const whiskey = data.settings.whiskeyHealing ? "whiskey healing" : "no whiskey healing";
+  console.log(`Model: card rewards, 20% gun drops, ${whiskey}, no shop purchases, no relics, no smithing, no potions\n`);
 
   console.log(`## Class Clears\n`);
   console.log(`| Class | Clears | Clear % | Avg wins | Top deaths |`);

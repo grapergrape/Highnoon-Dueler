@@ -2,8 +2,8 @@ import { OPPONENTS, TOWNS } from "../data/opponents.js";
 import { CARD_DEFINITIONS, effectsForCardLevel, getCardDef } from "../data/cards.js";
 import { getClass, CLASSES } from "../data/classes.js";
 import { gunsForClass, getGun, starterGunIdForClass } from "../data/guns.js";
-import { getClassShowdownProgress, isShowdownUnlockedForClass } from "../app/unlock-state.js";
-import { duelDisplayedVolleyPreview, estimateVolleyDamage } from "../duel/duel.js";
+import { whiskeyOfferForGame } from "../data/economy.js";
+import { describeIntent, duelDisplayedVolleyPreview, estimateVolleyDamage } from "../duel/duel.js";
 
 const RARITY_PRICE = { common: 25, uncommon: 40, rare: 65, epic: 110, legendary: 180 };
 
@@ -17,24 +17,37 @@ function isUniqueDeckCard(cardDef) {
 
 /** Hover-friendly description for an effect token. Used by .card-eff tooltips. */
 const EFFECT_TOOLTIPS = {
-  bullets: "Adds bullets to your shootout volley. More shots fired in High Noon.",
+  bullets: "Legacy attack effect. Current cards should use Load.",
+  load: "Loads bullets into your active gun, up to its capacity.",
+  armor: "One-round damage reduction. Clears after Showdown.",
+  position: "Changes Position. Position improves bullet damage but fuels Dodge.",
+  positionSet: "Sets your Position to a specific value.",
+  evadeBullets: "Evades incoming bullets this Showdown by spending or requiring Position.",
+  evadeAttack: "Evades the next incoming attack this Showdown.",
+  nerve: "Gain Nerve immediately.",
+  nextNerve: "Gain extra Nerve next round.",
+  draw: "Draw cards immediately.",
+  rattled: "Reduces next round's Nerve gain.",
+  enemyWeak: "Reduces enemy bullet damage for the next attack.",
+  enemyArmor: "Changes enemy Armor.",
+  overcap: "Temporarily lets your gun load above normal capacity.",
   damage: "Flat damage added to every successful hit.",
-  accShootout: "Accuracy modifier applied during the shootout.",
-  accGlobal: "Permanent accuracy modifier carried for the rest of the run.",
-  enemyAccNext: "Reduces the enemy's accuracy on the next shootout only.",
-  enemyBullets: "Reduces the enemy's bullet count on the next shootout only.",
+  accShootout: "Legacy accuracy effect. Current combat is deterministic.",
+  accGlobal: "Legacy accuracy effect. Current combat is deterministic.",
+  enemyAccNext: "Legacy aim debuff. Current cards map this to enemy damage reduction.",
+  enemyBullets: "Legacy bullet debuff. Current cards map this to enemy damage reduction.",
   enemyDodge: "Reduces the enemy's deterministic dodges on the next shootout only.",
   pierce: "Shots ignore enemy damage reduction (pierce armor).",
   ricochet: "30% chance per hit for a half-damage ricochet.",
   healNow: "Heal HP immediately.",
   hpAfterShootout: "HP change applied after every volley while this gun is equipped.",
-  hpAfterCycle: "HP change applied when you Lock In this prep round.",
-  focusCycle: "Bonus Nerve and one extra card play in this prep cycle.",
-  gainFocused: "Enter the Focused state for the next shootout (synergy bonuses).",
+  hpAfterCycle: "Legacy timing effect from the old prep system.",
+  focusCycle: "Legacy focus effect. Current combat treats this as immediate Nerve.",
+  gainFocused: "Legacy focus state.",
   markEnemy: "Place mark tokens on the enemy. Marks amplify markBurst damage.",
   markBurst: "Each enemy mark adds this much damage to your hits.",
   focusBonusBullets: "While Focused: extra bullets in the next volley.",
-  focusBonusAcc: "While Focused: extra accuracy in the next volley.",
+  focusBonusAcc: "Legacy accuracy focus effect.",
   firstHitsAuto: "The first N shots of your volley automatically hit.",
   dodgeRecv: "Deterministically dodge this many incoming bullets each volley.",
   returnBulletOnHit: "Each hit returns this many bullets to your volley.",
@@ -43,27 +56,55 @@ const EFFECT_TOOLTIPS = {
   healPerDuel: "Heal at the start of each duel.",
   deadeye: "Critical hits: ~15% of hits deal 30% bonus damage.",
   damageTaken: "Reduce incoming damage from each enemy hit.",
-  focusPerRound: "Extra Nerve added to each prep round refill.",
-  staminaPerRound: "Extra Nerve added to each prep round refill (legacy term).",
+  focusPerRound: "Extra Nerve added next round.",
+  staminaPerRound: "Extra Nerve added next round (legacy term).",
   extraMarkPerApply: "When you apply marks, add this many extra marks.",
   markBulletPerMark: "At shootout, add this many bullets per mark on the enemy.",
   damagePerHp: "At shootout, gain +1 damage per N current HP.",
   spirit: "Gain Spirit (cap 10). Spirit scales spirit-based effects.",
-  spiritScaleAcc: "At shootout, +acc per Spirit point.",
+  spiritScaleAcc: "Legacy Spirit aim effect. Current combat maps this toward Position.",
   spiritScaleDamage: "At shootout, +volley damage per Spirit point.",
-  spiritScaleEnemyAcc: "Reduce enemy accuracy on next volley scaled by Spirit.",
+  spiritScaleEnemyAcc: "Legacy Spirit aim debuff. Current combat maps this to enemy damage reduction.",
   payHp: "Spend HP to play this card. Refused if it would be lethal.",
-  comboBonus: "Bonus effect — triggers if 2+ outlaw cards play in the same prep round.",
+  comboBonus: "Bonus effect — triggers if 2+ outlaw cards play in the same round.",
   nextComboFree: "Your next outlaw combo card costs 0 Nerve until you play one.",
-  extraPlay: "Gain one more card play this prep round.",
-  elDoble: "Mirror your active gun into the off-hand. Triple-stack if already dual.",
-  removeDualPenalty: "Removes the dual-wield accuracy penalty for this duel.",
+  extraPlay: "Legacy play-limit effect. Current combat maps this to Nerve.",
+  elDoble: "Legacy Vaquero Oath effect.",
+  removeDualPenalty: "Legacy dual-wield accuracy effect.",
   spiritDoubleNext: "All Spirit-scaling effects double for the next shootout.",
   extraVolleyShots: "Per combo trigger this duel, +N bonus shootout shots.",
-  dualWieldAccPenaltyReduce: "Reduce the dual-wield accuracy penalty.",
+  dualWieldAccPenaltyReduce: "Legacy dual-wield accuracy effect.",
   respectCapSet: "Set your Respect cap to at least this value for the run.",
   bountyOnHit: "Each successful player hit adds this many dollars to the duel bounty.",
   lifestealOnHit: "Each successful player hit restores this many HP.",
+  infamy: "Outlaw scaling resource. Spend it for bullets, damage, or armor.",
+  infamyPerRound: "Gain Infamy at the start of each later round.",
+  infamyOnHit: "Gain Infamy after successful player hits.",
+  infamyLoad: "Spend Infamy to load bullets.",
+  infamyDamage: "Gain damage from current Infamy.",
+  infamyArmor: "Gain Armor from current Infamy.",
+  deputy: "Add Sheriff deputies for this duel.",
+  deputies: "Add Sheriff deputies for this duel.",
+  deputyArmorPerRound: "Deputies add Armor at the start of each later round.",
+  deputyLoadOnAttack: "Deputies load bullets when the enemy intends to attack.",
+  deputyBlock: "Gain Armor from active deputies.",
+  caseFile: "Marshal procedure resource. Spend it for warrant payoffs.",
+  casePerRound: "Gain Case File at the start of each later round.",
+  casePath: "Start a Procedure Path. It advances each round up to III and grants that much Case File.",
+  caseOnMark: "Gain Case File when you apply Marks.",
+  caseSpendLoad: "Spend Case File to load bullets.",
+  caseSpendArmor: "Spend Case File to gain Armor.",
+  track: "Apache tracking resource. Track improves bullet damage.",
+  trackDamage: "Gain damage from current Track.",
+  trackLoad: "Load bullets from current Track.",
+  snare: "If the enemy attacks, evade bullets; otherwise gain Armor.",
+  snarePerRound: "Snare incoming attacks at the start of later rounds.",
+  positionPerRound: "Gain Position at the start of each later round.",
+  flourishDamage: "If Position is 3+, gain bullet damage for precision volleys of 3 or fewer bullets; otherwise gain Position.",
+  infection: "Delayed Doctor damage. Deals damage after Showdown, then decays by 1.",
+  infectionWeak: "If the enemy is infected, reduce their bullet damage.",
+  infectionLeech: "Heal from Infection damage.",
+  consumeInfection: "Spend all Infection for immediate burst damage.",
 };
 
 function tooltipForEffect(raw) {
@@ -81,9 +122,9 @@ const hudClass = () => document.getElementById("hud-class");
 const RIBBON_LABEL = {
   gun: "Gun",
   feat: "Feat",
-  staredown: "Staredown",
+  staredown: "Legacy",
   stance: "Stance",
-  showdown: "Oath",
+  showdown: "Legacy",
 };
 
 const ROLE_LABEL = {
@@ -126,10 +167,23 @@ function effectToText(raw) {
   const v = numStr ? (numStr.includes('.') ? parseFloat(numStr) : parseInt(numStr, 10)) : null;
   switch (kind) {
     case 'bullets': return v > 0 ? `+${v} bullets` : `${v} bullets`;
+    case 'load': return `Load ${v} bullet${Math.abs(v) === 1 ? '' : 's'}`;
+    case 'armor': return `Gain ${v} Armor`;
+    case 'position': return v > 0 ? `+${v} Position` : `${v} Position`;
+    case 'positionSet': return `Set Position ${v}`;
+    case 'evadeBullets': return `Evade ${v} bullet${Math.abs(v) === 1 ? '' : 's'}`;
+    case 'evadeAttack': return 'Evade next attack';
+    case 'nerve': return v > 0 ? `+${v} Nerve` : `${v} Nerve`;
+    case 'nextNerve': return v > 0 ? `+${v} Nerve next round` : `${v} Nerve next round`;
+    case 'draw': return `Draw ${v}`;
+    case 'rattled': return `Apply Rattled ${v || 1}`;
+    case 'enemyWeak': return `Foe bullet dmg −${v}`;
+    case 'enemyArmor': return v > 0 ? `Foe +${v} Armor` : `Foe ${v} Armor`;
+    case 'overcap': return `Over-cap ${v}`;
     case 'damage': return v > 0 ? `+${v} damage` : `${v} damage`;
-    case 'accShootout': return v > 0 ? `+${pct(v)} accuracy` : `${pct(v)} accuracy`;
+    case 'accShootout': return v > 0 ? `+${v} Position` : `${v} Position`;
     case 'accGlobal': return v > 0 ? `+${pct(v)} acc (perm)` : `${pct(v)} acc (perm)`;
-    case 'enemyAccNext': return `Foe −${pct(-v)} accuracy`;
+    case 'enemyAccNext': return `Foe damage down`;
     case 'enemyBullets': return v < 0 ? `Foe ${v} bullets` : `Foe +${v} bullets`;
     case 'enemyDodge': return v < 0 ? `Foe ${v} dodges` : `Foe +${v} dodges`;
     case 'pierce': return 'Piercing shots';
@@ -144,15 +198,15 @@ function effectToText(raw) {
     case 'focusBonusBullets': return `+${v} bullets if Focused`;
     case 'focusBonusAcc': return `+${pct(v)} acc if Focused`;
     case 'firstHitsAuto': return `First ${v} shots auto-hit`;
-    case 'dodgeRecv': return `Dodge ${v} bullet${Math.abs(v) === 1 ? '' : 's'}`;
+    case 'dodgeRecv': return `Evade ${v} bullet${Math.abs(v) === 1 ? '' : 's'}`;
     case 'returnBulletOnHit': return `Return ${v} bullet/hit`;
     case 'damageShootout': return v > 0 ? `+${pct(v)} volley dmg` : `${pct(v)} volley dmg`;
     case 'maxHp': return v > 0 ? `+${v} max HP` : `${v} max HP`;
     case 'healPerDuel': return `+${v} HP per duel`;
     case 'deadeye': return 'Crit shots (Deadeye)';
     case 'damageTaken': return `−${Math.abs(v)} dmg taken`;
-    case 'focusPerRound': return `+${v} Nerve/prep round`;
-    case 'staminaPerRound': return `+${v} Nerve/prep round`;
+    case 'focusPerRound': return `+${v} Nerve next round`;
+    case 'staminaPerRound': return `+${v} Nerve next round`;
     case 'extraMarkPerApply': return `+${v} mark per Mark apply`;
     case 'markBulletPerMark': return `+${v} bullet per mark`;
     case 'damagePerHp': return `+1 dmg per ${v} HP`;
@@ -164,10 +218,38 @@ function effectToText(raw) {
     case 'extraVolleyShots': return `+${v} shot / combo`;
     case 'bountyOnHit': return `+$${v} bounty / hit`;
     case 'lifestealOnHit': return `Heal ${v} HP / hit`;
+    case 'infamy': return v > 0 ? `+${v} Infamy` : `${v} Infamy`;
+    case 'infamyPerRound': return `+${v} Infamy/round`;
+    case 'infamyOnHit': return `+${v} Infamy/hit`;
+    case 'infamyLoad': return `Spend up to ${v} Infamy: load`;
+    case 'infamyDamage': return `Infamy adds up to +${v} dmg`;
+    case 'infamyArmor': return `Infamy adds up to ${v * 2} Armor`;
+    case 'deputy':
+    case 'deputies': return `+${v} Deput${Math.abs(v) === 1 ? 'y' : 'ies'}`;
+    case 'deputyArmorPerRound': return `Deputies: +${v} Armor/round each`;
+    case 'deputyLoadOnAttack': return `Deputies load up to ${v} vs attacks`;
+    case 'deputyBlock': return `+${v} Armor/deputy`;
+    case 'caseFile': return `+${v} Case File`;
+    case 'casePerRound': return `+${v} Case File/round`;
+    case 'casePath': return `Procedure Path +${v}`;
+    case 'caseOnMark': return `+${v} Case File on Mark`;
+    case 'caseSpendLoad': return `Spend up to ${v} Case: load`;
+    case 'caseSpendArmor': return `Spend up to ${v} Case: Armor`;
+    case 'track': return `+${v} Track`;
+    case 'trackDamage': return `Track adds up to +${v} dmg`;
+    case 'trackLoad': return `Load up to ${v} from Track`;
+    case 'snare': return `Snare ${v} bullet${Math.abs(v) === 1 ? '' : 's'}`;
+    case 'snarePerRound': return `Snare ${v}/round`;
+    case 'positionPerRound': return `+${v} Position/round`;
+    case 'flourishDamage': return `At Position 3, <=3 bullets: +${v} dmg`;
+    case 'infection': return `Apply ${v} Infection`;
+    case 'infectionWeak': return `Infected foe dmg −${v}`;
+    case 'infectionLeech': return `Heal ${Math.round(v * 100)}% Infection dmg`;
+    case 'consumeInfection': return 'Consume Infection for damage';
     case 'staredownOnly': return null;
     case 'nextComboFree': return 'Next combo card free until played';
-    case 'extraPlay': return `+${v} card play`;
-    case 'elDoble': return 'Oath of El Doble: mirror or triple-stack';
+    case 'extraPlay': return `+${v} Nerve`;
+    case 'elDoble': return 'Legacy dual-wield effect';
     case 'removeDualPenalty': return 'Clears dual-wield penalty';
     case 'spiritDoubleNext': return 'Double Spirit scaling';
     case 'outlawCombo': return null;
@@ -182,7 +264,7 @@ function effectToText(raw) {
 function classifyEffect(raw) {
   if (raw.startsWith('enemy') || raw.startsWith('markEnemy')) return 'enemy';
   if (raw.startsWith('markBurst')) return 'pos';
-  if (raw.match(/^(hpAfterShootout|hpAfterCycle|maxHp|bullets|damage|accShootout)-/)) return 'neg';
+  if (raw.match(/^(hpAfterShootout|hpAfterCycle|maxHp|bullets|damage|accShootout|position)-/)) return 'neg';
   return 'pos';
 }
 
@@ -213,6 +295,7 @@ function buildActiveGunBadgeHtml(activeGun, label = "Drawn Iron") {
   return `<div class="iron-badge iron-rarity-${activeGun.rarity}"${tipAttr}>
     <span class="iron-badge-label">${label}</span>
     <span class="iron-badge-name">${activeGun.name}</span>
+    ${activeGun.stats ? `<span class="iron-badge-stats">${activeGun.stats.capacity} cap · ${activeGun.stats.bulletDamage} dmg/bullet${activeGun.stats.startLoaded ? ` · starts ${activeGun.stats.startLoaded}` : ""}</span>` : ""}
     ${effHtml}
   </div>`;
 }
@@ -223,12 +306,8 @@ function buildPersistentRowHtml(d) {
   const stanceHtml = stances.length
     ? stances.map((s) => `<span class="persistent-chip persistent-stance">${escapeHtml(cardName(s))}</span>`).join("")
     : `<span class="persistent-empty">No stance held</span>`;
-  const showdown = d.playerShowdown
-    ? `<span class="persistent-chip persistent-showdown">${escapeHtml(cardName(d.playerShowdown))} · Level ${d.playerShowdownLevel || 1}</span>`
-    : `<span class="persistent-empty">No oath held</span>`;
   return `<div class="persistent-row">
     <div class="persistent-group"><span class="persistent-label">Stances</span>${stanceHtml}</div>
-    <div class="persistent-group"><span class="persistent-label">Oath</span>${showdown}</div>
   </div>`;
 }
 
@@ -376,17 +455,13 @@ export function renderWanted(game, onPick) {
 function shopCardPool(game) {
   const owned = new Set(game.run.deckIds);
   const classId = game.run.classId;
-  const unlockState = game.unlocks;
   return CARD_DEFINITIONS.filter((c) =>
     c.type !== "gun" &&
+    c.type !== "showdown" &&
     !c.opponentOnly &&
     !hasStaredownOnlyEffect(c) &&
     !!classId &&
     c.classId === classId &&
-    (
-      c.type !== "showdown"
-      || isShowdownUnlockedForClass(unlockState, classId, c.id)
-    ) &&
     (
       !isUniqueDeckCard(c)
       || !owned.has(c.id)
@@ -445,6 +520,8 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
     .filter(Boolean);
   const deckSize = game.run.deckIds.length;
   const atDeckCap = deckSize >= 24;
+  const whiskey = whiskeyOfferForGame(game);
+  const canBuyWhiskey = !healUsed && game.run.money >= whiskey.price && game.run.hp < game.run.maxHp;
 
   el.innerHTML = `<h2>Merchant</h2><p>Spend your bounty. Health does not refill between fights.</p>
     <p>Wallet: <strong>$${game.run.money}</strong></p>
@@ -453,7 +530,7 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue) {
     <h3 class="shop-section-title">Cards & Tricks <span class="shop-section-sub">(deck cap 24)</span></h3>
     ${atDeckCap ? `<p class="shop-empty"><em>Deck is full (${deckSize}/24). Buy a card to replace one non-gun card.</em></p>` : ''}
     <div class="shop-list" id="shop-cards"></div>
-    <button class="btn" id="heal" ${healUsed ? "disabled" : ""}>${healUsed ? "Whiskey (Used)" : "Whiskey ($12) +20 HP"}</button>
+    <button class="btn" id="heal" ${canBuyWhiskey ? "" : "disabled"}>${healUsed ? "Whiskey (Used)" : `Whiskey ($${whiskey.price}) +${whiskey.heal} HP`}</button>
     ${healUsed ? `<p class="hint">You can only buy whiskey once per merchant visit.</p>` : ""}
     <button class="btn" id="done">Ride On</button>`;
 
@@ -757,24 +834,22 @@ function fillBattleLog(container, duel) {
   });
 }
 
-function buildForecastCardHtml(label, subLabel, forecast, sideClass) {
+function buildForecastCardHtml(label, subLabel, forecast, sideClass, valuePrefix = "") {
   const dodge = forecast.dodge > 0
-    ? `<span>Dodge eats ${forecast.dodge}</span>`
-    : `<span>No dodges</span>`;
-  const auto = forecast.autoHits > 0
-    ? `<span>${forecast.autoHits} auto-hit</span>`
-    : `<span>${pct(forecast.acc)} acc</span>`;
-  const swing = forecast.swingy ? `<span>Swing effects active</span>` : "";
+    ? `<span>Evaded ${forecast.dodge}</span>`
+    : `<span>No evade</span>`;
+  const blocked = forecast.armor > 0
+    ? `<span>${forecast.armor} Armor</span>`
+    : `<span>No Armor</span>`;
   return `<div class="forecast-card ${sideClass}">
     <div class="forecast-kicker">${escapeHtml(label)}</div>
-    <div class="forecast-value">~${Math.round(forecast.expectedDamage)} dmg</div>
+    <div class="forecast-value">${escapeHtml(valuePrefix)}${Math.round(forecast.expectedDamage)} dmg</div>
     <div class="forecast-sub">${escapeHtml(subLabel)}</div>
     <div class="forecast-facts">
-      <span>${forecast.liveShots}/${forecast.bullets} live shots</span>
-      <span>${forecast.damagePerHit} dmg/hit</span>
-      ${auto}
+      <span>${forecast.liveShots}/${forecast.bullets} bullets</span>
+      <span>${forecast.damagePerHit} dmg/bullet</span>
+      ${blocked}
       ${dodge}
-      ${swing}
     </div>
   </div>`;
 }
@@ -784,11 +859,11 @@ function buildForecastPanelHtml(d, run) {
   const outgoing = estimateVolleyDamage(preview.player, preview.enemy);
   const incoming = estimateVolleyDamage(preview.enemy, preview.player);
   const foe = d.opponentDef?.name ?? "Foe";
-  const playerGun = preview.player.gunName ? `Your ${preview.player.gunName}` : "Your volley";
-  const foeGun = preview.enemy.gunName ? `${foe}'s ${preview.enemy.gunName}` : `${foe}'s volley`;
+  const playerGun = `${preview.player.loaded}/${preview.player.capacity} loaded · ${preview.player.positionName} x${preview.player.positionMult.toFixed(2)}`;
+  const foeGun = describeIntent(d.enemyIntent);
   return `<div class="forecast-grid">
-    ${buildForecastCardHtml(`Expected on ${foe}`, playerGun, outgoing, "forecast-outgoing")}
-    ${buildForecastCardHtml("Incoming threat", foeGun, incoming, "forecast-incoming")}
+    ${buildForecastCardHtml(`Damage to ${foe}`, playerGun, outgoing, "forecast-outgoing")}
+    ${buildForecastCardHtml("HP loss if you end now", foeGun, incoming, "forecast-incoming")}
   </div>`;
 }
 
@@ -877,51 +952,16 @@ function buildPlayedCardsPanelHtml(d) {
   </section>`;
 }
 
-function buildShowdownSideHtml(label, card, level) {
-  if (!card) {
-    return `<div class="showdown-side showdown-empty">
-      <div class="showdown-label">${escapeHtml(label)}</div>
-      <div class="showdown-empty-text">No oath active</div>
-    </div>`;
-  }
-  const def = getCardDef(card.id) ?? card;
-  const viewDef = { ...def, showdownLevel: level || 1 };
-  return `<div class="showdown-side">
-    <div class="showdown-label">${escapeHtml(label)}</div>
-    <div class="showdown-heading">
-      <span>${escapeHtml(def.name ?? "Oath")}</span>
-      <strong>Level ${level || 1}</strong>
-    </div>
-    ${def.flavorText ? `<div class="showdown-flavor">${escapeHtml(def.flavorText)}</div>` : ""}
-    ${buildEffectsHtml(viewDef)}
-  </div>`;
-}
-
-function buildShowdownBoardHtml(d) {
-  return `<section class="combat-section showdown-board">
-    <div class="combat-section-title">
-      <span>Oath cards</span>
-      <strong>Persistent</strong>
-    </div>
-    <div class="showdown-grid">
-      ${buildShowdownSideHtml("Your oath", d.playerShowdown, d.playerShowdownLevel)}
-      ${buildShowdownSideHtml(`${d.opponentDef?.name ?? "Opponent"} oath`, d.enemyShowdown, d.enemyShowdownLevel)}
-    </div>
-  </section>`;
-}
-
 function buildCombatDashboardHtml(game) {
   const d = game.duel;
-  if (!d || d.phase === "ended" || d.phase === "staredown_commit") return "";
+  if (!d || d.phase === "ended") return "";
   return `<div class="combat-dashboard">
     ${buildForecastPanelHtml(d, game.run)}
-    ${buildPlayedCardsPanelHtml(d)}
-    ${buildShowdownBoardHtml(d)}
   </div>`;
 }
 
 function buildCardHtml(def, costLabel = 'free') {
-  const ribbon = hasStaredownOnlyEffect(def) ? "Staredown" : (RIBBON_LABEL[def.type] ?? def.type);
+  const ribbon = hasStaredownOnlyEffect(def) ? "Legacy" : (RIBBON_LABEL[def.type] ?? def.type);
   return `
     <span class="hand-card-inner">
       <span class="card-ribbon">${escapeHtml(ribbon)}</span>
@@ -955,11 +995,10 @@ function buildShootoutSummaryHtml(d) {
       <h4>${label}</h4>
       <div class="duel-summary-stats">
         <span><strong>${side.bullets}</strong> bullets</span>
-        <span class="stat-hit">${side.hits} hit</span>
-        <span class="stat-miss">${side.misses} miss</span>
+        <span class="stat-hit">${side.hits} fired</span>
         ${side.dodged ? `<span class="stat-dodge">${side.dodged} dodged</span>` : ""}
+        ${side.armorBlocked ? `<span>${side.armorBlocked} blocked</span>` : ""}
         <span><strong>${side.damage}</strong> total dmg</span>
-        <span class="stat-acc">${pct(side.accuracy)} acc</span>
       </div>
       <ul class="shot-list">${shotsStr}</ul>
     </div>`;
@@ -973,7 +1012,60 @@ function buildShootoutSummaryHtml(d) {
   </div>`;
 }
 
-export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, onContinueDuel) {
+function buildRoundStateHtml(d, run) {
+  const preview = duelDisplayedVolleyPreview(d, run);
+  const incoming = estimateVolleyDamage(preview.enemy, preview.player);
+  const outgoing = estimateVolleyDamage(preview.player, preview.enemy);
+  const rattled = d.rattled > 0
+    ? `<span class="status-tag status-rattled">Rattled: next Nerve −${d.rattled}</span>`
+    : "";
+  const evade = d.evadeAttack
+    ? `<span class="status-tag status-dodge">Evade next attack</span>`
+    : (d.evadeBullets > 0 ? `<span class="status-tag status-dodge">Evade ${d.evadeBullets}</span>` : "");
+  const marks = d.enemyMarked > 0 ? `<span class="status-tag status-mark">Mark ×${d.enemyMarked}</span>` : "";
+  const spirit = d.spirit > 0 ? `<span class="status-tag status-spirit">Spirit ${d.spirit}</span>` : "";
+  const infamy = d.infamy > 0 ? `<span class="status-tag">Infamy ${d.infamy}</span>` : "";
+  const deputies = d.deputies > 0 ? `<span class="status-tag">Deputies ${d.deputies}</span>` : "";
+  const caseFile = d.caseFile > 0 ? `<span class="status-tag">Case ${d.caseFile}</span>` : "";
+  const casePath = d.casePath > 0 ? `<span class="status-tag">Procedure ${d.casePathStage || 0}/3</span>` : "";
+  const track = d.track > 0 ? `<span class="status-tag">Track ${d.track}</span>` : "";
+  const infection = d.enemyInfection > 0 ? `<span class="status-tag status-rattled">Infection ${d.enemyInfection}</span>` : "";
+  return `<section class="combat-section round-state-board">
+    <div class="combat-section-title">
+      <span>Round ${d.roundNumber}</span>
+      <strong>${escapeHtml(describeIntent(d.enemyIntent))}</strong>
+    </div>
+    <div class="round-state-grid">
+      <div class="round-state-cell">
+        <span class="round-state-label">Loaded</span>
+        <strong>${preview.player.loaded}/${preview.player.capacity}</strong>
+        <em>${escapeHtml(preview.player.gunName)}</em>
+      </div>
+      <div class="round-state-cell">
+        <span class="round-state-label">Position</span>
+        <strong>${preview.player.position}</strong>
+        <em>${escapeHtml(preview.player.positionName)} · x${preview.player.positionMult.toFixed(2)}</em>
+      </div>
+      <div class="round-state-cell">
+        <span class="round-state-label">Armor</span>
+        <strong>${preview.player.armor}</strong>
+        <em>Blocks ${Math.min(preview.player.armor, incoming.rawDamage)} now</em>
+      </div>
+      <div class="round-state-cell">
+        <span class="round-state-label">Nerve</span>
+        <strong>${d.nerve}/${d.maxNerve}</strong>
+        <em>Gain ${Math.max(0, (d.nerveGain ?? 3) + (d.nextNerveBonus ?? 0) - (d.rattled ?? 0))} next round</em>
+      </div>
+    </div>
+    <div class="status-strip">
+      <span class="status-tag">Outgoing ${Math.round(outgoing.expectedDamage)}</span>
+      <span class="status-tag">Incoming HP loss ${Math.round(incoming.expectedDamage)}</span>
+      ${evade}${marks}${spirit}${infamy}${deputies}${caseFile}${casePath}${track}${infection}${rattled}
+    </div>
+  </section>`;
+}
+
+export function renderDuelPanel(game, onPlayCard, onLockIn, onContinueDuel) {
   const el = panel();
   const d = game.duel;
   if (!d) return;
@@ -981,65 +1073,20 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
   let html = `<h3>${escapeHtml(d.message)}</h3>`;
   html += buildCombatDashboardHtml(game);
 
-  if (d.phase === "staredown_commit") {
-    html += `<div class="staredown-panel">
-      <p class="staredown-desc">Before the prep — commit one class staredown face-down. It resolves <em>before</em> the shootout, free of cost.</p>
-      <div class="card-row" id="staredown-choices"></div>
-    </div>`;
-  } else if (d.phase === "staredown_reveal") {
-    const pDef = d.playerStaredown ? getCardDef(d.playerStaredown.id) : null;
-    const eDef = d.enemyStaredown ? getCardDef(d.enemyStaredown.id) : null;
-    html += `<div class="staredown-panel staredown-reveal">
-      <div class="staredown-sides">
-        <div class="staredown-side">
-          <div class="staredown-side-label">Your card</div>
-          ${pDef ? `<div class="hand-card hand-card-${pDef.type}">${buildCardHtml(pDef)}</div>` : "<em>—</em>"}
-        </div>
-        <div class="staredown-vs">⚔</div>
-        <div class="staredown-side">
-          <div class="staredown-side-label">${d.opponentDef.name}</div>
-          ${eDef ? `<div class="hand-card hand-card-${eDef.type}">${buildCardHtml(eDef)}</div>` : "<em>Nothing</em>"}
-        </div>
-      </div>
-    </div>`;
-  } else if (d.phase === "prep") {
-    const markStr = d.enemyMarked > 0 ? `<span class="status-tag status-mark">◆ Marked ×${d.enemyMarked}</span>` : "";
-    const focStr = d.playerFocused ? `<span class="status-tag status-focused">✦ Focused</span>` : "";
-    const freeStr = d.freeCardAvailable ? `<span class="status-tag status-free">★ Free Card</span>` : "";
-    const spiritStr = (d.spirit > 0) ? `<span class="status-tag status-spirit" title="Spirit scales spirit-based effects.">✦ Spirit ${d.spirit}${d.spiritDoubleNext ? " ×2" : ""}</span>` : "";
-    const dualPenalty = Math.round((game.run.permanent?.dualWieldAccPenalty ?? 0.10) * 100);
-    const dualPenaltyText = d.dualWieldPenaltyRemoved ? "no acc penalty" : `−${dualPenalty}% acc before reductions`;
-    const dualStr = d.playerSecondaryGun ? `<span class="status-tag status-dual" title="Dual-wielding: mag stacks, damage averages, ${dualPenaltyText}.">⚔ Dual Wield${d.dualWieldPenaltyRemoved ? '' : ` −${dualPenalty}%`}</span>` : "";
-    const comboStr = (d.roundOutlawCount > 0) ? `<span class="status-tag status-combo" title="Outlaw cards played this round.">↻ Combo ${d.roundOutlawCount}${d.roundOutlawCount >= 2 ? '!' : ''}</span>` : "";
-    const comboFreeStr = d.nextComboFree ? `<span class="status-tag status-free" title="Next outlaw combo card costs 0 until used.">★ Free Combo</span>` : "";
-    const playsRemaining = Number.isFinite(d.playerPlaysRemaining) ? d.playerPlaysRemaining : 1;
-    const maxPlays = Number.isFinite(d.playerMaxPlaysThisRound) ? d.playerMaxPlaysThisRound : 1;
-    const playStr = `<span class="status-tag status-plays" title="Card plays remaining this prep round.">${playsRemaining}/${maxPlays} Plays</span>`;
-    const sheriffBonus = sheriffCurrentHpAccBonus(game.run);
-    const sheriffStr = game.run.classId === "sheriff"
-      ? `<span class="status-tag status-respect" title="Above 100 current HP grants +3% shotgun accuracy per HP, up to +35%.">${sheriffBonus > 0 ? `★ Respect Aim +${Math.round(sheriffBonus * 100)}%` : "★ Respect Aim inactive"}</span>`
-      : "";
-    const focPips = Array.from({ length: d.playerMaxFocus }, (_, i) =>
-      `<span class="focus-pip${i < d.playerFocus ? ' filled' : ''}"></span>`
-    ).join('');
-    const secondaryHtml = d.playerSecondaryGun
-      ? buildActiveGunBadgeHtml(d.playerSecondaryGun, "Off-Hand")
-      : "";
+  if (d.phase === "player_turn") {
+    const secondaryHtml = d.playerSecondaryGun ? buildActiveGunBadgeHtml(d.playerSecondaryGun, "Off-Hand") : "";
     html += `<div class="iron-row">
       ${buildActiveGunBadgeHtml(d.playerActiveGun, "Your Iron")}
       ${secondaryHtml}
       ${buildActiveGunBadgeHtml(d.enemy?.activeGun, `${d.opponentDef?.name ?? 'Foe'}'s Iron`)}
     </div>`;
-    html += buildPersistentRowHtml(d);
+    html += buildRoundStateHtml(d, game.run);
     html += `<div class="prep-bar">
-      <span class="prep-round">Round ${d.prepRound}/3</span>
-      <span class="focus-bar" title="Nerve refill for this prep round: ${d.playerFocus}/${d.playerMaxFocus}">${focPips}</span>
-      <span class="focus-label">${d.playerFocus}/${d.playerMaxFocus} Nerve</span>
-      ${playStr}${markStr}${focStr}${freeStr}${spiritStr}${dualStr}${comboStr}${comboFreeStr}${sheriffStr}
-      <button class="btn btn-lockin" id="lock" ${d.playerLocked ? "disabled" : ""}>Lock In</button>
+      <span class="focus-label">${d.nerve}/${d.maxNerve} Nerve</span>
+      <button class="btn btn-lockin" id="lock">Showdown</button>
     </div>`;
     html += `<div class="card-row" id="hand"></div>`;
-  } else if (d.phase === "highnoon") {
+  } else if (d.phase === "showdown") {
     html += `<p>Steel sings across the dust…</p>`;
   } else if (d.phase === "ended") {
     html += `<p class="duel-end-headline"><strong>${d.winner === "player" ? "You survived." : "You died."}</strong></p>`;
@@ -1054,27 +1101,14 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
   el.innerHTML = html;
   fillBattleLog(el.querySelector("#battle-log"), d);
 
-  if (d.phase === "staredown_commit") {
-    const row = el.querySelector("#staredown-choices");
-    if (row) {
-      for (const c of d.staredownChoices) {
-        const def = getCardDef(c.id);
-        if (!def) continue;
-        const card = document.createElement("div");
-        card.className = `hand-card hand-card-${def.type} staredown-choice`;
-        card.innerHTML = buildCardHtml(def);
-        card.onclick = () => onCommitStaredown(c.uid);
-        row.appendChild(card);
-      }
-    }
-  } else if (d.phase === "prep" && !d.playerLocked) {
+  if (d.phase === "player_turn") {
     const row = el.querySelector("#hand");
     for (const c of d.playerHand) {
       const def = getCardDef(c.id);
       if (!def) continue;
       const card = document.createElement("div");
-      const isFreeEligible = d.freeCardAvailable && def.type !== "gun" && def.type !== "stance" && def.type !== "showdown";
-      const isComboFree = !!def.outlawCombo && !!d.nextComboFree && def.type !== "stance" && def.type !== "showdown";
+      const isFreeEligible = d.freeCardAvailable && def.type !== "gun" && !def.noFree;
+      const isComboFree = false;
       const isGunFree = def.type === "gun" && !!game.run.permanent?.freeFirstGunEachDuel && !d.freeGunPlayed;
       let payHpAmount = 0;
       for (const raw of def.effects ?? []) {
@@ -1082,8 +1116,7 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
         if (m) payHpAmount += Math.abs(parseInt(m[1], 10) || 0);
       }
       const wouldBeLethal = payHpAmount > 0 && (game.run.hp - payHpAmount <= 0);
-      const hasPlay = (Number.isFinite(d.playerPlaysRemaining) ? d.playerPlaysRemaining : 1) > 0;
-      const affordable = hasPlay && (def.cost <= d.playerFocus || isFreeEligible || isComboFree || isGunFree) && !wouldBeLethal;
+      const affordable = ((def.cost ?? 0) <= d.nerve || isFreeEligible || isGunFree) && !wouldBeLethal;
       const costLabel = (isFreeEligible || isComboFree || isGunFree) && def.cost > 0 ? "★ free" : def.cost;
       card.className = `hand-card hand-card-${def.type}${affordable ? "" : " disabled"}`;
       card.innerHTML = buildCardHtml(def, costLabel);
@@ -1100,66 +1133,30 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, o
   }
 }
 
-export function renderGameOver(game, onRestart, opts = {}) {
-  const recentUnlocks = Array.isArray(opts.recentUnlocks) ? opts.recentUnlocks : [];
-  const unlockItems = recentUnlocks.map((entry) =>
-    `<li><strong>${entry.cardName}</strong> (${entry.className}) — Town ${entry.townOrder} boss clear (${entry.townName})</li>`
-  ).join("");
-  const unlockReport = unlockItems
-    ? `<div class="gameover-unlock-report">
-        <h3>Oath Catalog Updated</h3>
-        <ul>${unlockItems}</ul>
-      </div>`
-    : "";
+export function renderGameOver(game, onRestart) {
   const el = panel();
   el.className = "panel panel-gameover";
   el.innerHTML = `<h2>Game Over</h2><p>The desert keeps your coin.</p>
     <p class="game-over-wait">Back to class select shortly… Press below to ride now.</p>
-    ${unlockReport}
     <button class="btn" id="rs">Return now</button>`;
   el.querySelector("#rs").onclick = onRestart;
 }
 
-export function renderClassSelect(onPick, opts = {}) {
-  const unlockState = opts.unlockState ?? null;
-  const recentUnlocks = Array.isArray(opts.recentUnlocks) ? opts.recentUnlocks : [];
-  const unlockItems = recentUnlocks.map((entry) =>
-    `<li><strong>${entry.cardName}</strong> unlocked for ${entry.className} (Town ${entry.townOrder} boss clear)</li>`
-  ).join("");
-  const unlockBanner = unlockItems
-    ? `<div class="catalog-unlock-banner">
-        <h3>New Oath Unlocks</h3>
-        <ul>${unlockItems}</ul>
-      </div>`
-    : "";
+export function renderClassSelect(onPick) {
   const el = panel();
   el.className = "panel panel-class-select";
   el.innerHTML = `<h2>Choose Your Path</h2>
     <p>Your class shapes your starting deck and abilities.</p>
-    ${unlockBanner}
     <div class="class-grid"></div>`;
   const g = el.querySelector(".class-grid");
   for (const cls of CLASSES) {
-    const progress = getClassShowdownProgress(unlockState, cls.id);
-    const progressLine = progress.totalCount > 0
-      ? `${progress.unlockedCount}/${progress.totalCount} Oaths unlocked`
-      : "No class Oath catalog";
-    let nextTarget = "Catalog complete";
-    if (progress.nextLocked) {
-      const townOrder = progress.nextLocked.unlockTownOrder;
-      nextTarget = Number.isFinite(townOrder)
-        ? `Next: Town ${townOrder} boss clear (${progress.nextLocked.name})`
-        : `Next: ${progress.nextLocked.name}`;
-    }
     const d = document.createElement("div");
     d.className = "poster class-card";
     d.style.setProperty("--tint", cls.portraitTint);
     d.innerHTML = `
       <h3 style="color:${cls.portraitTint}">${cls.name}</h3>
       <p><em>${cls.title}</em></p>
-      <p>${cls.abilityBlurb}</p>
-      <p class="class-catalog-progress">${progressLine}</p>
-      <p class="class-catalog-next">${nextTarget}</p>`;
+      <p>${cls.abilityBlurb}</p>`;
     d.onclick = () => onPick(cls.id);
     g.appendChild(d);
   }

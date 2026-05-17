@@ -4,19 +4,25 @@ A browser-based PvE Western deckbuilding duel roguelite. Pick a class, fight dow
 
 ## Gameplay Snapshot
 
-- Each duel cycles through a class-based stare-down, 3 prep rounds, then High Noon.
-- Each prep round refills Nerve. The base play count ramps within the prep sequence: 1 card in round 1, 2 in round 2, and 3 in round 3.
-- Cards such as `Outlaw's Pact`, `Gunslinger's Tempo`, `Badge Flash`, `Packed Shells`, and `focusCycle` effects can grant extra card plays for that prep round.
-- Dodge is deterministic bullet cancellation, not a percentage chance. `Dodge 2 bullets` cancels the next 2 incoming bullets in the volley.
-- Accuracy still controls hit rolls during High Noon, so bullets can miss unless made automatic by effects.
-- Rewards and shop cards are class-only. Feats can repeat; stances and oaths are unique. Each merchant visit allows 1 card/gun purchase plus optional whiskey healing. Starter guns are baseline equipment and are not offered as merchant upgrades.
+Current implementation:
+
+- Each duel round reveals the enemy's next intent before the player acts.
+- The player spends a carried Nerve bank to play any affordable cards. There are no prep-round card limits and no active Oath system in the current combat loop.
+- Attack cards load bullets into the current gun. At the short Showdown, all loaded bullets fire and then the gun empties.
+- Armor is one-round damage reduction and clears after Showdown.
+- Position is the main movement mechanic: higher Position increases bullet damage, while rare Dodge effects spend Position to evade bullets.
+- Enemies use authored, readable intents such as `Attack 3x7`, `Gain 12 Armor`, `Apply Rattled`, or `Buff future bullet damage`; enemy attacks are deterministic and 100% accurate.
+- Taking unblocked HP damage applies Rattled, reducing next-round Nerve gain.
+- Rewards and shop cards are class-only. Feats can repeat; stances are unique. Each merchant visit allows 1 card/gun purchase plus optional whiskey healing that costs roughly the bounty just earned. Starter guns are baseline equipment and are not offered as merchant upgrades.
 - Each win has a 20% chance to add a separate class-only gun drop screen after the card reward. Gun drops exclude the class starter/currently equipped gun and can be taken or skipped.
 - Gun cards equip for the current duel only. The next duel starts from the class starter gun again until another gun card is played.
-- Upgraded Outlaw guns scale from combo triggers. Sheriff guns provide a defensive shotgun floor, while Sheriff cards supply most of the late-run sustain and closing power.
-- U.S. Marshal builds around Marks. Marks increase his hit damage and reduce enemy hit damage during High Noon; his premium government handgun upgrades support that mark plan, and the legendary Treasury Gold Schofield adds $5 bounty per successful hit.
-- Apache Tracker builds Spirit with bow/rifle tactics. Spirit lasts for the duel, adds capped damage, bullets, sustain, and enemy aim pressure, and his upgrade weapons are bows/rifles that reward Spirit rather than replacing the deck.
-- Vaquero starts each duel dual-wielding. His first gun card each duel is free and swaps the off-hand, while his deck manages the dual-wield accuracy penalty with steadying, cover, and first-hit pressure.
-- Bounty Hunter spends HP for tempo and life-stealing blood rounds. At low HP he becomes more accurate and lethal, but he must land hits to earn that blood back.
+- Outlaw spends Position for dirty combo turns and burst loading.
+- Sheriff builds Armor and Position, earning Respect for max-HP scaling.
+- U.S. Marshal stacks Marks for deterministic damage and incoming damage reduction.
+- Apache Tracker builds Spirit for bow/rifle damage and a visible defensive floor.
+- Vaquero dual-wields from the first duel, using Position and off-hand pressure to support high bullet volume or flourish damage.
+- Bounty Hunter spends HP for blood rounds, then relies on limited life-steal, quickdraw ties, or doctor-style Infection to recover the wager.
+- Each class now has two build paths; see [docs/build-paths.md](docs/build-paths.md) for the current balancing contract.
 
 ## Run Locally
 

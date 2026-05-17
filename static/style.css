@@ -580,6 +580,58 @@ button.shop-card:active {
   padding: 0.1rem 0.3rem;
 }
 
+.round-state-board {
+  margin: 0.6rem 0 0.7rem;
+}
+
+.round-state-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.round-state-cell {
+  min-width: 0;
+  padding: 0.55rem;
+  border: 1px solid rgba(255, 245, 220, 0.12);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.round-state-label {
+  display: block;
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(246, 236, 216, 0.62);
+}
+
+.round-state-cell strong {
+  display: block;
+  font-size: 1.45rem;
+  line-height: 1.05;
+  color: #f2d27e;
+}
+
+.round-state-cell em {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.68rem;
+  color: rgba(232, 220, 196, 0.78);
+  font-style: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-strip {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.55rem;
+}
+
 .combat-section {
   padding: 0.6rem;
 }
@@ -889,6 +941,24 @@ button.shop-card:active {
   background: rgba(60, 130, 70, 0.55);
   border: 1px solid rgba(90, 180, 100, 0.5);
   color: #b8f4c0;
+}
+
+.status-rattled {
+  background: rgba(130, 54, 54, 0.65);
+  border: 1px solid rgba(224, 112, 92, 0.48);
+  color: #ffd0c6;
+}
+
+.status-dodge {
+  background: rgba(64, 86, 116, 0.65);
+  border: 1px solid rgba(128, 168, 216, 0.45);
+  color: #cde3ff;
+}
+
+.iron-badge-stats {
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.66rem;
+  color: rgba(232, 218, 196, 0.78);
 }
 
 .status-spirit {

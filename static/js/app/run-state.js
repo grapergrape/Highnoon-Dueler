@@ -3,7 +3,7 @@ import { FALLBACK_GUN_ID, starterGunIdForClass } from "../data/guns.js";
 import { getClass, applyClassToRun } from "../data/classes.js";
 import { TOWNS } from "../data/opponents.js";
 
-export const LS_KEY = "highnoon_duelist_v2";
+export const LS_KEY = "highnoon_duelist_v3";
 
 export function defaultRun(classId = null) {
   const base = {
@@ -63,10 +63,10 @@ export function loadRun() {
       const perm = merged.permanent;
       if (!Number.isFinite(perm.respect)) perm.respect = 0;
       if (!Number.isFinite(perm.respectMax) || perm.respectMax < 10) perm.respectMax = 10;
-      if (!Number.isFinite(perm.respectMaxHpEach) || perm.respectMaxHpEach < 5) perm.respectMaxHpEach = 5;
-      if (!Number.isFinite(perm.highHpAccThreshold)) perm.highHpAccThreshold = 100;
-      if (!Number.isFinite(perm.highHpAccPerHp)) perm.highHpAccPerHp = 0.03;
-      if (!Number.isFinite(perm.highHpAccMax)) perm.highHpAccMax = 0.35;
+      if (!Number.isFinite(perm.respectMaxHpEach) || perm.respectMaxHpEach > 2) perm.respectMaxHpEach = 2;
+      delete perm.highHpAccThreshold;
+      delete perm.highHpAccPerHp;
+      delete perm.highHpAccMax;
       delete perm.healPerDuel;
       delete perm.firstCycleAccPenalty;
       delete perm.respectAccPenaltyReduceEach;

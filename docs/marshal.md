@@ -2,150 +2,74 @@
 
 ## Identity
 
-U.S. Marshal is the mark-scaling federal pressure class. He should feel like he is building a case during prep: every mark makes the fugitive easier to kill and less able to hurt him back.
+U.S. Marshal is the mark-scaling federal control class. He builds a case with Marks, then uses those Marks for both deterministic bullet damage and incoming damage reduction.
 
-Marshal is not a generic accuracy class. His deck should care about putting marks on the opponent, then converting those marks into damage, bullet volume, and hit-damage reduction.
+Marshal is not an accuracy class anymore. His decisions should be about when to mark, when to load, and when to cash Marks into a lethal Showdown.
 
 ## Current Core Rules
 
 - Passive: `Federal Warrant`
-- Permanent: `accBonus+0.05`, `focusPerRound+1`, `extraMarkPerApply+1`
-- Marks grant +1 player hit damage per mark, capped at +24 damage.
-- Marks reduce enemy hit damage by 1 per mark, capped at 16 damage reduction.
-- Starting HP: 100
-- Starter gun: `Colt Single Action Army`
-
-The mark bonuses apply at High Noon from the current enemy mark count. Marks clear after the volley, so the class has to rebuild the case each High Noon cycle.
+- Starting HP: 74
+- Nerve: max 7, gain 3 per round, carries over.
+- Start Position: 1.
+- Marks persist during the duel.
+- Each Mark adds +1 player bullet damage, capped at +4.
+- Each Mark reduces enemy bullet damage by 1, capped at 4.
+- Starter gun: `Colt Single Action Army`, capacity 5, bullet damage 6.
 
 ## Starter Deck
 
 | Card | Count |
 | --- | ---: |
 | `One in the Chamber` | 1 |
-| `Dodge` | 1 |
-| `Beer Heal` | 1 |
+| `Sidestep` | 1 |
+| `Whiskey Brace` | 1 |
 | `Dead to Rights` | 2 |
 | `Federal Warrant` | 2 |
 | `Deputy Crossfire` | 2 |
 | `Badge Cover` | 2 |
 | `Suppressing Fire` | 1 |
 
-The starter deck should teach the loop immediately: mark first, then decide whether the next prep play adds bullets, accuracy, or defensive pressure. It should not need an upgraded gun to beat town 1.
-
 ## Card Identity
 
 Marshal cards should mostly do one of these jobs:
 
-- Apply marks efficiently: `markEnemy`.
-- Convert marks into damage: `markBurst`, `damage`, or `firstHitsAuto`.
-- Convert marks into defense: enemy bullet denial, enemy accuracy reduction, or hit-damage reduction support.
-- Keep the prep sequence moving with `extraPlay+1` or `focusCycle+1`.
-- Build federal engines through unique stances.
+- Apply Marks efficiently.
+- Combine Marks with bullets so setup does not become a dead turn.
+- Reduce enemy damage through Marks or `enemyWeak`.
+- Add enough Armor to survive while building the case.
 
-Healthy examples:
+Because Marks provide both damage and defense, caps are the main balance guardrail.
 
-- `Dead to Rights`: clean mark setup with a bullet and short-lived damage reduction.
-- `Federal Warrant`: mark setup with a bullet, a little accuracy, and enemy aim pressure.
-- `Deputy Crossfire`: mark, bullet, and extra play in one tempo card.
-- `Badge Cover`: mark plus deterministic enemy bullet denial.
-- `Federal Ledger`: stance that makes marked targets hit harder while giving a small defensive floor.
-- `Witness Protection`: stance sustain that supports longer boss fights without becoming full healing.
+## Build Paths
+
+- `marks`: current Dead to Rights path. Marks provide deterministic damage and incoming damage reduction.
+- `procedure`: slower Case File path. Procedure Path stances advance from I to III across later rounds, granting Case File equal to the current stage before warrant payoffs spend it on loaded bullets, Armor, or enemy damage reduction.
+
+Procedure should be less immediately efficient than Marks, but better at creating planned payoff turns.
 
 ## Gun Identity
 
-Marshal guns are premium government-issued handguns. They should be revolvers or other handguns, not rifles or shotguns, and they should support marks without replacing the deck.
-
-Current gun split:
+Marshal guns are premium government-issued handguns:
 
 | Gun | Role |
 | --- | --- |
-| `Colt Single Action Army` | Starter baseline. Government sidearm with modest accuracy, no mark or bounty scaling. |
-| `Smith & Wesson Schofield No. 3` | Epic premium revolver with mark-burst support and 1 bullet dodge. |
-| `Treasury Gold Schofield` | Legendary golden-bullet revolver: each successful player hit adds $5 bounty for the duel. |
-
-Upgrade guns equip only for the current duel. The next duel starts from `Colt Single Action Army` again until a gun card is played.
-
-The legendary gun should be exciting because it changes the bounty economy and rewards landing hits. It should not be the only reason the class wins.
-
-## Balance Targets
-
-Marshal should:
-
-- Build visible mark stacks before High Noon.
-- Feel safer when he marks well, because enemy hit damage drops.
-- Hit meaningfully harder against heavily marked targets.
-- Still care about bullets and accuracy; marks alone should not guarantee a kill.
-- Usually need strong card drafting to beat final town bosses.
-
-Marshal should not:
-
-- Clear most full runs just by drafting every mark card.
-- Become immune once marks are stacked.
-- Win because the legendary gun pays for every shop and removes attrition.
-- Ignore prep choices because all mark cards are always correct.
-- Depend on relics, smithing, or potions.
+| `Colt Single Action Army` | Starter government sidearm. |
+| `Smith & Wesson Schofield No. 3` | Premium mark-support revolver. |
+| `Treasury Gold Schofield` | Legendary golden-bullet revolver that adds bounty per hit. |
 
 ## Tuning Levers
 
-Buff Marshal through:
+Buff Marshal through better mark-plus-load cards or modest Armor. Nerf Marshal through `markDamageCap`, `markDamageReduceCap`, and repeated low-cost Mark density.
 
-- Slightly better mark application on weak common cards.
-- More `extraPlay+1` on mark cards that otherwise lose too much tempo.
-- A little more `markBurst` on uncommon/rare payoffs.
-- Better defensive utility on cards, not more raw passive mitigation.
-- More access to `focusCycle+1` if the deck cannot spend round 2/3 well.
-
-Nerf Marshal through:
-
-- Lowering `markDamageReduceCap`.
-- Lowering `markDamageCap`.
-- Reducing repeated `extraPlay+1` on common mark cards.
-- Reducing `markBurst` on guns or Oaths.
-- Lowering the legendary gun's `bountyOnHit` if it overfunds shop healing.
-
-Be careful when changing:
-
-- `markDamageReduceCap`: this is the main overpowered lever. Too high makes late bosses harmless.
-- `extraMarkPerApply`: this doubles the practical value of every mark card.
-- `markBulletPerMark`: this can multiply mark stacks into huge volleys.
-- `bountyOnHit`: extra money means more shop buys and healing, not just flavor.
-- `extraPlay+1`: it turns mark cards from setup into free tempo.
-
-## Playtest Signals
-
-Good signs:
-
-- The player has to choose between more marks, defense, and bullet volume.
-- Strong mark decks can beat final bosses but still finish bruised.
-- Losses usually happen when the deck lacks mark density, bullets, or enough late defense.
-- The legendary gun is exciting when drawn but does not guarantee the duel.
-- Full-run simulations are not clearing 7/10 or more without extra systems.
-
-Bad signs:
-
-- Every reward pick is simply the highest mark count.
-- Marshal clears 7/10 or more full runs without relics, smithing, or potions.
-- Blackthorn and other late bosses deal trivial damage through full volleys.
-- The legendary gun funds enough healing that HP stops mattering.
-- The starter deck wins without caring about marks.
+Do not raise both Mark damage and Mark reduction at the same time unless the class is severely underperforming.
 
 ## Current Simulation Baseline
 
-May 16, 2026 routed Node simulation, 200 U.S. Marshal runs with card rewards, 20% gun drops, and whiskey healing, no shop purchases:
+May 17, 2026 routed Node simulation, 200 U.S. Marshal runs:
 
-- Clears: 72/200 (36%).
-- Average wins: 14.31/15.
-- Main deaths: `Judge Obadiah Blackthorn`, with only a few `Silas Gravesmoke` losses before final town.
-- Honest read: on target. Marshal reaches the final boss often, but Blackthorn still filters weak mark/bullet setups.
+- Clears: 69/200 (34.5%).
+- Average wins: 14.23/15.
+- Main deaths: `Judge Obadiah Blackthorn`, then `Caleb Cross`.
 
-## Baseline For Other Classes
-
-Marshal is the reference for a mark-scaling control class:
-
-- Medium durability.
-- Offense and defense both come from one setup resource.
-- Guns are premium but narrow.
-- Cards carry the class engine.
-- Caps matter more than raw effect text.
-
-When designing another setup-control class, compare it to Marshal. If one resource gives both damage and safety, it needs clear caps and real deckbuilding pressure.
+Honest read: on target. Marshal reaches the final boss often, but weak mark/bullet setups still die there.

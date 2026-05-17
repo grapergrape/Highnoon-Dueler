@@ -6,14 +6,14 @@ export const TOWNS = [
     slug: "rookie-town",
     order: 1,
     mapImage: "/static/img/map-rookie-town.png",
-    identity: "Tutorial street: basic bullet denial, deterministic dodge, and the first real boss check.",
+    identity: "Tutorial street: readable attacks, Armor turns, and the first boss-length duel.",
   },
   {
     name: "Small Whiskey",
     slug: "small-whiskey",
     order: 2,
     mapImage: "/static/img/map-small-whiskey.png",
-    identity: "Moonshine saloon: drunken bullet spikes, smoke-screen accuracy pressure, and a boss who taxes slow duels.",
+    identity: "Moonshine saloon: bullet spikes, Rattled taxation, and future-damage buffs.",
   },
   {
     name: "Den of Bandits",
@@ -27,14 +27,14 @@ export const TOWNS = [
     slug: "dead-mans-creek",
     order: 4,
     mapImage: "/static/img/map-dead-mans-creek.png",
-    identity: "Undead attrition: dodge, returned bullets, and long fights that punish weak closing power.",
+    identity: "Undead attrition: long fights, Armor stalls, Rattled pressure, and closing-power checks.",
   },
   {
     name: "The Devil's Saloon",
     slug: "devils-saloon",
     order: 5,
     mapImage: "/static/img/map-devils-saloon.png",
-    identity: "Legend table: elite accuracy, auto-hits, and final-boss inevitability.",
+    identity: "Legend table: late-game damage checks, Armor, Rattled, and final-boss inevitability.",
   },
 ];
 
@@ -56,19 +56,19 @@ export const ROLE_ORDER = ["easy", "medium", "boss"];
  * @property {number} maxHp
  * @property {string} gunId        - id from GUNS pool; sets the opponent's starting active gun
  * @property {number} focus
- * @property {number} prepAggression - 0-1, chance to play another card
+ * @property {number} prepAggression - legacy value from the old prep-card model
  * @property {string} bgKey         - render palette
- * @property {string[]} deckTemplate - card ids for prep draws (weighted pool)
+ * @property {string[]} deckTemplate - legacy prep-card pool
  * @property {number} [bounty]
  * @property {string} [selectFlavor] - line shown when player picks this opponent
  * @property {string} [winFlavor]    - line shown when this opponent is defeated
- * @property {Object} [playbook]      - priority plan for enemy prep-card choices
+ * @property {Object} [playbook]      - legacy prep-card playbook
  */
 
 // Balance note: difficultyTier is deliberately not a strict 1-15 ladder.
 // Each town climbs easy < medium < boss, while each next town's easy opponent
 // is tuned below the previous boss but above the previous medium.
-// prepAggression follows the same ladder so town boundaries do not present a
+// Legacy prepAggression follows the same ladder so town boundaries do not present a
 // sudden pressure drop: every next-town easy is strictly above the previous
 // town's medium and strictly below its boss, and Dead Man's Creek / Devil's
 // Saloon values stay above the Den of Bandits boss to avoid late-game relief.
@@ -211,7 +211,7 @@ export const OPPONENTS = [
     prepAggression: 0.46,
     bgKey: "saloon",
     bounty: 55,
-    identity: "Drunken bullet spike: low accuracy, extra rounds, and barrel cover.",
+    identity: "Drunken bullet spike: sloppy 3-shot pressure, barrel cover, and Rattled.",
     playbook: {
       alwaysPlay: true,
       playsPerRound: { 1: 1, 2: 1, 3: 2 },
@@ -601,7 +601,7 @@ export const OPPONENTS = [
     prepAggression: 0.83,
     bgKey: "street",
     bounty: 220,
-    identity: "Dime-novel tempo: fame grants first hits, accuracy, and escalating ace-high pressure.",
+    identity: "Dime-novel tempo: repeated multi-shot attacks, cover, and a huge single-bullet finisher.",
     playbook: {
       alwaysPlay: true,
       playsPerRound: { 1: 1, 2: 2, 3: 3 },
@@ -642,7 +642,7 @@ export const OPPONENTS = [
     prepAggression: 0.86,
     bgKey: "saloon",
     bounty: 300,
-    identity: "Final verdict boss: the table grants auto-hits, huge damage, and the last Oath in the West.",
+    identity: "Final verdict boss: Armor, Rattled, multi-shot pressure, and one huge Last Word.",
     playbook: {
       alwaysPlay: true,
       playsPerRound: { 1: 1, 2: 2, 3: 3 },
@@ -665,6 +665,158 @@ export const OPPONENTS = [
     ],
   },
 ];
+
+const COMBAT_REWORK_OPPONENT_OVERRIDES = {
+  rookie_deputy_amos: {
+    maxHp: 42,
+    intents: {
+      shaky_shot: { type: "attack", label: "Shaky Shot", bullets: 1, damage: 5 },
+      jail_cover: { type: "armor", label: "Jailhouse Cover", armor: 6 },
+      panic_fire: { type: "attack", label: "Panic Fire", bullets: 2, damage: 4 },
+    },
+    intentPattern: ["shaky_shot", "jail_cover", "panic_fire"],
+  },
+  rookie_lottie_quickstep: {
+    maxHp: 56,
+    intents: {
+      quickstep: { type: "attack", label: "Quickstep Draw", bullets: 2, damage: 5 },
+      stage_cover: { type: "armor", label: "Stage Cover", armor: 8 },
+      curtain_call: { type: "attack", label: "Curtain Call", bullets: 1, damage: 13 },
+      footwork: { type: "buff", label: "Footwork", damageNext: 1, description: "Future attacks gain +1 damage per bullet." },
+    },
+    intentPattern: ["quickstep", "stage_cover", "footwork", "curtain_call"],
+  },
+  rookie_marshal_graves: {
+    maxHp: 108,
+    intents: {
+      town_order: { type: "armor", label: "Town Order", armor: 12 },
+      badge_order: { type: "attack", label: "Badge Order", bullets: 2, damage: 7 },
+      iron_verdict: { type: "attack", label: "Iron Verdict", bullets: 3, damage: 6 },
+      gallows_sun: { type: "attack", label: "Gallows Sunrise", bullets: 1, damage: 24 },
+    },
+    intentPattern: ["town_order", "badge_order", "iron_verdict", "gallows_sun"],
+  },
+  small_whiskey_barrel_ben: {
+    maxHp: 58,
+    intents: {
+      sloppy_splash: { type: "attack", label: "Sloppy Splash", bullets: 3, damage: 4 },
+      barrel_cover: { type: "armor", label: "Barrel Cover", armor: 10 },
+      bottle_break: { type: "rattled", label: "Bottle Break", amount: 1, description: "Apply Rattled." },
+    },
+    intentPattern: ["sloppy_splash", "barrel_cover", "sloppy_splash", "bottle_break"],
+  },
+  small_whiskey_molly_mash: {
+    maxHp: 72,
+    intents: {
+      smoke_trail: { type: "armor", label: "Smoke Trail", armor: 9 },
+      runner_pistol: { type: "attack", label: "Runner Pistol", bullets: 2, damage: 7 },
+      white_lightning: { type: "buff", label: "White Lightning", damageNext: 2, description: "Future attacks gain +2 damage per bullet." },
+      clean_shot: { type: "attack", label: "Clean Shot", bullets: 1, damage: 18 },
+    },
+    intentPattern: ["runner_pistol", "smoke_trail", "white_lightning", "clean_shot"],
+  },
+  small_whiskey_isaac_stillwater: {
+    maxHp: 122,
+    intents: {
+      long_pour: { type: "attack", label: "Long Pour", bullets: 2, damage: 8 },
+      stillhouse_tax: { type: "rattled", label: "Stillhouse Tax", amount: 1, description: "Apply Rattled." },
+      boiler_pressure: { type: "buff", label: "Boiler Pressure", damageNext: 2, description: "Future attacks gain +2 damage per bullet." },
+      revenue_burst: { type: "attack", label: "Revenue Burst", bullets: 3, damage: 7 },
+    },
+    intentPattern: ["long_pour", "stillhouse_tax", "boiler_pressure", "revenue_burst"],
+  },
+  den_bandits_needle_eye_ned: {
+    maxHp: 78,
+    intents: {
+      lookout_ping: { type: "attack", label: "Lookout Ping", bullets: 1, damage: 12 },
+      canyon_slit: { type: "armor", label: "Canyon Slit", armor: 11 },
+      alarm_shots: { type: "attack", label: "Alarm Shots", bullets: 3, damage: 5 },
+    },
+    intentPattern: ["lookout_ping", "canyon_slit", "alarm_shots"],
+  },
+  den_bandits_veda_switchback: {
+    maxHp: 88,
+    intents: {
+      split_trail: { type: "armor", label: "Split Trail", armor: 13 },
+      dry_snare: { type: "rattled", label: "Dry-Gulch Snare", amount: 1, description: "Apply Rattled." },
+      switchback: { type: "attack", label: "Switchback Shot", bullets: 2, damage: 9 },
+      ambush: { type: "attack", label: "Ambush Angle", bullets: 1, damage: 22 },
+    },
+    intentPattern: ["split_trail", "switchback", "dry_snare", "ambush"],
+  },
+  den_bandits_red_jack: {
+    maxHp: 136,
+    intents: {
+      gang_signal: { type: "buff", label: "Gang Signal", damageNext: 2, description: "Future attacks gain +2 damage per bullet." },
+      dragoon_burst: { type: "attack", label: "Dragoon Burst", bullets: 3, damage: 8 },
+      blood_rush: { type: "attack", label: "Blood Rush", bullets: 4, damage: 6 },
+      boss_cover: { type: "armor", label: "Gang Boss Cover", armor: 14 },
+    },
+    intentPattern: ["gang_signal", "dragoon_burst", "boss_cover", "blood_rush"],
+  },
+  dead_creek_hollow_hank: {
+    maxHp: 92,
+    intents: {
+      grave_dirt: { type: "rattled", label: "Grave-Dirt Toss", amount: 1, description: "Apply Rattled." },
+      rusted_iron: { type: "attack", label: "Rusted Iron", bullets: 2, damage: 9 },
+      wont_stay: { type: "armor", label: "Won't Stay Buried", armor: 15 },
+    },
+    intentPattern: ["wont_stay", "rusted_iron", "grave_dirt", "rusted_iron"],
+  },
+  dead_creek_mara_voss: {
+    maxHp: 108,
+    intents: {
+      coffin_nail: { type: "attack", label: "Coffin Nail", bullets: 1, damage: 24 },
+      midnight_pall: { type: "armor", label: "Midnight Pall", armor: 16 },
+      marrow_shots: { type: "attack", label: "Marrow Shots", bullets: 3, damage: 8 },
+    },
+    intentPattern: ["midnight_pall", "marrow_shots", "coffin_nail"],
+  },
+  dead_creek_silas_gravesmoke: {
+    maxHp: 156,
+    intents: {
+      funeral: { type: "armor", label: "Funeral Procession", armor: 18 },
+      bone_call: { type: "attack", label: "Bone Marshal's Call", bullets: 3, damage: 9 },
+      dead_toll: { type: "attack", label: "Dead Man's Toll", bullets: 1, damage: 30 },
+      smoke_rise: { type: "buff", label: "Smoke Rises", damageNext: 2, description: "Future attacks gain +2 damage per bullet." },
+    },
+    intentPattern: ["funeral", "bone_call", "smoke_rise", "dead_toll"],
+  },
+  devils_saloon_dahlia_kane: {
+    maxHp: 112,
+    intents: {
+      silk_draw: { type: "attack", label: "Silk-Sleeve Draw", bullets: 2, damage: 11 },
+      velvet_poise: { type: "armor", label: "Velvet Poise", armor: 16 },
+      house_edge: { type: "buff", label: "House Edge", damageNext: 2, description: "Future attacks gain +2 damage per bullet." },
+    },
+    intentPattern: ["silk_draw", "velvet_poise", "house_edge", "silk_draw"],
+  },
+  devils_saloon_caleb_cross: {
+    maxHp: 130,
+    intents: {
+      ace_tempo: { type: "attack", label: "Ace-High Tempo", bullets: 3, damage: 10 },
+      famous_hands: { type: "armor", label: "Famous Hands", armor: 18 },
+      dime_legend: { type: "attack", label: "Dime-Novel Shot", bullets: 1, damage: 34 },
+    },
+    intentPattern: ["ace_tempo", "famous_hands", "ace_tempo", "dime_legend"],
+  },
+  devils_saloon_judge_blackthorn: {
+    maxHp: 178,
+    intents: {
+      devils_table: { type: "armor", label: "Devil's Table", armor: 20 },
+      final_verdict: { type: "attack", label: "Final Verdict", bullets: 3, damage: 12 },
+      last_word: { type: "attack", label: "Last Word", bullets: 1, damage: 40 },
+      contempt: { type: "rattled", label: "Contempt of Court", amount: 2, description: "Apply Rattled 2." },
+    },
+    intentPattern: ["devils_table", "final_verdict", "contempt", "last_word"],
+  },
+};
+
+for (const opponent of OPPONENTS) {
+  const override = COMBAT_REWORK_OPPONENT_OVERRIDES[opponent.id];
+  if (!override) continue;
+  Object.assign(opponent, override);
+}
 
 export function getTown(orderOrName) {
   if (typeof orderOrName === "number") {

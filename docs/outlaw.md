@@ -2,34 +2,26 @@
 
 ## Identity
 
-Outlaw is the explosive combo class. He should feel like he is cheating the prep rules, chaining small dirty plays into one decisive High Noon. His best turns are planned around the prep-round play ramp:
+Outlaw is the dirty combo class. He wins by spending Position, chaining outlaw cards, and turning low-composure turns into loaded bullets before the Showdown.
 
-- Prep round 1: 1 base card play.
-- Prep round 2: 2 base card plays.
-- Prep round 3 and later: 3 base card plays.
-- Extra-play cards can push a round above the base limit.
-
-Outlaw should be the clearest example of "more cards played means more payoff", but he should not get free scaling from baseline equipment. The starter gun is intentionally plain.
+He should feel explosive but brittle. The starter gun is plain; the deck, not baseline equipment, carries the combo identity.
 
 ## Current Core Rules
 
-- Passive: `Twin Combos`
-- Permanent: `focusPerRound+1`, `outlawComboTracking`
-- Starting HP: 95
-- Starter gun: `Volcanic Pistol`
-- Starter gun effects: none
-- Starter gun should not have combo bonuses.
-- Upgrade guns and Oaths may convert combo triggers into extra shots.
-
-Outlaw combo cards use `outlawCombo: true`. Once the second Outlaw combo card is played in a prep round, combo bonuses begin applying. The first two combo cards both get their `comboBonus:` payloads, and later combo cards apply their own combo bonus.
+- Passive: `Dirty Footing`
+- Starting HP: 62
+- Nerve: max 7, gain 3 per round, carries over.
+- Start Position: 1.
+- Starter gun: `Volcanic Pistol`, capacity 5, bullet damage 6.
+- Outlaw combo cards use `outlawCombo`; the second outlaw card in a round triggers combo bonuses.
 
 ## Starter Deck
 
 | Card | Count |
 | --- | ---: |
 | `One in the Chamber` | 2 |
-| `Dodge` | 2 |
-| `Beer Heal` | 1 |
+| `Sidestep` | 2 |
+| `Whiskey Brace` | 1 |
 | `Gunslinger's Tempo` | 2 |
 | `Pistol Whip` | 1 |
 | `Dust 'em Up` | 1 |
@@ -37,116 +29,46 @@ Outlaw combo cards use `outlawCombo: true`. Once the second Outlaw combo card is
 | `Outlaw's Pact` | 1 |
 | `Roll the Dice` | 1 |
 
-The starter deck should already teach the loop: play one setup card early, then use round 2/3 to chain combo cards. It should not depend on finding a gun before the first town is playable.
-
 ## Card Identity
 
 Outlaw cards should mostly do one of these jobs:
 
-- Start or extend combo chains with `extraPlay+1`.
-- Reward chaining with `comboBonus:` payloads.
-- Create dirty defensive tempo: `enemyAccNext`, `enemyBullets`, `dodgeRecv`.
-- Create burst output through bullets, damage, or first automatic hits.
-- Offer risky recovery through limited healing or defensive stances.
+- Spend Position for bullets, Nerve, draw, or enemy damage reduction.
+- Reward second-card combo turns with small extra payloads.
+- Create risky burst with `load`, `overcap`, and temporary `damage`.
+- Offer dirty defense through Armor or rare Position-costed evasion.
 
-Healthy examples:
+Avoid giving Outlaw too much free loading outside combos. In the current sim, a single point of recurring combo load can move him from fair to overpowered.
 
-- `Gunslinger's Tempo`: accuracy, dodge, extra play, and combo bullets.
-- `Outlaw's Pact`: enables a free combo card without directly adding huge damage.
-- `Loaded Sleeve`: adds bullets and turns combo into a guaranteed hit payoff.
-- `Smoke Break`: defensive tempo plus combo dodge, not raw damage.
+## Build Paths
+
+- `combo`: current Dirty Combo path. Cheap outlaw cards trigger second-card bonuses, spending Position for immediate tempo and burst.
+- `infamy`: slower reputation path. `Infamy` builds from stances and hits, then gets spent on loaded bullets, damage, or Armor.
+
+Infamy rewards should dilute combo consistency without replacing it. If combo remains near-solved under tactical play, nerf combo load density before buffing Infamy.
 
 ## Gun Identity
 
-Outlaw guns should not be flat stat sticks. They should reward playing combo cards during the duel.
-
-Current gun split:
+Outlaw guns are combo payoffs, not flat stat sticks:
 
 | Gun | Role |
 | --- | --- |
-| `Volcanic Pistol` | Starter baseline. No combo scaling. |
-| `Coachline Repeater` | Lower raw stats, adds `extraVolleyShots+1`. |
-| `Jesse James' Schofield` | Legendary combo finisher with `firstHitsAuto+1` and `extraVolleyShots+1`. |
-
-Upgrade guns equip only for the current duel. The next duel starts from `Volcanic Pistol` again until a gun card is played.
-
-## Balance Targets
-
-Outlaw should:
-
-- Clear early fights reliably if the player uses the prep ramp.
-- Lose runs when the deck lacks enough extra-play or combo density.
-- Have scary late-game burst, but not automatic boss kills.
-- Need to draw and play upgrade guns for the strongest combo-gun turns.
-- Usually take some damage because his defense is tempo-based, not permanent armor.
-
-Outlaw should not:
-
-- Get combo scaling from the starter gun.
-- Win only by stacking generic bullet cards.
-- Have all upgrade guns be pure damage upgrades.
-- Be balanced around relics, smithing, or potions.
-- Require perfect RNG to survive town 1.
+| `Volcanic Pistol` | Starter baseline, no combo bonuses. |
+| `Sawed-Off Coach Gun` | Short burst and rare over-cap pressure. |
+| `Jesse James' Schofield` | Legendary high-damage finisher with start-loaded pressure. |
 
 ## Tuning Levers
 
-Buff Outlaw through:
+Buff Outlaw through combo reliability: slightly more Armor on combo cards, small Nerve refunds, or better draw.
 
-- More `extraPlay+1` on combo setup cards.
-- Slightly better `comboBonus:` values on low-rarity cards.
-- More access to `focusCycle+1` or `focusPerRound+1`.
-- Better defensive tempo on combo cards, especially `enemyAccNext` or `enemyBullets`.
-- Small accuracy buffs on combo payoffs.
-
-Nerf Outlaw through:
-
-- Reducing `extraVolleyShots` on guns or Oaths.
-- Lowering upgrade gun magazine size.
-- Removing flat damage from combo setup cards.
-- Making powerful combo enablers cost 2+ Nerve.
-- Reducing how often repeatable rewards produce the same best combo piece.
-
-Be careful when changing:
-
-- `extraVolleyShots`: it multiplies with duel combo triggers and can explode quickly.
-- `extraPlay+1`: it is both a card-play limit break and a combo enabler.
-- `nextComboFree`: it is strongest when paired with extra plays.
-- Starter gun stats: the starter should make early game playable, not define the build.
-
-## Playtest Signals
-
-Good signs:
-
-- The player looks for two-card and three-card prep-round chains.
-- Upgrade guns feel exciting because they make combo turns louder.
-- Losses feel like bad deck construction, low HP management, or greedy prep choices.
-- Boss kills often require two or more High Noon cycles unless the deck is excellent.
-
-Bad signs:
-
-- The correct play is always "buy any gun, ignore card identity".
-- Starter gun clears fights before combo cards matter.
-- The deck wins by hoarding random bullet cards with no combo sequencing.
-- Runs fail because a single accuracy miss wastes all setup.
-- Outlaw clears 5/5 full runs with high HP in basic sims.
+Nerf Outlaw through loaded bullet density, over-cap access, and `Outlaw's Pact`. Avoid nerfing HP first; he is already the lowest-HP class.
 
 ## Current Simulation Baseline
 
-May 16, 2026 routed Node simulation, 200 Outlaw runs with card rewards, 20% gun drops, and whiskey healing, no shop purchases:
+May 17, 2026 routed Node simulation, 200 Outlaw runs:
 
-- Clears: 69/200 (34.5%).
-- Average wins: 11.16/15.
-- Main deaths: `Red Jack Calder`, `Caleb Cross`, then `Silas Gravesmoke`.
-- Honest read: on target. Outlaw is volatile and can spike hard, but the low HP keeps bad hands honest.
+- Clears: 59/200 (29.5%).
+- Average wins: 13.24/15.
+- Main deaths: `Judge Obadiah Blackthorn`, `Silas Gravesmoke`, `Red Jack Calder`, and `Caleb Cross`.
 
-## Baseline For Other Classes
-
-Outlaw is the reference for a high-tempo combo class:
-
-- Low durability.
-- High sequencing payoff.
-- Upgrade guns interact with class mechanics.
-- Starter gun stays neutral.
-- Cards carry most of the build identity.
-
-When designing another combo class, compare it to Outlaw. If it plays many cards per turn but does not care about card order or setup, it probably needs a different identity.
+Honest read: acceptable but volatile. Outlaw can still spike hard, but he no longer brute-forces the route by stacking generic bullets.

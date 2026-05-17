@@ -35,8 +35,25 @@ export function feedbackLinesForCard(def, playedBy) {
         lines.push({ targetSide: "enemy", kind: "debuff", text: `${e.value ?? 0} rounds` });
       } else if (e.kind === "enemyDodge") {
         lines.push({ targetSide: "enemy", kind: "debuff", text: `${e.value ?? 0} dodges` });
-      } else if (e.kind === "bullets") {
-        lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} rounds` });
+      } else if (e.kind === "load" || e.kind === "bullets") {
+        lines.push({ targetSide: "player", kind: "buff", text: `Load +${e.value}` });
+      } else if (e.kind === "armor" || e.kind === "damageTaken") {
+        const armor = e.kind === "damageTaken" ? Math.abs(e.value ?? 1) * 4 : e.value;
+        lines.push({ targetSide: "player", kind: "buff", text: `Armor +${armor}` });
+      } else if (e.kind === "position") {
+        lines.push({ targetSide: "player", kind: (e.value ?? 0) >= 0 ? "buff" : "debuff", text: `POS ${e.value >= 0 ? "+" : ""}${e.value}` });
+      } else if (e.kind === "positionSet") {
+        lines.push({ targetSide: "player", kind: "neutral", text: `POS ${e.value}` });
+      } else if (e.kind === "evadeBullets") {
+        lines.push({ targetSide: "player", kind: "buff", text: `Evade ${e.value}` });
+      } else if (e.kind === "evadeAttack") {
+        lines.push({ targetSide: "player", kind: "buff", text: "Evade attack" });
+      } else if (e.kind === "nerve" || e.kind === "nextNerve" || e.kind === "extraPlay") {
+        lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} NRV` });
+      } else if (e.kind === "draw") {
+        lines.push({ targetSide: "player", kind: "buff", text: `Draw ${e.value}` });
+      } else if (e.kind === "enemyWeak") {
+        lines.push({ targetSide: "enemy", kind: "debuff", text: `Weak -${e.value}` });
       } else if (e.kind === "damage") {
         lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} dmg` });
       } else if (e.kind === "accShootout") {
@@ -91,6 +108,22 @@ export function feedbackLinesForCard(def, playedBy) {
         lines.push({ targetSide: "player", kind: "buff", text: `+$${e.value}/hit` });
       } else if (e.kind === "lifestealOnHit") {
         lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} HP/hit` });
+      } else if (e.kind === "infamy") {
+        lines.push({ targetSide: "player", kind: "buff", text: `Infamy +${e.value}` });
+      } else if (e.kind === "deputy" || e.kind === "deputies") {
+        lines.push({ targetSide: "player", kind: "buff", text: `Deputy +${e.value}` });
+      } else if (e.kind === "caseFile") {
+        lines.push({ targetSide: "player", kind: "buff", text: `Case +${e.value}` });
+      } else if (e.kind === "casePath") {
+        lines.push({ targetSide: "player", kind: "buff", text: `Procedure Path` });
+      } else if (e.kind === "track") {
+        lines.push({ targetSide: "enemy", kind: "debuff", text: `Track +${e.value}` });
+      } else if (e.kind === "snare") {
+        lines.push({ targetSide: "enemy", kind: "debuff", text: `Snare ${e.value}` });
+      } else if (e.kind === "flourishDamage") {
+        lines.push({ targetSide: "player", kind: "buff", text: `Flourish +${e.value}` });
+      } else if (e.kind === "infection") {
+        lines.push({ targetSide: "enemy", kind: "debuff", text: `Infect ${e.value}` });
       } else if (e.kind === "healNow") {
         lines.push({ targetSide: "player", kind: "buff", text: `+${e.value} HP` });
       } else if (e.kind === "respectCapSet") {

@@ -2,14 +2,12 @@ import { STARTER_DECK_IDS, shuffle } from "../data/deck.js";
 import { getGun, gunsForClass, starterGunIdForClass } from "../data/guns.js";
 import { getOpponent, OPPONENTS, TOWNS } from "../data/opponents.js";
 import { CARD_DEFINITIONS, getCardDef } from "../data/cards.js";
+import { whiskeyOfferForGame } from "../data/economy.js";
 import {
   createDuel,
   tryPlayCard,
   lockInPrep,
   tickHighNoon,
-  tickStaredown,
-  dealStaredownChoices,
-  commitPlayerStaredown,
 } from "../duel/duel.js";
 import { clearCombatCanvasOverlay, drawGame, pushTracer, tickFx } from "../rendering/render.js";
 import { tickCombatUi, enqueueCombatFloats, resetCombatUi } from "../ui/combat-ui.js";
@@ -27,12 +25,6 @@ import {
 } from "../ui/ui.js";
 import { getClass } from "../data/classes.js";
 import { LS_KEY, defaultRun, loadRun, saveRun } from "./run-state.js";
-import {
-  loadUnlockState,
-  saveUnlockState,
-  isShowdownUnlockedForClass,
-  unlockShowdownsForBossClear,
-} from "./unlock-state.js";
 
 const GAMEOVER_AUTO_RETURN_MS = 10000;
 const MAX_DECK_SIZE = 24;
@@ -51,7 +43,6 @@ function bountyFor(oppId) {
 }
 
 const _savedRun = loadRun();
-const _savedUnlocks = loadUnlockState();
 
 const game = {
   screen: "wanted",
@@ -64,6 +55,7 @@ const game = {
   screenShake: 0,
   muzzleFx: [],
   lastBounty: 50,
+  lastBountyEarned: 50,
   assets: {
     /** 2×2 sheet: TL prep, TR shootout, BL player win, BR opponent win */
     duelScenes: null,
@@ -75,8 +67,6 @@ const game = {
     playerKind: "buff",
     enemyKind: "buff",
   },
-  unlocks: _savedUnlocks,
-  pendingUnlockAnnouncements: [],
   shopVisitInventory: null,
 };
 
@@ -135,11 +125,7 @@ function goClassSelect() {
   game.shopVisitInventory = null;
   game.run = defaultRun();
   updateHud(game);
-  renderClassSelect(pickClass, {
-    unlockState: game.unlocks,
-    recentUnlocks: game.pendingUnlockAnnouncements,
-  });
-  game.pendingUnlockAnnouncements = [];
+  renderClassSelect(pickClass);
 }
 
 function pickClass(classId) {
@@ -169,31 +155,6 @@ function recordOpponentWin(opp) {
     game.run.defeatedOpponentIds.push(opp.id);
   }
   if (opp.role === "boss") {
-    if (game.run.classId) {
-      const { unlockState, newlyUnlocked, changed } = unlockShowdownsForBossClear(
-        game.unlocks,
-        game.run.classId,
-        opp.townOrder
-      );
-      if (changed) {
-        game.unlocks = unlockState;
-        saveUnlockState(game.unlocks);
-      }
-      if (newlyUnlocked.length) {
-        const className = getClass(game.run.classId)?.name ?? game.run.classId;
-        const town = TOWNS.find((entry) => entry.order === opp.townOrder);
-        for (const card of newlyUnlocked) {
-          game.pendingUnlockAnnouncements.push({
-            classId: game.run.classId,
-            className,
-            cardId: card.id,
-            cardName: card.name,
-            townOrder: opp.townOrder,
-            townName: town?.name ?? `Town ${opp.townOrder}`,
-          });
-        }
-      }
-    }
     if ((game.run.currentTownOrder ?? 1) <= opp.townOrder) {
       setCurrentTown(Math.min(TOWNS.length, opp.townOrder + 1));
     }
@@ -218,29 +179,18 @@ function startDuel(oppId) {
   game.run.hp = Math.min(game.run.maxHp, Math.max(1, game.run.hp));
   saveRun(game.run);
   game.duel = createDuel(opp, game.run);
-  dealStaredownChoices(game.duel, game.run);
   game.screen = "duel";
   updateHud(game);
   refreshDuelUi();
 }
 
 function refreshDuelUi() {
-  renderDuelPanel(game, onPlayCard, onLockIn, onCommitStaredown, onContinueDuel);
+  renderDuelPanel(game, onPlayCard, onLockIn, onContinueDuel);
 }
 
 function onContinueDuel() {
   if (!game.duel || game.duel.phase !== "ended") return;
   endDuelFlow();
-}
-
-function onCommitStaredown(uid) {
-  if (!game.duel) return;
-  const ok = commitPlayerStaredown(game.duel, game.run, uid);
-  if (ok) {
-    saveRun(game.run);
-    updateHud(game);
-    refreshDuelUi();
-  }
 }
 
 function onPlayCard(uid) {
@@ -254,15 +204,12 @@ function onPlayCard(uid) {
 }
 
 function onLockIn() {
-  if (!game.duel || game.duel.phase !== "prep") return;
+  if (!game.duel || game.duel.phase !== "player_turn") return;
   const r = lockInPrep(game.duel, game.run);
   if (r.enemyFeedback?.length) enqueueCombatFloats(game, r.enemyFeedback);
   saveRun(game.run);
   updateHud(game);
   refreshDuelUi();
-  if (r.toStaredown) {
-    game.screenShake = 0.1;
-  }
 }
 
 function gunCountInDeck(deckIds) {
@@ -281,19 +228,15 @@ function isUniqueDeckCard(cardDef) {
 
 function rewardCardPool(gameState) {
   const run = gameState.run;
-  const unlockState = gameState.unlocks;
   const classId = run.classId;
   const owned = new Set(run.deckIds);
   return CARD_DEFINITIONS.filter((c) =>
     c.type !== "gun" &&
+    c.type !== "showdown" &&
     !c.opponentOnly &&
     !hasStaredownOnlyEffect(c) &&
     !!classId &&
     c.classId === classId &&
-    (
-      c.type !== "showdown"
-      || isShowdownUnlockedForClass(unlockState, classId, c.id)
-    ) &&
     (
       !isUniqueDeckCard(c)
       || !owned.has(c.id)
@@ -516,10 +459,11 @@ function openShop() {
       openShop();
     },
     () => {
-      if (game.run.money < 12) return;
+      const whiskey = whiskeyOfferForGame(game);
+      if (game.run.money < whiskey.price) return;
       if (game.shopVisitInventory?.healUsed) return;
-      game.run.money -= 12;
-      game.run.hp = Math.min(game.run.maxHp, game.run.hp + 20);
+      game.run.money -= whiskey.price;
+      game.run.hp = Math.min(game.run.maxHp, game.run.hp + whiskey.heal);
       if (game.shopVisitInventory) game.shopVisitInventory.healUsed = true;
       saveRun(game.run);
       updateHud(game);
@@ -540,6 +484,7 @@ function endDuelFlow() {
     const mult = game.run.permanent?.bountyMult ?? 1;
     const bonusBounty = Math.max(0, Math.round(d.bonusBounty || 0));
     const bountyEarned = Math.round(game.lastBounty * mult) + bonusBounty;
+    game.lastBountyEarned = bountyEarned;
     game.run.money += bountyEarned;
     recordOpponentWin(d.opponentDef);
 
@@ -577,7 +522,7 @@ function endDuelFlow() {
       clearNavTimers();
       localStorage.removeItem(LS_KEY);
       goClassSelect();
-    }, { recentUnlocks: game.pendingUnlockAnnouncements });
+    });
     game._gameOverReturnTimer = setTimeout(() => {
       game._gameOverReturnTimer = null;
       if (game.screen !== "gameover") return;
@@ -598,19 +543,10 @@ function loop(ts) {
     game.screenShake = Math.max(0, game.screenShake - dt * 1.4);
   }
 
-  if (game.screen === "duel" && game.duel?.phase === "staredown_reveal") {
-    const before = game.duel.phase;
-    tickStaredown(game.duel, game.run, dt);
-    if (before === "staredown_reveal" && game.duel.phase !== "staredown_reveal") {
-      game.screenShake = 0.2;
-      refreshDuelUi();
-    }
-  }
-
-  if (game.screen === "duel" && game.duel?.phase === "highnoon") {
+  if (game.screen === "duel" && game.duel?.phase === "showdown") {
     const before = game.duel.phase;
     tickHighNoon(game.duel, game.run, dt);
-    if (before === "highnoon" && game.duel.phase !== "highnoon") {
+    if (before === "showdown" && game.duel.phase !== "showdown") {
       for (const ev of game.duel.shootoutLog || []) {
         if (ev.kind === "hit") pushTracer(game, ev.by === "player");
         if (ev.kind === "rico") pushTracer(game, true);
@@ -657,7 +593,6 @@ function init() {
   preloadDuelArt();
   game.canvas = document.getElementById("game-canvas");
   game.ctx = game.canvas.getContext("2d");
-  saveUnlockState(game.unlocks);
   updateHud(game);
   if (!game.run.classId) {
     goClassSelect();
