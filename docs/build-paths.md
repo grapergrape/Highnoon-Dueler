@@ -159,4 +159,33 @@ Aggregate: 88/120 clears, or 73.3%.
 
 Honest balance read: shared items are now modest enough that the remaining high clear rate is mostly class/opponent balance debt. Outlaw Combo, Marshal, Apache Trail, and Sheriff Street are the watch points. Do not nerf the whole item pool further to fix those specific routes; tune the strongest class cards, Deed upgrades, and final-town pressure instead.
 
+## Optimization Pass 1
+
+May 17, 2026 boring-mechanic cleanup and optimized-play tuning:
+
+```bash
+node tools/tactical-shop-sim.mjs --runs 10 --build-paths
+node tools/balance-sim.mjs --runs 100
+```
+
+Changes accepted:
+
+- Sheriff Respect max-HP growth reduced from +2 HP per win to +1 HP per win.
+- Outlaw combo sustain cards lost automatic free-action healing loops.
+- Apache Signature upgrades were trimmed so Track/Spirit upgrades are still exciting without making every good roll solved.
+- Apache and Marshal identity caps were restored after a first-pass overnerf made Apache Spirit and Marshal Procedure too brittle.
+
+| Class | Current path | Clears | Second path | Clears | Read |
+| --- | --- | ---: | --- | ---: | --- |
+| Outlaw | `combo` | 9/10 | `infamy` | 2/10 | Combo is still the high-roll chase lane; Infamy remains the low-roll fail lane unless it finds enough scaling. |
+| Sheriff | `street` | 5/10 | `posse` | 7/10 | Respect no longer lets Street coast on max HP; Posse is the stronger optimized lane. |
+| U.S. Marshal | `marks` | 8/10 | `procedure` | 8/10 | Marshal is still highly consistent but no longer the main source of excess aggregate clears. |
+| Apache Tracker | `spirit` | 8/10 | `trail` | 9/10 | Apache stays high-roll and fun; future nerfs should target specific cards, not the class passive caps. |
+| Vaquero | `dual` | 8/10 | `flourish` | 7/10 | Good spread; both builds can spike without being guaranteed. |
+| Bounty Hunter | `blood` | 7/10 | `doctor` | 7/10 | Healthy current band; blood/doctor both support high-risk clears. |
+
+Aggregate: 85/120 clears, or 70.8%.
+
+Low-skill random baseline: 0/100 clears for every class. This is the accepted current balance point: optimized play clears around 70%, random play clears 0%, weak/low-roll routes die late, and the best lines still allow rare high-roll full clears.
+
 The matching low-skill sim target is tracked in [simulation-balancing.md](simulation-balancing.md). Current default low-skill sim is 0/200 clears for every class, which is inside the requested 0-5% band but intentionally too weak to represent manual play.

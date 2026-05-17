@@ -131,7 +131,7 @@ export const CLASSES = [
     permanent: {
       respect: 0,
       respectMax: 10,
-      respectMaxHpEach: 2,
+      respectMaxHpEach: 1,
       maxNerve: 7,
       nerveGain: 3,
       startPosition: 1,

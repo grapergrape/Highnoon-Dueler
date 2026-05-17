@@ -80,7 +80,7 @@ node tools/balance-sim.mjs --runs 200 --mode greedy
 The current item/no-smithing/no-potion target separates low-skill simulation from deliberate play:
 
 - Low-skill sim: 0-5% full clears per class.
-- Tactical/manual-decision play: around 50% full clears across build-guided runs.
+- Tactical/manual-decision play: around 70% full clears across build-guided runs.
 
 Pre-item low-skill baseline from May 17, 2026 after Deeds tuning, 200 runs per class:
 
@@ -93,7 +93,7 @@ Pre-item low-skill baseline from May 17, 2026 after Deeds tuning, 200 runs per c
 | Vaquero | 0.0% |
 | Bounty Hunter | 0.0% |
 
-After item changes, rerun this baseline before accepting balance numbers. The first item implementation was too strong because free bullets, recurring Armor, starting Position, and max-Nerve stacking raised tactical clears sharply. The current item pool keeps those effects rare, but tactical play is still above target because several class paths remain highly consistent.
+After item changes, rerun this baseline before accepting balance numbers. The first item implementation was too strong because free bullets, recurring Armor, starting Position, and max-Nerve stacking raised tactical clears sharply. The current item pool keeps those effects rare, and the accepted optimized target is now around 70% rather than around 50%.
 
 This low-skill sim is intentionally harsh and should fail almost all runs. For stronger shop-aware tactical/manual-decision play, run:
 
@@ -118,7 +118,7 @@ node tools/tactical-shop-sim.mjs --runs 10 --class vaquero --build flourish
 
 `--build-paths` does not hard-lock rewards to that path. It biases reward and shop valuation toward the requested path while the class-only pool still contains both paths. That makes it useful for checking whether the old build stayed solved after path dilution, and whether the new build can clear when played deliberately.
 
-Current post-item Deed-aware tactical baseline is roughly 88/120 clears across 12 class paths after shared gear and trinkets. The pre-item baseline was 69/120. The per-path tables live in [build-paths.md](build-paths.md).
+Current post-item Deed-aware tactical baseline after the first optimization pass is roughly 85/120 clears across 12 class paths, or 70.8%. The immediately post-item baseline was 88/120, and the pre-item baseline was 69/120. The per-path tables live in [build-paths.md](build-paths.md).
 
 Do not overreact to a single 50-run sample. Use 50 runs to catch obvious breakage, 200 runs for normal low-skill sim checks, and tactical 10-run build-path passes for manual-decision pressure testing.
 

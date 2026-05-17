@@ -1365,25 +1365,25 @@ export const CARD_DEFINITIONS = [
   {
     id: "atk_smoke_break", name: "Smoke Break", type: "feat", rarity: "common", cost: 0,
     classId: "outlaw", outlawCombo: true,
-    effects: ["dodgeRecv+3", "healNow+10", "extraPlay+1", "comboBonus:dodgeRecv+1"],
+    effects: ["armor+7", "position-1", "comboBonus:evadeBullets+1"],
     flavorText: "He breathes out. The street loses him.",
   },
   {
     id: "char_lucky_scar", name: "Lucky Scar", type: "stance", rarity: "common", cost: 0,
     classId: "outlaw", outlawCombo: true,
-    effects: ["dodgeRecv+2", "damageTaken-1", "extraPlay+1"],
+    effects: ["armor+5", "position-1"],
     flavorText: "The bullet that missed still taught him where to stand.",
   },
   {
     id: "char_hideout_cache", name: "Hideout Cache", type: "stance", rarity: "uncommon", cost: 0,
     classId: "outlaw", outlawCombo: true,
-    effects: ["focusPerRound+1", "healNow+12", "extraPlay+1"],
+    effects: ["nextNerve+1", "armor+4"],
     flavorText: "Coins, cartridges, and a bottle behind loose brick.",
   },
   {
     id: "char_black_market_doc", name: "Black-Market Doc", type: "stance", rarity: "rare", cost: 0,
     classId: "outlaw", outlawCombo: true,
-    effects: ["healNow+18", "dodgeRecv+2", "extraPlay+1"],
+    effects: ["healNow+8", "armor+5"],
     flavorText: "No questions. No records. No anesthesia worth naming.",
   },
   {
@@ -2822,8 +2822,8 @@ function legendaryUpgradeFor(def) {
     return { id: "legendary", name: "Tall-Tale Signature", description: "Marks hit brutally hard.", effects: ["markBurst+3"] };
   }
   if (classId === "apache_tracker") {
-    if (buildPath === "trail" || kinds.has("track") || kinds.has("snare")) return { id: "legendary", name: "Tall-Tale Signature", description: "Track adds heavy damage.", effects: ["trackDamage+2"] };
-    return { id: "legendary", name: "Tall-Tale Signature", description: "Spirit adds much more damage this volley.", effects: ["spiritScaleDamage+0.03"] };
+    if (buildPath === "trail" || kinds.has("track") || kinds.has("snare")) return { id: "legendary", name: "Tall-Tale Signature", description: "Track adds heavy damage.", effects: ["trackDamage+1"] };
+    return { id: "legendary", name: "Tall-Tale Signature", description: "Spirit adds more damage this volley.", effects: ["spiritScaleDamage+0.02"] };
   }
   if (classId === "vaquero") {
     if (buildPath === "flourish" || kinds.has("flourishDamage")) return { id: "legendary", name: "Tall-Tale Signature", description: "Flourish hits much harder.", effects: ["flourishDamage+2"] };
