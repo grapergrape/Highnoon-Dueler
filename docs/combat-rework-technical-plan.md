@@ -291,6 +291,8 @@ The player and enemy fire during the same Showdown moment. If both sides would d
 
 The combat UI must not rely on the log to explain what happened.
 
+The next presentation pass is documented in [combat-presentation-ux-plan.md](combat-presentation-ux-plan.md). It should improve feel and readability without changing combat balance.
+
 Always visible during the player turn:
 
 - enemy intent label and exact math, for example `3x7 = 21`
@@ -304,6 +306,8 @@ Always visible during the player turn:
 - Rattled warning if the player will gain less Nerve next round
 
 After each played card, the outgoing/incoming preview must update immediately.
+
+When the presentation layer is implemented, a played card may animate before resolution, but the resolved state must still refresh on the card's impact frame. Hover previews should come from pure duel preview helpers and should not mutate combat state.
 
 ## Class Position Identities
 

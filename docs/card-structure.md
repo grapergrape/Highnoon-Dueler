@@ -4,6 +4,7 @@ This document describes the current card/deck implementation after the determini
 
 Two-build class identities and reward-pool expectations are defined in [build-paths.md](build-paths.md).
 The current upgrade layer is defined in [deeds.md](deeds.md).
+The planned physical card-hand and western card presentation layer is defined in [combat-presentation-ux-plan.md](combat-presentation-ux-plan.md).
 
 ## Card Types
 
@@ -72,6 +73,22 @@ Player gun fields:
 | `bulletDamage` | Damage per bullet before Position and class modifiers. |
 
 Gun cards equip only for the current duel. The next duel starts from the class starter gun again until another gun card is played.
+
+## Presentation Contract
+
+Cards should remain DOM-based for the next UX pass. The planned presentation system should treat cards as physical western poker cards while keeping the data model unchanged.
+
+Combat hand cards should expose stable attributes for presentation code:
+
+| Attribute | Meaning |
+| --- | --- |
+| `data-card-uid` | Per-copy duel hand UID. |
+| `data-card-id` | Static card definition ID. |
+| `data-card-type` | Card type such as `feat`, `gun`, or `stance`. |
+| `data-affordable` | Whether the current state allows the card to be played. |
+| `data-preview-key` | Optional compact key for hover preview cache invalidation. |
+
+The presentation layer may add fanned transforms, hover lift, ghost-card animation, and western distress styling. It must not rewrite card effects, mutate duel state during hover, or make the battle log necessary for turn planning.
 
 ## Baseline Decks
 
