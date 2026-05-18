@@ -13,7 +13,7 @@ const SHARED_BASIC_STARTER_CORE = [
 
 const OUTLAW_STARTER_DECK = [
   "atk_one_in_the_chamber", "atk_one_in_the_chamber",
-  "atk_dodge", "atk_dodge",
+  "atk_dodge",
   "atk_beer_heal",
   "atk_gunslingers_tempo", "atk_gunslingers_tempo",
   "atk_pistol_whip",
@@ -21,6 +21,7 @@ const OUTLAW_STARTER_DECK = [
   "atk_smoke_break",
   "atk_outlaws_pact",
   "atk_roll_the_dice",
+  "atk_name_on_every_poster",
 ];
 
 const SHERIFF_STARTER_DECK = [
@@ -31,7 +32,7 @@ const SHERIFF_STARTER_DECK = [
   "atk_badge_flash", "atk_badge_flash",
   "atk_heavy_iron", "atk_heavy_iron",
   "atk_towns_strength",
-  "atk_deputy_cover",
+  "atk_deputize_town",
 ];
 
 const MARSHAL_STARTER_DECK = [
@@ -40,43 +41,49 @@ const MARSHAL_STARTER_DECK = [
   "atk_beer_heal",
   "atk_dead_to_rights", "atk_dead_to_rights",
   "atk_federal_warrant", "atk_federal_warrant",
-  "atk_deputy_crossfire", "atk_deputy_crossfire",
-  "atk_badge_cover", "atk_badge_cover",
+  "atk_deputy_crossfire",
+  "atk_badge_cover",
   "atk_suppressing_fire",
+  "atk_open_case_file",
+  "char_federal_procedure",
 ];
 
 const APACHE_STARTER_DECK = [
   "atk_one_in_the_chamber", "atk_one_in_the_chamber",
-  "atk_dodge", "atk_dodge",
+  "atk_dodge",
   "atk_beer_heal",
   "atk_wind_whisper", "atk_wind_whisper",
   "atk_spirit_talk",
   "atk_ridge_sight",
   "atk_owls_vision",
-  "atk_bear_spirit",
+  "atk_read_the_dust",
+  "char_hidden_trail",
   "char_medicine_bundle",
 ];
 
 const VAQUERO_STARTER_DECK = [
   "atk_one_in_the_chamber", "atk_one_in_the_chamber",
-  "atk_dodge", "atk_dodge",
+  "atk_dodge",
   "atk_beer_heal",
   "atk_steady_offhand", "atk_steady_offhand",
-  "atk_quick_holster", "atk_quick_holster",
+  "atk_quick_holster",
   "atk_crossfire",
   "atk_left_hand_cover",
   "atk_offhand_reload",
+  "atk_paso_fino",
+  "char_caballero_rhythm",
 ];
 
 const BOUNTY_HUNTER_STARTER_DECK = [
   "atk_one_in_the_chamber", "atk_one_in_the_chamber",
-  "atk_dodge", "atk_dodge",
+  "atk_dodge",
   "atk_beer_heal",
   "atk_blood_for_lead", "atk_blood_for_lead",
   "atk_dead_mans_cover", "atk_dead_mans_cover",
   "atk_vendetta_shot",
   "atk_reckless_aim",
   "atk_patch_job",
+  "atk_dirty_needle",
 ];
 
 function starterDeckWithSpecials(specials) {
@@ -194,7 +201,7 @@ export const CLASSES = [
       nerveGain: 3,
       startPosition: 1,
       brinkThresholdPct: 0.40,
-      brinkDamageBonus: 0,
+      brinkDamageBonus: 2,
     },
     portraitTint: "#3d2e22",
   },

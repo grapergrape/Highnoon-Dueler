@@ -21,6 +21,7 @@
  * @property {number} bulletDamage    // deterministic damage per loaded bullet
  * @property {number} cost            // focus cost to play
  * @property {'pistol'|'revolver'|'rifle'|'carbine'|'bow'|'shotgun'|'special'} [weaponType]
+ * @property {'balanced'|'quickdraw'|'scatter'|'precision'|'repeater'|'dual'} [profile]
  * @property {string[]} effects       // tokens parsed by cards.js parseEffect
  * @property {string} flavor          // always shown
  * @property {string} [backstory]     // only on epic/legendary
@@ -518,23 +519,23 @@ export const GUNS_LIST = [
 ];
 
 const COMBAT_REWORK_GUN_STATS = {
-  gun_volcanic_pistol: { capacity: 5, bulletDamage: 6, effects: [] },
-  gun_sawed_off_coach: { capacity: 4, bulletDamage: 8, effects: ["overcap+1"] },
-  gun_jesse_schofield: { capacity: 5, startLoaded: 1, bulletDamage: 9, effects: ["load+1"] },
+  gun_volcanic_pistol: { capacity: 5, bulletDamage: 6, profile: "quickdraw", effects: [] },
+  gun_sawed_off_coach: { capacity: 4, bulletDamage: 8, profile: "repeater", effects: ["overcap+1"] },
+  gun_jesse_schofield: { capacity: 5, startLoaded: 1, bulletDamage: 9, profile: "quickdraw", effects: ["load+1"] },
 
   gun_henry_repeater: { capacity: 5, bulletDamage: 6, effects: [] },
   gun_mescalero_bow: { capacity: 4, bulletDamage: 7, effects: ["position+1"] },
   gun_sharps_buffalo: { capacity: 2, bulletDamage: 13, effects: ["position+1"] },
   gun_cochise_bow: { capacity: 4, startLoaded: 1, bulletDamage: 8, effects: ["load+1", "position+1"] },
 
-  gun_colt_saa: { capacity: 5, bulletDamage: 6, effects: [] },
-  gun_sw_schofield_3: { capacity: 5, bulletDamage: 7, effects: ["markEnemy+1"] },
-  gun_treasury_schofield: { capacity: 6, bulletDamage: 7, effects: ["bountyOnHit+5"] },
+  gun_colt_saa: { capacity: 5, bulletDamage: 6, profile: "precision", effects: [] },
+  gun_sw_schofield_3: { capacity: 5, bulletDamage: 7, profile: "precision", effects: ["markEnemy+1"] },
+  gun_treasury_schofield: { capacity: 6, bulletDamage: 7, profile: "precision", effects: ["bountyOnHit+5"] },
 
-  gun_remington_1875: { capacity: 4, bulletDamage: 6, effects: [] },
-  gun_colt_lightning_vaquero: { capacity: 4, bulletDamage: 5, effects: ["position+1"] },
-  gun_lemat: { capacity: 5, bulletDamage: 6, effects: ["load+1", "position-1"] },
-  gun_villa_mauser: { capacity: 6, bulletDamage: 5, effects: ["load+1", "overcap+1"] },
+  gun_remington_1875: { capacity: 4, bulletDamage: 6, profile: "quickdraw", effects: [] },
+  gun_colt_lightning_vaquero: { capacity: 4, bulletDamage: 5, profile: "quickdraw", effects: ["position+1"] },
+  gun_lemat: { capacity: 5, bulletDamage: 6, profile: "repeater", effects: ["load+1", "position-1"] },
+  gun_villa_mauser: { capacity: 6, bulletDamage: 5, profile: "repeater", effects: ["load+1", "overcap+1"] },
   gun_offhand_iron: { capacity: 2, bulletDamage: 5, effects: [] },
 
   gun_derringer_41: { capacity: 3, bulletDamage: 8, effects: [] },
@@ -546,18 +547,18 @@ const COMBAT_REWORK_GUN_STATS = {
   gun_winchester_1887: { capacity: 3, bulletDamage: 11, effects: ["armor+4"] },
   gun_masterson_colt: { capacity: 4, startLoaded: 1, bulletDamage: 12, effects: ["load+1", "armor+4"] },
 
-  gun_pocket_pistol: { capacity: 3, bulletDamage: 5, effects: [] },
-  gun_service_revolver: { capacity: 5, bulletDamage: 6, effects: [] },
-  gun_trappers_carbine: { capacity: 4, bulletDamage: 7, effects: [] },
-  gun_long_barrel_colt: { capacity: 5, bulletDamage: 7, effects: ["position+1"] },
-  gun_twin_barrel_derringer: { capacity: 2, startLoaded: 1, bulletDamage: 9, effects: ["load+1"] },
-  gun_cavalry_pistol: { capacity: 5, bulletDamage: 7, effects: [] },
-  gun_marksmans_iron: { capacity: 4, bulletDamage: 8, effects: ["position+1"] },
-  gun_knuckle_revolver: { capacity: 4, bulletDamage: 9, effects: ["position-1"] },
-  gun_quickdraw_iron: { capacity: 6, bulletDamage: 6, effects: ["load+1"] },
-  gun_gatling_sidearm: { capacity: 8, bulletDamage: 4, effects: ["overcap+1"] },
-  gun_volcanic_repeater: { capacity: 7, bulletDamage: 5, effects: ["load+1"] },
-  gun_high_noon: { capacity: 6, startLoaded: 1, bulletDamage: 9, effects: ["load+1", "position+1"] },
+  gun_pocket_pistol: { capacity: 3, bulletDamage: 5, profile: "quickdraw", effects: [] },
+  gun_service_revolver: { capacity: 5, bulletDamage: 6, profile: "balanced", effects: [] },
+  gun_trappers_carbine: { capacity: 4, bulletDamage: 7, profile: "precision", effects: [] },
+  gun_long_barrel_colt: { capacity: 5, bulletDamage: 7, profile: "precision", effects: ["position+1"] },
+  gun_twin_barrel_derringer: { capacity: 2, startLoaded: 1, bulletDamage: 9, profile: "quickdraw", effects: ["load+1"] },
+  gun_cavalry_pistol: { capacity: 5, bulletDamage: 7, profile: "balanced", effects: [] },
+  gun_marksmans_iron: { capacity: 4, bulletDamage: 8, profile: "precision", effects: ["position+1"] },
+  gun_knuckle_revolver: { capacity: 4, bulletDamage: 9, profile: "scatter", effects: ["position-1"] },
+  gun_quickdraw_iron: { capacity: 6, bulletDamage: 6, profile: "quickdraw", effects: ["load+1"] },
+  gun_gatling_sidearm: { capacity: 8, bulletDamage: 4, profile: "repeater", effects: ["overcap+1"] },
+  gun_volcanic_repeater: { capacity: 7, bulletDamage: 5, profile: "repeater", effects: ["load+1"] },
+  gun_high_noon: { capacity: 6, startLoaded: 1, bulletDamage: 9, profile: "quickdraw", effects: ["load+1", "position+1"] },
 };
 
 for (const g of GUNS_LIST) {
@@ -565,6 +566,7 @@ for (const g of GUNS_LIST) {
   g.capacity = override.capacity ?? Math.max(2, Math.min(8, Math.round(g.mag ?? 5)));
   g.startLoaded = override.startLoaded ?? 0;
   g.bulletDamage = override.bulletDamage ?? Math.max(4, Math.min(12, Math.round((g.damage ?? 8) * 0.65)));
+  g.profile = override.profile ?? g.profile ?? null;
   if (override.effects) g.effects = [...override.effects];
 }
 

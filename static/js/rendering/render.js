@@ -103,7 +103,7 @@ function syncCombatCanvasOverlay(game) {
   const el = document.getElementById("combat-canvas-overlay");
   if (!el) return;
   const { duel, run } = game;
-  if (!duel || duel.phase === "ended") {
+  if (!duel || duel.phase === "ended" || duel.phase === "showdown") {
     clearCombatCanvasOverlay();
     return;
   }
@@ -486,29 +486,39 @@ function drawStaredownReveal(ctx, w, h, remain) {
 }
 
 function drawHighNoon(ctx, w, h, remain) {
-  const pulse = 1 + Math.sin(performance.now() * 0.012) * 0.06;
+  const total = 1.25;
+  const progress = Math.max(0, Math.min(1, 1 - Math.max(0, remain) / total));
+  const pulse = 1 + Math.sin(performance.now() * 0.018) * (0.05 + progress * 0.08);
+  const flash = Math.max(0, progress - 0.72) / 0.28;
+
   ctx.save();
-  ctx.translate(w * 0.5, h * 0.32);
+  ctx.fillStyle = `rgba(244, 210, 122,${0.08 + flash * 0.18})`;
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(w * 0.5, h * 0.34);
   ctx.scale(pulse, pulse);
   ctx.textAlign = "center";
-  ctx.font = "bold 48px Georgia, serif";
-  ctx.fillStyle = "rgba(0,0,0,0.65)";
-  ctx.fillText("HIGH NOON", 5, 5);
+  ctx.font = `bold ${Math.round(Math.min(76, Math.max(52, w * 0.072)))}px Georgia, serif`;
+  ctx.fillStyle = "rgba(0,0,0,0.72)";
+  ctx.fillText(progress > 0.78 ? "DRAW" : "HIGH NOON", 6, 6);
   ctx.fillStyle = "#f4d98a";
-  ctx.fillText("HIGH NOON", 0, 0);
-  ctx.font = "22px Georgia, serif";
-  ctx.fillStyle = "#2a1f18";
-  ctx.fillText("☆", 0, -38);
+  ctx.fillText(progress > 0.78 ? "DRAW" : "HIGH NOON", 0, 0);
+  ctx.font = "700 15px Courier New, Consolas, monospace";
+  ctx.fillStyle = "rgba(246,236,216,0.92)";
+  ctx.fillText(progress > 0.78 ? "FIRE" : "HOLD", 0, 38);
   ctx.restore();
+
   ctx.textAlign = "center";
   ctx.fillStyle = "rgba(240,232,218,0.95)";
-  ctx.font = "15px monospace";
-  ctx.fillText(`${remain.toFixed(1)}`, w * 0.5, h * 0.48);
+  ctx.font = "700 18px Courier New, Consolas, monospace";
+  ctx.fillText(`${Math.max(0, remain).toFixed(1)}`, w * 0.5, h * 0.5);
 
-  ctx.strokeStyle = "rgba(212,169,116,0.4)";
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = `rgba(244,217,138,${0.35 + progress * 0.4})`;
+  ctx.lineWidth = 2 + progress * 3;
   ctx.beginPath();
-  ctx.arc(w * 0.5, h * 0.5, h * 0.22 + (1 - remain / 2.4) * 12, 0, Math.PI * 2);
+  ctx.arc(w * 0.5, h * 0.5, h * (0.18 + progress * 0.06), -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
   ctx.stroke();
 }
 
@@ -516,6 +526,7 @@ function drawFx(ctx, w, h, game, t) {
   const fx = game.muzzleFx;
   if (!fx?.length) return;
   for (const m of fx) {
+    if (m.age < 0) continue;
     const life = 1 - m.age / m.max;
     if (life <= 0) continue;
     ctx.strokeStyle = `rgba(255,230,140,${life * 0.95})`;
@@ -558,15 +569,15 @@ export function tracerEndpoints(w, h, fromPlayer) {
   };
 }
 
-export function pushTracer(game, fromPlayer) {
+export function pushTracer(game, fromPlayer, delayMs = 0) {
   if (!game.muzzleFx) game.muzzleFx = [];
   const w = game.canvas.width;
   const h = game.canvas.height;
   const e = tracerEndpoints(w, h, fromPlayer);
   game.muzzleFx.push({
     ...e,
-    age: 0,
-    max: 26,
+    age: -Math.max(0, delayMs),
+    max: 120,
   });
 }
 

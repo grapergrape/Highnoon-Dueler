@@ -9,7 +9,8 @@ const START_NERVE = 4;
 const BASE_MAX_NERVE = 7;
 const BASE_NERVE_GAIN = 3;
 const HAND_SIZE = 5;
-const SHOWDOWN_SECONDS = 1.0;
+const SHOWDOWN_SECONDS = 1.25;
+const CALM_CARD_LIMIT = 3;
 const PLAY_LOG_CAP = 140;
 const POSITION_MIN = 0;
 const POSITION_MAX = 3;
@@ -46,6 +47,18 @@ function gunStartLoaded(gunDef) {
   return Math.max(0, roundInt(gunDef?.startLoaded ?? 0));
 }
 
+function gunProfileFor(gunDef) {
+  if (!gunDef) return "balanced";
+  if (gunDef.profile) return gunDef.profile;
+  const capacity = gunCapacity(gunDef);
+  const type = gunDef.weaponType ?? "";
+  if (type === "shotgun") return "scatter";
+  if (type === "rifle" || type === "bow") return "precision";
+  if (type === "carbine" || capacity >= 7) return "repeater";
+  if (capacity <= 3 || gunBulletDamage(gunDef) >= 9) return "quickdraw";
+  return "balanced";
+}
+
 function makeActiveGun(gunDef) {
   if (!gunDef) return null;
   return {
@@ -60,6 +73,8 @@ function makeActiveGun(gunDef) {
       startLoaded: gunStartLoaded(gunDef),
       bulletDamage: gunBulletDamage(gunDef),
       name: gunDef.name,
+      weaponType: gunDef.weaponType ?? null,
+      profile: gunProfileFor(gunDef),
     },
   };
 }
@@ -71,6 +86,8 @@ function combinedGunStats(duel) {
     startLoaded: 0,
     bulletDamage: 6,
     name: "Service Revolver",
+    weaponType: "revolver",
+    profile: "balanced",
   };
   const secondary = duel.playerSecondaryGun?.stats;
   if (!secondary) return { ...primary };
@@ -79,6 +96,8 @@ function combinedGunStats(duel) {
     startLoaded: primary.startLoaded + secondary.startLoaded,
     bulletDamage: Math.max(1, Math.round((primary.bulletDamage + secondary.bulletDamage) / 2)),
     name: `${primary.name} + ${secondary.name}`,
+    weaponType: "dual",
+    profile: "dual",
   };
 }
 
@@ -111,6 +130,46 @@ function addPosition(duel, value) {
 function positionMultiplier(position) {
   const p = clamp(roundInt(position), POSITION_MIN, POSITION_MAX);
   return POSITION_MULT[p] ?? 1;
+}
+
+function quickdrawDamageBonusFor(duel, gun, bullets) {
+  const played = Math.max(0, roundInt(duel?.cardsPlayedThisRound || 0));
+  if (bullets <= 0 || played > 2) return 0;
+  const profile = gun?.profile ?? "balanced";
+  if (profile === "quickdraw") return 2;
+  if (profile === "scatter" && bullets <= 2) return 1;
+  if (profile === "dual" && bullets <= 4) return 1;
+  return 1;
+}
+
+function profileDamageBonusFor(duel, gun, bullets) {
+  if (bullets <= 0) return { damage: 0, labels: [] };
+  const profile = gun?.profile ?? "balanced";
+  const labels = [];
+  let damage = 0;
+  if (profile === "scatter" && bullets <= 3) {
+    damage += 2;
+    labels.push("Scatter +2");
+  }
+  if (profile === "precision" && roundInt(duel?.position || 0) >= 2) {
+    const add = roundInt(duel.position || 0) >= 3 ? 2 : 1;
+    damage += add;
+    labels.push(`Precision +${add}`);
+  }
+  if (profile === "repeater" && bullets >= Math.min(5, Math.max(1, roundInt(gun?.capacity || 5)))) {
+    damage += 1;
+    labels.push("Repeater +1");
+  }
+  if (profile === "dual" && bullets > 0 && bullets % 2 === 0) {
+    damage += 1;
+    labels.push("Paired +1");
+  }
+  const quickdraw = quickdrawDamageBonusFor(duel, gun, bullets);
+  if (quickdraw > 0) {
+    damage += quickdraw;
+    labels.push(`Quickdraw +${quickdraw}`);
+  }
+  return { damage, labels };
 }
 
 export function positionName(position) {
@@ -247,9 +306,62 @@ function selectEnemyIntent(duel) {
   return defaultIntentForOpponent(opp, duel.roundNumber);
 }
 
+function intentConditionalModifiers(duel, intent = duel?.enemyIntent) {
+  const out = { damage: 0, bullets: 0, enemyArmor: 0, notes: [] };
+  if (!duel || !intent) return out;
+  const loaded = Math.max(0, roundInt(duel.loadedBullets || 0));
+  const armor = Math.max(0, roundInt(duel.playerArmor || 0));
+  const nerve = Math.max(0, roundInt(duel.nerve || 0));
+  const position = roundInt(duel.position || 0);
+  const cardsPlayed = Math.max(0, roundInt(duel.cardsPlayedThisRound || 0));
+
+  if (intent.bonusDamageIfNoArmor && armor <= 0) {
+    out.damage += Math.max(0, roundInt(intent.bonusDamageIfNoArmor));
+    out.notes.push("No Armor punished");
+  }
+  if (intent.bonusDamageIfNerveAtLeast && nerve >= roundInt(intent.bonusDamageIfNerveAtLeast)) {
+    const add = Math.max(0, roundInt(intent.bonusDamage || 1));
+    out.damage += add;
+    out.notes.push(`Unused Nerve +${add}`);
+  }
+  if (intent.bonusDamageIfPositionBelow != null && position <= roundInt(intent.bonusDamageIfPositionBelow)) {
+    const add = Math.max(0, roundInt(intent.positionPunishDamage || 2));
+    out.damage += add;
+    out.notes.push(`Low Position +${add}`);
+  }
+  if (intent.bonusDamageIfCardsPlayedAtLeast && cardsPlayed >= roundInt(intent.bonusDamageIfCardsPlayedAtLeast)) {
+    const add = Math.max(0, roundInt(intent.cardPunishDamage || 1));
+    out.damage += add;
+    out.notes.push(`Long prep +${add}`);
+  }
+  if (intent.punishRepeatedTypes && duel.repeatedCardTypeThisRound) {
+    const add = Math.max(0, roundInt(intent.repeatedTypeDamage || 2));
+    out.damage += add;
+    out.notes.push(`Repeat ${duel.repeatedCardTypeThisRound} +${add}`);
+  }
+  if (intent.guardLoadedAt && loaded >= roundInt(intent.guardLoadedAt)) {
+    const add = Math.max(0, roundInt(intent.guardLoadedArmor || 8));
+    out.enemyArmor += add;
+    out.notes.push(`Guard +${add} Armor`);
+  }
+  if (intent.spoilLowVolleyAt && loaded > 0 && loaded <= roundInt(intent.spoilLowVolleyAt)) {
+    const add = Math.max(0, roundInt(intent.spoilLowVolleyArmor || 6));
+    out.enemyArmor += add;
+    out.notes.push(`Spoil +${add} Armor`);
+  }
+  return out;
+}
+
+function enemyArmorForIntent(duel, intent = duel?.enemyIntent) {
+  if (!intent) return 0;
+  const base = intent.type === "armor" ? Math.max(0, roundInt(intent.armor || 0)) : 0;
+  return base + intentConditionalModifiers(duel, intent).enemyArmor;
+}
+
 function intentAttackMath(duel, intent = duel.enemyIntent) {
   if (!intent || intent.type !== "attack") return { bullets: 0, damage: 0, raw: 0 };
-  const bullets = Math.max(0, roundInt(intent.bullets ?? 1) + roundInt(duel.enemyLoadedBullets || 0));
+  const mods = intentConditionalModifiers(duel, intent);
+  const bullets = Math.max(0, roundInt(intent.bullets ?? 1) + roundInt(duel.enemyLoadedBullets || 0) + mods.bullets);
   const markReducePer = Math.max(0, roundInt(duel.runPermanent?.markDamageReducePerMark || 0));
   const markReduceCap = Number.isFinite(duel.runPermanent?.markDamageReduceCap)
     ? Math.max(0, roundInt(duel.runPermanent.markDamageReduceCap))
@@ -261,6 +373,8 @@ function intentAttackMath(duel, intent = duel.enemyIntent) {
     0,
     roundInt(intent.damage ?? 0)
       + roundInt(duel.enemyDamageBonus || 0)
+      + roundInt(duel.overplayPressure || 0)
+      + mods.damage
       - roundInt(duel.enemyWeak || 0)
       - markReduce
   );
@@ -269,16 +383,25 @@ function intentAttackMath(duel, intent = duel.enemyIntent) {
 
 export function describeIntent(intent) {
   if (!intent) return "Waiting";
+  const notes = [];
+  if (intent.bonusDamageIfNoArmor) notes.push("punishes no Armor");
+  if (intent.bonusDamageIfNerveAtLeast) notes.push(`punishes ${roundInt(intent.bonusDamageIfNerveAtLeast)}+ Nerve held`);
+  if (intent.bonusDamageIfPositionBelow != null) notes.push(`punishes Position ${roundInt(intent.bonusDamageIfPositionBelow)} or less`);
+  if (intent.bonusDamageIfCardsPlayedAtLeast) notes.push(`punishes ${roundInt(intent.bonusDamageIfCardsPlayedAtLeast)}+ card prep`);
+  if (intent.punishRepeatedTypes) notes.push("punishes repeated card types");
+  if (intent.guardLoadedAt) notes.push(`guards vs ${roundInt(intent.guardLoadedAt)}+ loaded`);
+  if (intent.spoilLowVolleyAt) notes.push(`spoils volleys of ${roundInt(intent.spoilLowVolleyAt)} or less`);
+  const suffix = notes.length ? ` (${notes.join("; ")})` : "";
   if (intent.type === "attack") {
     const b = Math.max(0, roundInt(intent.bullets ?? 1));
     const d = Math.max(0, roundInt(intent.damage ?? 0));
-    return `${intent.label ?? "Attack"}: ${b}x${d} = ${b * d}`;
+    return `${intent.label ?? "Attack"}: ${b}x${d} = ${b * d}${suffix}`;
   }
-  if (intent.type === "armor") return `${intent.label ?? "Cover"}: gain ${roundInt(intent.armor || 0)} Armor`;
-  if (intent.type === "buff") return `${intent.label ?? "Buff"}: ${intent.description ?? "prepare"}`;
-  if (intent.type === "rattled") return `${intent.label ?? "Rattle"}: apply Rattled`;
-  if (intent.type === "load") return `${intent.label ?? "Load"}: load ${roundInt(intent.bullets || 0)} bullets`;
-  return intent.description ?? intent.label ?? "Special";
+  if (intent.type === "armor") return `${intent.label ?? "Cover"}: gain ${roundInt(intent.armor || 0)} Armor${suffix}`;
+  if (intent.type === "buff") return `${intent.label ?? "Buff"}: ${intent.description ?? "prepare"}${suffix}`;
+  if (intent.type === "rattled") return `${intent.label ?? "Rattle"}: apply Rattled${suffix}`;
+  if (intent.type === "load") return `${intent.label ?? "Load"}: load ${roundInt(intent.bullets || 0)} bullets${suffix}`;
+  return `${intent.description ?? intent.label ?? "Special"}${suffix}`;
 }
 
 export function createDuel(oppDef, run) {
@@ -333,6 +456,10 @@ export function createDuel(oppDef, run) {
     playerSecondaryGun,
     freeGunPlayed: false,
     freeCardAvailable: false,
+    cardsPlayedThisRound: 0,
+    overplayPressure: 0,
+    cardsPlayedByType: {},
+    repeatedCardTypeThisRound: null,
     playerStances: [],
     enemyStances: [],
     playerShowdown: null,
@@ -401,6 +528,10 @@ export function createDuel(oppDef, run) {
 function startPlayerRound(duel, run, { first = false } = {}) {
   duel.phase = "player_turn";
   duel.cycleNumber = duel.roundNumber;
+  duel.cardsPlayedThisRound = 0;
+  duel.overplayPressure = 0;
+  duel.cardsPlayedByType = {};
+  duel.repeatedCardTypeThisRound = null;
   duel.enemyIntent = selectEnemyIntent(duel);
   duel.enemyIntentHistory.push({ roundNumber: duel.roundNumber, intent: cloneIntent(duel.enemyIntent) });
   applyRoundStartBuildEffects(duel);
@@ -792,6 +923,23 @@ function applyOutlawComboIfNeeded(duel, run, def) {
   }
 }
 
+function recordCardTempoPressure(duel, def) {
+  duel.cardsPlayedThisRound = Math.max(0, roundInt(duel.cardsPlayedThisRound || 0)) + 1;
+  const type = def?.type ?? "card";
+  if (!duel.cardsPlayedByType) duel.cardsPlayedByType = {};
+  duel.cardsPlayedByType[type] = Math.max(0, roundInt(duel.cardsPlayedByType[type] || 0)) + 1;
+  if (duel.cardsPlayedByType[type] >= 2) duel.repeatedCardTypeThisRound = type;
+  const excess = Math.max(0, duel.cardsPlayedThisRound - CALM_CARD_LIMIT);
+  if (excess <= 0) return;
+  const pressure = Math.floor(excess / 2);
+  if (pressure <= 0) {
+    pushPlayLogBulletin(duel, "Past the calm line - the next card will expose you.");
+    return;
+  }
+  duel.overplayPressure = pressure;
+  pushPlayLogBulletin(duel, `Overextended - enemy attacks gain +${pressure} damage per bullet this Showdown.`);
+}
+
 export function tryPlayCard(duel, run, cardUid) {
   if (!duel || duel.phase !== "player_turn") return { ok: false, reason: "Not your turn" };
   const idx = duel.playerHand.findIndex((c) => c.uid === cardUid);
@@ -829,6 +977,7 @@ export function tryPlayCard(duel, run, cardUid) {
   }
 
   duel.playerHand.splice(idx, 1);
+  recordCardTempoPressure(duel, def);
 
   if (isGun) {
     const gunDef = getGun(def.id);
@@ -897,6 +1046,8 @@ export function duelDisplayedVolleyPreview(duel, run) {
     baseDamage += Math.min(cap, spirit * run.permanent.spiritDamagePerSpirit);
   }
   if (duel.tempDamagePerHp > 0) baseDamage += Math.floor((run?.hp ?? 0) / duel.tempDamagePerHp);
+  const tempoBonus = profileDamageBonusFor(duel, gun, bullets);
+  baseDamage += tempoBonus.damage;
   const mult = positionMultiplier(duel.position);
   const damage = Math.max(1, Math.round(baseDamage * mult * (duel.tempDamageMult || 1)));
   const spiritArmor = spirit > 0 && run?.permanent?.spiritArmorPerSpirit > 0
@@ -924,6 +1075,8 @@ export function duelDisplayedVolleyPreview(duel, run) {
       positionName: positionName(duel.position),
       positionMult: mult,
       gunName: gun.name,
+      gunProfile: gun.profile,
+      tempoLabel: tempoBonus.labels.join(" / "),
       lifestealOnHit: Math.max(0, roundInt(duel.lifestealOnHit || 0)),
       bountyOnHit: Math.max(0, roundInt(duel.bountyOnHit || 0)),
     },
@@ -935,8 +1088,7 @@ export function duelDisplayedVolleyPreview(duel, run) {
       baseDamage: attack.damage,
       damageMult: 1,
       acc: 1,
-      armor: Math.max(0, roundInt(duel.enemyArmor || 0))
-        + (duel.enemyIntent?.type === "armor" ? Math.max(0, roundInt(duel.enemyIntent.armor || 0)) : 0),
+      armor: Math.max(0, roundInt(duel.enemyArmor || 0)) + enemyArmorForIntent(duel),
       evadeBullets: 0,
       evadeAttack: false,
       gunName: duel.enemy?.activeGun?.name ?? duel.enemy?.gun?.name ?? "Enemy gun",
@@ -971,6 +1123,7 @@ export function estimateVolleyDamage(attacker, defender) {
     expectedDamage,
     maxDamage: expectedDamage,
     swingy: false,
+    tempoLabel: attacker?.tempoLabel ?? "",
   };
 }
 
@@ -1083,9 +1236,17 @@ export function resolveShootout(duel, run) {
   };
 
   duel.shootoutLog = [];
-  if (outgoing.expectedDamage > 0) duel.shootoutLog.push({ kind: "hit", by: "player", dmg: outgoing.expectedDamage });
+  for (const shot of playerShots) {
+    if (shot.outcome === "hit") {
+      duel.shootoutLog.push({ kind: "hit", by: "player", dmg: shot.dmg, blocked: shot.blocked, i: shot.i });
+    }
+  }
   if (infectionDamage > 0) duel.shootoutLog.push({ kind: "infection", by: "player", dmg: infectionDamage });
-  if (incoming.expectedDamage > 0) duel.shootoutLog.push({ kind: "hit", by: "enemy", dmg: incoming.expectedDamage });
+  for (const shot of enemyShots) {
+    if (shot.outcome === "hit") {
+      duel.shootoutLog.push({ kind: "hit", by: "enemy", dmg: shot.dmg, blocked: shot.blocked, i: shot.i });
+    }
+  }
   if (outgoing.dodge > 0) duel.shootoutLog.push({ kind: "dodge", who: "enemy", n: outgoing.dodge });
   if (incoming.dodge > 0) duel.shootoutLog.push({ kind: "dodge", who: "player", n: incoming.dodge });
 
@@ -1113,6 +1274,10 @@ export function resolveShootout(duel, run) {
   duel.hpAfterShootout = 0;
   duel.enemyWeak = 0;
   duel.spiritDoubleNext = false;
+  duel.cardsPlayedThisRound = 0;
+  duel.overplayPressure = 0;
+  duel.cardsPlayedByType = {};
+  duel.repeatedCardTypeThisRound = null;
 
   let winner = null;
   if (duel.enemy.hp <= 0 && run.hp <= 0) {

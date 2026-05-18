@@ -679,9 +679,9 @@ const COMBAT_REWORK_OPPONENT_OVERRIDES = {
   rookie_lottie_quickstep: {
     maxHp: 56,
     intents: {
-      quickstep: { type: "attack", label: "Quickstep Draw", bullets: 2, damage: 5 },
+      quickstep: { type: "attack", label: "Quickstep Draw", bullets: 2, damage: 5, punishRepeatedTypes: true, repeatedTypeDamage: 1 },
       stage_cover: { type: "armor", label: "Stage Cover", armor: 8 },
-      curtain_call: { type: "attack", label: "Curtain Call", bullets: 1, damage: 13 },
+      curtain_call: { type: "attack", label: "Curtain Call", bullets: 1, damage: 13, punishRepeatedTypes: true, repeatedTypeDamage: 3 },
       footwork: { type: "buff", label: "Footwork", damageNext: 1, description: "Future attacks gain +1 damage per bullet." },
     },
     intentPattern: ["quickstep", "stage_cover", "footwork", "curtain_call"],
@@ -692,14 +692,14 @@ const COMBAT_REWORK_OPPONENT_OVERRIDES = {
       town_order: { type: "armor", label: "Town Order", armor: 12 },
       badge_order: { type: "attack", label: "Badge Order", bullets: 2, damage: 7 },
       iron_verdict: { type: "attack", label: "Iron Verdict", bullets: 3, damage: 6 },
-      gallows_sun: { type: "attack", label: "Gallows Sunrise", bullets: 1, damage: 24 },
+      gallows_sun: { type: "attack", label: "Gallows Sunrise", bullets: 1, damage: 24, bonusDamageIfNerveAtLeast: 3, bonusDamage: 2 },
     },
     intentPattern: ["town_order", "badge_order", "iron_verdict", "gallows_sun"],
   },
   small_whiskey_barrel_ben: {
     maxHp: 58,
     intents: {
-      sloppy_splash: { type: "attack", label: "Sloppy Splash", bullets: 3, damage: 4 },
+      sloppy_splash: { type: "attack", label: "Sloppy Splash", bullets: 3, damage: 4, bonusDamageIfNoArmor: 1 },
       barrel_cover: { type: "armor", label: "Barrel Cover", armor: 10 },
       bottle_break: { type: "rattled", label: "Bottle Break", amount: 1, description: "Apply Rattled." },
     },
@@ -708,7 +708,7 @@ const COMBAT_REWORK_OPPONENT_OVERRIDES = {
   small_whiskey_molly_mash: {
     maxHp: 72,
     intents: {
-      smoke_trail: { type: "armor", label: "Smoke Trail", armor: 9 },
+      smoke_trail: { type: "armor", label: "Smoke Trail", armor: 9, guardLoadedAt: 3, guardLoadedArmor: 8 },
       runner_pistol: { type: "attack", label: "Runner Pistol", bullets: 2, damage: 7 },
       white_lightning: { type: "buff", label: "White Lightning", damageNext: 2, description: "Future attacks gain +2 damage per bullet." },
       clean_shot: { type: "attack", label: "Clean Shot", bullets: 1, damage: 18 },
@@ -718,10 +718,10 @@ const COMBAT_REWORK_OPPONENT_OVERRIDES = {
   small_whiskey_isaac_stillwater: {
     maxHp: 122,
     intents: {
-      long_pour: { type: "attack", label: "Long Pour", bullets: 2, damage: 8 },
+      long_pour: { type: "attack", label: "Long Pour", bullets: 2, damage: 8, bonusDamageIfCardsPlayedAtLeast: 4, cardPunishDamage: 1 },
       stillhouse_tax: { type: "rattled", label: "Stillhouse Tax", amount: 1, description: "Apply Rattled." },
       boiler_pressure: { type: "buff", label: "Boiler Pressure", damageNext: 2, description: "Future attacks gain +2 damage per bullet." },
-      revenue_burst: { type: "attack", label: "Revenue Burst", bullets: 3, damage: 7 },
+      revenue_burst: { type: "attack", label: "Revenue Burst", bullets: 3, damage: 7, bonusDamageIfCardsPlayedAtLeast: 4, cardPunishDamage: 1 },
     },
     intentPattern: ["long_pour", "stillhouse_tax", "boiler_pressure", "revenue_burst"],
   },
@@ -729,7 +729,7 @@ const COMBAT_REWORK_OPPONENT_OVERRIDES = {
     maxHp: 78,
     intents: {
       lookout_ping: { type: "attack", label: "Lookout Ping", bullets: 1, damage: 12 },
-      canyon_slit: { type: "armor", label: "Canyon Slit", armor: 11 },
+      canyon_slit: { type: "armor", label: "Canyon Slit", armor: 11, spoilLowVolleyAt: 2, spoilLowVolleyArmor: 8 },
       alarm_shots: { type: "attack", label: "Alarm Shots", bullets: 3, damage: 5 },
     },
     intentPattern: ["lookout_ping", "canyon_slit", "alarm_shots"],
@@ -740,7 +740,7 @@ const COMBAT_REWORK_OPPONENT_OVERRIDES = {
       split_trail: { type: "armor", label: "Split Trail", armor: 13 },
       dry_snare: { type: "rattled", label: "Dry-Gulch Snare", amount: 1, description: "Apply Rattled." },
       switchback: { type: "attack", label: "Switchback Shot", bullets: 2, damage: 9 },
-      ambush: { type: "attack", label: "Ambush Angle", bullets: 1, damage: 22 },
+      ambush: { type: "attack", label: "Ambush Angle", bullets: 1, damage: 22, bonusDamageIfPositionBelow: 1, positionPunishDamage: 2 },
     },
     intentPattern: ["split_trail", "switchback", "dry_snare", "ambush"],
   },
@@ -749,7 +749,7 @@ const COMBAT_REWORK_OPPONENT_OVERRIDES = {
     intents: {
       gang_signal: { type: "buff", label: "Gang Signal", damageNext: 2, description: "Future attacks gain +2 damage per bullet." },
       dragoon_burst: { type: "attack", label: "Dragoon Burst", bullets: 3, damage: 8 },
-      blood_rush: { type: "attack", label: "Blood Rush", bullets: 4, damage: 6 },
+      blood_rush: { type: "attack", label: "Blood Rush", bullets: 4, damage: 6, bonusDamageIfCardsPlayedAtLeast: 4, cardPunishDamage: 1 },
       boss_cover: { type: "armor", label: "Gang Boss Cover", armor: 14 },
     },
     intentPattern: ["gang_signal", "dragoon_burst", "boss_cover", "blood_rush"],
@@ -767,17 +767,17 @@ const COMBAT_REWORK_OPPONENT_OVERRIDES = {
     maxHp: 108,
     intents: {
       coffin_nail: { type: "attack", label: "Coffin Nail", bullets: 1, damage: 24 },
-      midnight_pall: { type: "armor", label: "Midnight Pall", armor: 16 },
+      midnight_pall: { type: "armor", label: "Midnight Pall", armor: 16, guardLoadedAt: 4, guardLoadedArmor: 10 },
       marrow_shots: { type: "attack", label: "Marrow Shots", bullets: 3, damage: 8 },
     },
     intentPattern: ["midnight_pall", "marrow_shots", "coffin_nail"],
   },
   dead_creek_silas_gravesmoke: {
-    maxHp: 156,
+    maxHp: 154,
     intents: {
       funeral: { type: "armor", label: "Funeral Procession", armor: 18 },
       bone_call: { type: "attack", label: "Bone Marshal's Call", bullets: 3, damage: 9 },
-      dead_toll: { type: "attack", label: "Dead Man's Toll", bullets: 1, damage: 30 },
+      dead_toll: { type: "attack", label: "Dead Man's Toll", bullets: 1, damage: 30, bonusDamageIfPositionBelow: 1, positionPunishDamage: 2 },
       smoke_rise: { type: "buff", label: "Smoke Rises", damageNext: 2, description: "Future attacks gain +2 damage per bullet." },
     },
     intentPattern: ["funeral", "bone_call", "smoke_rise", "dead_toll"],
@@ -792,20 +792,20 @@ const COMBAT_REWORK_OPPONENT_OVERRIDES = {
     intentPattern: ["silk_draw", "velvet_poise", "house_edge", "silk_draw"],
   },
   devils_saloon_caleb_cross: {
-    maxHp: 130,
+    maxHp: 126,
     intents: {
-      ace_tempo: { type: "attack", label: "Ace-High Tempo", bullets: 3, damage: 10 },
+      ace_tempo: { type: "attack", label: "Ace-High Tempo", bullets: 3, damage: 10, punishRepeatedTypes: true, repeatedTypeDamage: 2 },
       famous_hands: { type: "armor", label: "Famous Hands", armor: 18 },
-      dime_legend: { type: "attack", label: "Dime-Novel Shot", bullets: 1, damage: 34 },
+      dime_legend: { type: "attack", label: "Dime-Novel Shot", bullets: 1, damage: 33 },
     },
     intentPattern: ["ace_tempo", "famous_hands", "ace_tempo", "dime_legend"],
   },
   devils_saloon_judge_blackthorn: {
-    maxHp: 178,
+    maxHp: 174,
     intents: {
       devils_table: { type: "armor", label: "Devil's Table", armor: 20 },
-      final_verdict: { type: "attack", label: "Final Verdict", bullets: 3, damage: 12 },
-      last_word: { type: "attack", label: "Last Word", bullets: 1, damage: 40 },
+      final_verdict: { type: "attack", label: "Final Verdict", bullets: 3, damage: 12, bonusDamageIfNerveAtLeast: 3, bonusDamage: 1, punishRepeatedTypes: true, repeatedTypeDamage: 1 },
+      last_word: { type: "attack", label: "Last Word", bullets: 1, damage: 37, bonusDamageIfPositionBelow: 1, positionPunishDamage: 3 },
       contempt: { type: "rattled", label: "Contempt of Court", amount: 2, description: "Apply Rattled 2." },
     },
     intentPattern: ["devils_table", "final_verdict", "contempt", "last_word"],

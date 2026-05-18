@@ -9,6 +9,7 @@ import { equipItem, itemBonuses, rollBossGearDrop, rollMerchantTrinket, rollStar
 import { OPPONENTS } from "../static/js/data/opponents.js";
 import {
   createDuel,
+  duelDisplayedVolleyPreview,
   estimateVolleyDamage,
   lockInPrep,
   tickHighNoon,
@@ -110,8 +111,9 @@ function evalState(duel, run) {
     if (duel.winner === "player") return 100000 + run.hp * 140 + run.money * 0.5 - enemyHp * 20;
     return -100000 + Math.max(0, -enemyHp) * 10 + run.hp * 20;
   }
-  const incoming = estimateVolleyDamage(duel, "enemy")?.total ?? 0;
-  const outgoing = estimateVolleyDamage(duel, "player")?.total ?? 0;
+  const preview = duelDisplayedVolleyPreview(duel, run);
+  const incoming = estimateVolleyDamage(preview.enemy, preview.player).expectedDamage;
+  const outgoing = estimateVolleyDamage(preview.player, preview.enemy).expectedDamage;
   return run.hp * 95
     - enemyHp * 75
     + outgoing * 22
@@ -244,6 +246,19 @@ function drawRarity(pool) {
 function rewardCards(run, count = 3) {
   const pool = cardPool(run);
   const picks = [];
+  const paths = CLASS_BUILD_PATHS[run.classId] ?? [];
+  for (const path of paths) {
+    if (picks.length >= count || pool.length <= 0) break;
+    const pathPool = pool.filter((c) => c.buildPath === path);
+    if (!pathPool.length) continue;
+    const rarity = drawRarity(pathPool);
+    const candidates = rarity ? pathPool.filter((c) => c.rarity === rarity) : pathPool;
+    const card = candidates[(Math.random() * candidates.length) | 0];
+    if (!card) continue;
+    picks.push(card);
+    const ix = pool.findIndex((c) => c.id === card.id);
+    if (ix >= 0) pool.splice(ix, 1);
+  }
   while (pool.length && picks.length < count) {
     const rarity = drawRarity(pool);
     const candidates = rarity ? pool.filter((c) => c.rarity === rarity) : pool;

@@ -62,6 +62,14 @@ const REWARD_RARITY_WEIGHTS = {
   epic: 6,
   legendary: 2,
 };
+const CLASS_BUILD_PATHS = {
+  outlaw: ["combo", "infamy"],
+  sheriff: ["street", "posse"],
+  marshal: ["marks", "procedure"],
+  apache_tracker: ["spirit", "trail"],
+  vaquero: ["dual", "flourish"],
+  bounty_hunter: ["blood", "doctor"],
+};
 
 function bountyFor(oppId) {
   const opp = getOpponent(oppId);
@@ -336,6 +344,19 @@ function rollPostDuelItemReward(gameState, duel) {
 function rollPostDuelRewardCards(gameState, count = 3) {
   const pool = rewardCardPool(gameState);
   const picks = [];
+  const paths = CLASS_BUILD_PATHS[gameState.run?.classId] ?? [];
+  for (const path of paths) {
+    if (picks.length >= count || pool.length <= 0) break;
+    const pathPool = pool.filter((c) => c.buildPath === path);
+    if (!pathPool.length) continue;
+    const rarity = drawRewardRarity(pathPool);
+    const candidates = rarity ? pathPool.filter((c) => c.rarity === rarity) : pathPool;
+    const card = candidates[(Math.random() * candidates.length) | 0];
+    if (!card) continue;
+    picks.push(card);
+    const poolIx = pool.findIndex((c) => c.id === card.id);
+    if (poolIx >= 0) pool.splice(poolIx, 1);
+  }
   while (pool.length > 0 && picks.length < count) {
     const rarity = drawRewardRarity(pool);
     const candidates = rarity
@@ -696,11 +717,20 @@ function loop(ts) {
     const before = game.duel.phase;
     tickHighNoon(game.duel, game.run, dt);
     if (before === "showdown" && game.duel.phase !== "showdown") {
+      let shotIx = 0;
+      let totalImpact = 0;
       for (const ev of game.duel.shootoutLog || []) {
-        if (ev.kind === "hit") pushTracer(game, ev.by === "player");
-        if (ev.kind === "rico") pushTracer(game, true);
+        if (ev.kind === "hit") {
+          pushTracer(game, ev.by === "player", shotIx * 70);
+          totalImpact += Math.max(0, ev.dmg || 0);
+          shotIx++;
+        }
+        if (ev.kind === "rico") {
+          pushTracer(game, true, shotIx * 70);
+          shotIx++;
+        }
       }
-      game.screenShake = 0.4;
+      game.screenShake = Math.min(0.9, 0.28 + shotIx * 0.04 + Math.sqrt(totalImpact) * 0.035);
       updateHud(game);
       refreshDuelUi();
       // Duel ended — wait for player to click Continue (see onContinueDuel).

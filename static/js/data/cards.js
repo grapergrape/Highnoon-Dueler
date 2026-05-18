@@ -2535,6 +2535,11 @@ const COMBAT_REWORK_CARD_OVERRIDES = {
   char_lucky_scar: { cost: 0, effects: ["armor+6", "positionSet+0", "nerve+1"] },
   char_hideout_cache: { cost: 0, effects: ["nextNerve+1", "load+1"] },
   char_black_market_doc: { cost: 0, effects: ["healNow+12", "armor+5", "position-1"] },
+  atk_name_on_every_poster: { cost: 1, effects: ["infamy+3", "armor+9", "enemyWeak+1"] },
+  char_wanted_legend: { cost: 0, effects: ["infamyPerRound+1", "infamy+1", "armor+5"] },
+  atk_no_witnesses: { cost: 1, effects: ["infamy+2", "infamyLoad+4", "armor+2"] },
+  atk_bounty_scare: { cost: 2, effects: ["infamyDamage+5", "enemyWeak+5", "infamy+2", "infamyLoad+1"] },
+  char_bad_reputation: { cost: 0, effects: ["infamy+4", "infamyArmor+3", "infamyDamage+3", "armor+3"] },
 
   atk_bulwark: { cost: 1, effects: ["armor+9", "position+1"] },
   atk_badge_flash: { cost: 0, effects: ["nerve+1", "position+1"] },
@@ -2566,6 +2571,11 @@ const COMBAT_REWORK_CARD_OVERRIDES = {
   char_deputized_posse: { cost: 0, effects: ["nextNerve+1", "markEnemy+1"] },
   char_federal_ledger: { cost: 0, effects: ["markBurst+1", "armor+5"] },
   char_witness_protection: { cost: 0, effects: ["armor+8", "healNow+6"] },
+  atk_open_case_file: { cost: 1, effects: ["caseFile+3", "armor+8"] },
+  char_federal_procedure: { cost: 0, effects: ["casePath+1", "caseFile+2", "armor+4", "enemyWeak+2"] },
+  atk_serve_warrant: { cost: 1, effects: ["caseFile+1", "caseSpendLoad+3", "enemyWeak+4", "damage+1"] },
+  atk_evidence_locker: { cost: 1, effects: ["caseFile+2", "caseSpendArmor+3", "draw+1"] },
+  char_circuit_judge: { cost: 0, effects: ["casePath+1", "caseFile+2", "armor+6"] },
 
   atk_wind_whisper: { cost: 1, effects: ["spirit+1", "position+1"] },
   atk_spirit_talk: { cost: 1, effects: ["spirit+1", "armor+6"] },
@@ -2582,6 +2592,11 @@ const COMBAT_REWORK_CARD_OVERRIDES = {
   char_sky_reader: { cost: 0, effects: ["spirit+1", "position+1"] },
   char_medicine_bundle: { cost: 0, effects: ["spirit+1", "nextNerve+1"] },
   char_hidden_canyon: { cost: 0, effects: ["armor+8", "spiritScaleDamage+0.02"] },
+  atk_read_the_dust: { cost: 1, effects: ["track+2", "position+1", "armor+2"] },
+  atk_snare_line: { cost: 1, effects: ["snare+1", "armor+2"] },
+  char_hidden_trail: { cost: 0, effects: ["track+1", "snarePerRound+1", "armor+2"] },
+  atk_high_ridge_ambush: { cost: 2, effects: ["trackLoad+3", "trackDamage+1", "position+1"] },
+  char_trap_circle: { cost: 0, effects: ["track+1", "snarePerRound+1", "armor+3"] },
 
   atk_steady_offhand: { cost: 1, effects: ["position+1", "load+1", "armor+5"] },
   atk_quick_holster: { cost: 0, effects: ["position+1", "draw+1"] },
@@ -2596,6 +2611,11 @@ const COMBAT_REWORK_CARD_OVERRIDES = {
   char_dancing_spurs: { cost: 0, effects: ["position+1", "nextNerve+1"] },
   char_cantina_fame: { cost: 0, effects: ["load+1", "position+1"] },
   char_saddle_trick: { cost: 0, effects: ["armor+6", "draw+1"] },
+  atk_paso_fino: { cost: 1, effects: ["position+2", "armor+5", "load+1"] },
+  char_caballero_rhythm: { cost: 0, effects: ["positionPerRound+1", "flourishDamage+1", "armor+3"] },
+  atk_red_sash_flourish: { cost: 1, effects: ["position+1", "flourishDamage+3", "load+1"] },
+  atk_left_hand_low: { cost: 1, effects: ["armor+10", "flourishDamage+1", "load+1"] },
+  char_silver_spur_style: { cost: 0, effects: ["position+1", "positionPerRound+1", "flourishDamage+2"] },
 
   atk_blood_for_lead: { cost: 1, effects: ["payHp+4", "load+1", "lifestealOnHit+1"] },
   atk_dead_mans_cover: { cost: 1, effects: ["armor+10", "position+1"] },
@@ -2613,6 +2633,12 @@ const COMBAT_REWORK_CARD_OVERRIDES = {
   char_dead_or_alive: { cost: 0, effects: ["position+1", "bountyOnHit+1"] },
   char_undertakers_credit: { cost: 0, effects: ["healNow+8", "armor+4"] },
   char_crown_contract: { cost: 0, effects: ["damage+1", "bountyOnHit+1", "payHp+2"] },
+  atk_dirty_needle: { cost: 1, effects: ["infection+3", "armor+4", "enemyWeak+1"] },
+  atk_bad_medicine: { cost: 1, effects: ["infection+2", "infectionWeak+4", "armor+2"] },
+  char_frontier_doctor: { cost: 0, effects: ["infectionLeech+0.2", "healNow+5", "armor+2"] },
+  atk_black_bottle_tonic: { cost: 1, effects: ["payHp+2", "infection+4", "armor+6"] },
+  atk_amputation_saw: { cost: 2, effects: ["consumeInfection+1.5", "healNow+7", "armor+2"] },
+  char_lead_fever: { cost: 0, effects: ["infection+2", "infectionLeech+0.1"] },
 };
 
 for (const card of CARD_DEFINITIONS) {

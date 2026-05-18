@@ -30,7 +30,7 @@ function isUniqueDeckCard(cardDef) {
 
 /** Hover-friendly description for an effect token. Used by .card-eff tooltips. */
 const EFFECT_TOOLTIPS = {
-  bullets: "Legacy attack effect. Current cards should use Load.",
+  bullets: "Old attack token. Current cards use Load.",
   load: "Loads bullets into your active gun, up to its capacity.",
   armor: "One-round damage reduction. Clears after Showdown.",
   position: "Changes Position. Position improves bullet damage but fuels Dodge.",
@@ -45,22 +45,22 @@ const EFFECT_TOOLTIPS = {
   enemyArmor: "Changes enemy Armor.",
   overcap: "Temporarily lets your gun load above normal capacity.",
   damage: "Flat damage added to every successful hit.",
-  accShootout: "Legacy accuracy effect. Current combat is deterministic.",
-  accGlobal: "Legacy accuracy effect. Current combat is deterministic.",
-  enemyAccNext: "Legacy aim debuff. Current cards map this to enemy damage reduction.",
-  enemyBullets: "Legacy bullet debuff. Current cards map this to enemy damage reduction.",
+  accShootout: "Converted to Position in deterministic combat.",
+  accGlobal: "Permanent aim effect from older card data.",
+  enemyAccNext: "Converted to enemy damage reduction.",
+  enemyBullets: "Converted to enemy damage reduction.",
   enemyDodge: "Reduces the enemy's deterministic dodges on the next shootout only.",
   pierce: "Shots ignore enemy damage reduction (pierce armor).",
   ricochet: "30% chance per hit for a half-damage ricochet.",
   healNow: "Heal HP immediately.",
   hpAfterShootout: "HP change applied after every volley while this gun is equipped.",
-  hpAfterCycle: "Legacy timing effect from the old prep system.",
-  focusCycle: "Legacy focus effect. Current combat treats this as immediate Nerve.",
-  gainFocused: "Legacy focus state.",
+  hpAfterCycle: "Older timing effect from the old prep system.",
+  focusCycle: "Older focus effect. Current combat treats this as immediate Nerve.",
+  gainFocused: "Older focus state.",
   markEnemy: "Place mark tokens on the enemy. Marks amplify markBurst damage.",
   markBurst: "Each enemy mark adds this much damage to your hits.",
   focusBonusBullets: "While Focused: extra bullets in the next volley.",
-  focusBonusAcc: "Legacy accuracy focus effect.",
+  focusBonusAcc: "Older accuracy focus effect.",
   firstHitsAuto: "The first N shots of your volley automatically hit.",
   dodgeRecv: "Deterministically dodge this many incoming bullets each volley.",
   returnBulletOnHit: "Each hit returns this many bullets to your volley.",
@@ -70,23 +70,23 @@ const EFFECT_TOOLTIPS = {
   deadeye: "Critical hits: ~15% of hits deal 30% bonus damage.",
   damageTaken: "Reduce incoming damage from each enemy hit.",
   focusPerRound: "Extra Nerve added next round.",
-  staminaPerRound: "Extra Nerve added next round (legacy term).",
+  staminaPerRound: "Extra Nerve added next round (older term).",
   extraMarkPerApply: "When you apply marks, add this many extra marks.",
   markBulletPerMark: "At shootout, add this many bullets per mark on the enemy.",
   damagePerHp: "At shootout, gain +1 damage per N current HP.",
   spirit: "Gain Spirit (cap 10). Spirit scales spirit-based effects.",
-  spiritScaleAcc: "Legacy Spirit aim effect. Current combat maps this toward Position.",
+  spiritScaleAcc: "Older Spirit aim effect. Current combat maps this toward Position.",
   spiritScaleDamage: "At shootout, +volley damage per Spirit point.",
-  spiritScaleEnemyAcc: "Legacy Spirit aim debuff. Current combat maps this to enemy damage reduction.",
+  spiritScaleEnemyAcc: "Older Spirit aim debuff. Current combat maps this to enemy damage reduction.",
   payHp: "Spend HP to play this card. Refused if it would be lethal.",
   comboBonus: "Bonus effect — triggers if 2+ outlaw cards play in the same round.",
   nextComboFree: "Your next outlaw combo card costs 0 Nerve until you play one.",
-  extraPlay: "Legacy play-limit effect. Current combat maps this to Nerve.",
-  elDoble: "Legacy Vaquero Oath effect.",
-  removeDualPenalty: "Legacy dual-wield accuracy effect.",
+  extraPlay: "Older play-limit effect. Current combat maps this to Nerve.",
+  elDoble: "Older Vaquero Oath effect.",
+  removeDualPenalty: "Older dual-wield accuracy effect.",
   spiritDoubleNext: "All Spirit-scaling effects double for the next shootout.",
   extraVolleyShots: "Per combo trigger this duel, +N bonus shootout shots.",
-  dualWieldAccPenaltyReduce: "Legacy dual-wield accuracy effect.",
+  dualWieldAccPenaltyReduce: "Older dual-wield accuracy effect.",
   respectCapSet: "Set your Respect cap to at least this value for the run.",
   bountyOnHit: "Each successful player hit adds this many dollars to the duel bounty.",
   lifestealOnHit: "Each successful player hit restores this many HP.",
@@ -135,9 +135,33 @@ const hudClass = () => document.getElementById("hud-class");
 const RIBBON_LABEL = {
   gun: "Gun",
   feat: "Feat",
-  staredown: "Legacy",
+  staredown: "Inactive",
   stance: "Stance",
-  showdown: "Legacy",
+  showdown: "Inactive",
+};
+
+const BUILD_PATH_LABELS = {
+  combo: "Combo",
+  infamy: "Infamy",
+  street: "Street",
+  posse: "Posse",
+  marks: "Marks",
+  procedure: "Procedure",
+  spirit: "Spirit",
+  trail: "Trail",
+  dual: "Dual",
+  flourish: "Flourish",
+  blood: "Blood",
+  doctor: "Doctor",
+};
+
+const CLASS_BUILD_PATHS = {
+  outlaw: ["combo", "infamy"],
+  sheriff: ["street", "posse"],
+  marshal: ["marks", "procedure"],
+  apache_tracker: ["spirit", "trail"],
+  vaquero: ["dual", "flourish"],
+  bounty_hunter: ["blood", "doctor"],
 };
 
 const ROLE_LABEL = {
@@ -156,6 +180,14 @@ function escapeHtml(value) {
     '"': "&quot;",
     "'": "&#39;",
   }[ch]));
+}
+
+function buildPathBadgeHtml(def) {
+  const key = String(def?.buildPath ?? "").trim();
+  if (!key) return "";
+  const label = BUILD_PATH_LABELS[key] ?? key.replace(/[_-]+/g, " ");
+  const cls = key.toLowerCase().replace(/[^a-z0-9_-]/g, "") || "path";
+  return `<span class="build-path-badge build-path-${escapeHtml(cls)}">${escapeHtml(label)}</span>`;
 }
 
 function sheriffCurrentHpAccBonus(run) {
@@ -262,7 +294,7 @@ function effectToText(raw) {
     case 'staredownOnly': return null;
     case 'nextComboFree': return 'Next combo card free until played';
     case 'extraPlay': return `+${v} Nerve`;
-    case 'elDoble': return 'Legacy dual-wield effect';
+    case 'elDoble': return 'Older dual-wield effect';
     case 'removeDualPenalty': return 'Clears dual-wield penalty';
     case 'spiritDoubleNext': return 'Double Spirit scaling';
     case 'outlawCombo': return null;
@@ -580,8 +612,20 @@ function shopGunPool(game) {
 
 export function rollShopInventory(game) {
   const trinket = rollMerchantTrinket(game.run);
+  const cardPool = shopCardPool(game);
+  const cardIds = [];
+  const paths = CLASS_BUILD_PATHS[game.run?.classId] ?? [];
+  for (const path of paths) {
+    const options = cardPool.filter((c) => c.buildPath === path && !cardIds.includes(c.id));
+    if (!options.length) continue;
+    cardIds.push(shuffle(options)[0].id);
+  }
+  for (const card of shuffle(cardPool)) {
+    if (cardIds.length >= 5) break;
+    if (!cardIds.includes(card.id)) cardIds.push(card.id);
+  }
   return {
-    cardIds: shuffle([...shopCardPool(game)]).slice(0, 5).map((c) => c.id),
+    cardIds,
     gunIds: shuffle([...shopGunPool(game)]).slice(0, 4).map((g) => g.id),
     trinketId: trinket?.id ?? null,
     healUsed: false,
@@ -627,6 +671,12 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue, o
 
   el.innerHTML = `<h2>Merchant</h2><p>Spend your bounty. Health does not refill between fights.</p>
     <p>Wallet: <strong>$${game.run.money}</strong></p>
+    <div class="shop-status-row">
+      <span>Purchase <strong>${purchaseUsed ? "1/1 used" : "0/1 open"}</strong></span>
+      <span>Whiskey <strong>${healUsed ? "Used" : "Available"}</strong></span>
+      <span>Deck <strong>${deckSize}/24</strong></span>
+    </div>
+    ${purchaseUsed ? `<p class="shop-rule-note">Purchase used. Whiskey may still be bought if available.</p>` : ""}
     <button class="btn btn-signatures" id="shop-upgrades" ${(game.run.signaturePoints || 0) > 0 ? "" : "disabled"}>Sign Cards (${game.run.signaturePoints || 0})</button>
     <h3 class="shop-section-title">Trinket <span class="shop-section-sub">(appears from merchant visit 2, one purchase per visit)</span></h3>
     <div class="shop-list" id="shop-trinkets"></div>
@@ -651,7 +701,7 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue, o
     b.className = `shop-card hand-card-trinket item-rarity-${trinketOffer.rarity}`;
     b.innerHTML = buildItemCardHtml(trinketOffer, "Trinket", price);
     b.onclick = () => {
-      if (purchaseUsed) return;
+      if (purchaseUsed || game.run.money < price) return;
       onBuyCard(trinketOffer.id, price);
     };
     trinketRow.appendChild(b);
@@ -665,7 +715,7 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue, o
     const price = priceForGun(g, game);
     const card = document.createElement("button");
     card.type = "button";
-    card.disabled = purchaseUsed;
+    card.disabled = purchaseUsed || game.run.money < price;
     card.className = `shop-card hand-card-gun iron-rarity-${g.rarity}`;
     const cardDef = getCardDef(g.id);
     const back = g.backstory ? `<span class="card-flavor card-backstory">${g.backstory}</span>` : '';
@@ -679,7 +729,7 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue, o
         ${buildEffectsHtml(cardDef ?? { effects: g.effects })}
       </span>`;
     card.onclick = () => {
-      if (purchaseUsed) return;
+      if (purchaseUsed || game.run.money < price) return;
       const ownedGuns = ownedGunIdsInDeck(game.run.deckIds);
       if (ownedGuns.length >= 2) {
         promptReplaceGun(game, ownedGuns, (replaceId) => {
@@ -700,17 +750,18 @@ export function renderShop(game, shopInventory, onBuyCard, onHeal, onContinue, o
     const b = document.createElement("button");
     const price = priceForCard(c, game);
     b.type = "button";
-    b.disabled = purchaseUsed;
+    b.disabled = purchaseUsed || game.run.money < price;
     b.className = `shop-card hand-card-${c.type}`;
     b.innerHTML = `
       <span class="shop-card-inner hand-card-inner">
         <span class="card-ribbon">${RIBBON_LABEL[c.type] ?? c.type} — $${price}</span>
         <span class="card-cost">${c.cost}</span>
         <span class="card-name-text">${c.name}</span>
+        ${buildPathBadgeHtml(c)}
         ${buildEffectsHtml(c)}
       </span>`;
     b.onclick = () => {
-      if (purchaseUsed) return;
+      if (purchaseUsed || game.run.money < price) return;
       if (atDeckCap) {
         const ownedCards = ownedNonGunIdsInDeck(game.run.deckIds);
         if (!ownedCards.length) return;
@@ -780,6 +831,7 @@ function promptReplaceCard(game, ownedCardIds, cb, opts = {}) {
         <span class="card-ribbon">${RIBBON_LABEL[c.type] ?? c.type}</span>
         <span class="card-cost">${c.cost}</span>
         <span class="card-name-text">${c.name}</span>
+        ${buildPathBadgeHtml(c)}
         ${buildEffectsHtml(c)}
       </span>`;
     b.onclick = () => cb(cardId);
@@ -815,6 +867,7 @@ export function renderPostDuelReward(game, reward, onTakeCard, onSkip) {
         <span class="card-ribbon">${c.rarity.toUpperCase()} ${RIBBON_LABEL[c.type] ?? c.type}</span>
         <span class="card-cost">${c.cost}</span>
         <span class="card-name-text">${c.name}</span>
+        ${buildPathBadgeHtml(c)}
         ${buildEffectsHtml(c)}
       </span>`;
     b.onclick = () => {
@@ -1037,6 +1090,7 @@ export function renderCardUpgrade(game, eligibleCards, onUpgrade, onDone) {
           <span class="card-ribbon">${RIBBON_LABEL[base.type] ?? base.type}</span>
           <span class="card-cost">${base.cost}</span>
           <span class="card-name-text">${escapeHtml(base.name)}</span>
+          ${buildPathBadgeHtml(base)}
           ${buildEffectsHtml(base)}
         </span>
       </div>
@@ -1097,6 +1151,7 @@ function buildForecastCardHtml(label, subLabel, forecast, sideClass, valuePrefix
   const blocked = forecast.armor > 0
     ? `<span>${forecast.armor} Armor</span>`
     : `<span>No Armor</span>`;
+  const tempo = forecast.tempoLabel ? `<span>${escapeHtml(forecast.tempoLabel)}</span>` : "";
   return `<div class="forecast-card ${sideClass}">
     <div class="forecast-kicker">${escapeHtml(label)}</div>
     <div class="forecast-value">${escapeHtml(valuePrefix)}${Math.round(forecast.expectedDamage)} dmg</div>
@@ -1104,6 +1159,7 @@ function buildForecastCardHtml(label, subLabel, forecast, sideClass, valuePrefix
     <div class="forecast-facts">
       <span>${forecast.liveShots}/${forecast.bullets} bullets</span>
       <span>${forecast.damagePerHit} dmg/bullet</span>
+      ${tempo}
       ${blocked}
       ${dodge}
     </div>
@@ -1234,13 +1290,14 @@ function buildCombatDeedsHtml(run) {
 }
 
 function buildCardHtml(def, costLabel = 'free') {
-  const ribbon = hasStaredownOnlyEffect(def) ? "Legacy" : (RIBBON_LABEL[def.type] ?? def.type);
+  const ribbon = hasStaredownOnlyEffect(def) ? "Inactive" : (RIBBON_LABEL[def.type] ?? def.type);
   const upgrade = def.upgradeName ? `<span class="card-signature">${escapeHtml(def.upgradeName)}</span>` : "";
   return `
     <span class="hand-card-inner">
       <span class="card-ribbon">${escapeHtml(ribbon)}</span>
       <span class="card-cost">${escapeHtml(costLabel)}</span>
       <span class="card-name-text">${escapeHtml(def.name)}</span>
+      ${buildPathBadgeHtml(def)}
       ${upgrade}
       ${def.flavorText ? `<span class="card-flavor">${escapeHtml(def.flavorText)}</span>` : ''}
       ${buildEffectsHtml(def)}
@@ -1305,6 +1362,14 @@ function buildRoundStateHtml(d, run) {
   const casePath = d.casePath > 0 ? `<span class="status-tag">Procedure ${d.casePathStage || 0}/3</span>` : "";
   const track = d.track > 0 ? `<span class="status-tag">Track ${d.track}</span>` : "";
   const infection = d.enemyInfection > 0 ? `<span class="status-tag status-rattled">Infection ${d.enemyInfection}</span>` : "";
+  const cardsPlayed = Math.max(0, d.cardsPlayedThisRound || 0);
+  const overCalm = Math.max(0, cardsPlayed - 3);
+  const tempoText = overCalm > 0
+    ? `Past calm +${overCalm} card${overCalm === 1 ? "" : "s"}`
+    : `Cards ${cardsPlayed}/3 calm`;
+  const tempo = `<span class="status-tag ${overCalm > 0 ? "status-rattled" : "status-tempo"}">${tempoText}</span>`;
+  const over = d.overplayPressure > 0 ? `<span class="status-tag status-rattled">Exposure +${d.overplayPressure}/bullet</span>` : "";
+  const gunTempo = outgoing.tempoLabel ? `<span class="status-tag status-tempo">${escapeHtml(outgoing.tempoLabel)}</span>` : "";
   return `<section class="combat-section round-state-board">
     <div class="combat-section-title">
       <span>Round ${d.roundNumber}</span>
@@ -1335,7 +1400,7 @@ function buildRoundStateHtml(d, run) {
     <div class="status-strip">
       <span class="status-tag">Outgoing ${Math.round(outgoing.expectedDamage)}</span>
       <span class="status-tag">Incoming HP loss ${Math.round(incoming.expectedDamage)}</span>
-      ${evade}${marks}${spirit}${infamy}${deputies}${caseFile}${casePath}${track}${infection}${rattled}
+      ${tempo}${over}${gunTempo}${evade}${marks}${spirit}${infamy}${deputies}${caseFile}${casePath}${track}${infection}${rattled}
     </div>
   </section>`;
 }
@@ -1356,8 +1421,19 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onContinueDuel) {
       ${buildActiveGunBadgeHtml(d.enemy?.activeGun, `${d.opponentDef?.name ?? 'Foe'}'s Iron`)}
     </div>`;
     html += buildRoundStateHtml(d, game.run);
+    const played = Math.max(0, d.cardsPlayedThisRound || 0);
+    const freeHint = d.freeCardAvailable
+      ? `<span class="turn-rule turn-rule-free">First non-gun 0 Nerve</span>`
+      : "";
+    const tempoHint = d.overplayPressure > 0
+      ? `<span class="turn-rule turn-rule-danger">Exposure +${d.overplayPressure}/bullet</span>`
+      : (played > 3
+        ? `<span class="turn-rule turn-rule-danger">Past calm line</span>`
+        : `<span class="turn-rule">Calm cards ${played}/3</span>`);
     html += `<div class="prep-bar">
       <span class="focus-label">${d.nerve}/${d.maxNerve} Nerve</span>
+      ${freeHint}
+      ${tempoHint}
       <button class="btn btn-lockin" id="lock">Showdown</button>
     </div>`;
     html += `<div class="card-row" id="hand"></div>`;
@@ -1394,8 +1470,13 @@ export function renderDuelPanel(game, onPlayCard, onLockIn, onContinueDuel) {
       }
       const wouldBeLethal = payHpAmount > 0 && (game.run.hp - payHpAmount <= 0);
       const affordable = ((def.cost ?? 0) <= d.nerve || isFreeEligible || isGunFree) && !wouldBeLethal;
-      const costLabel = (isFreeEligible || isComboFree || isGunFree) && def.cost > 0 ? "★ free" : def.cost;
-      card.className = `hand-card hand-card-${def.type}${affordable ? "" : " disabled"}`;
+      const usingFreeCost = (isFreeEligible || isComboFree || isGunFree) && def.cost > 0;
+      const costLabel = usingFreeCost ? "0" : def.cost;
+      const freeReason = isFreeEligible
+        ? "First non-gun card this round costs 0 Nerve."
+        : (isGunFree ? "First gun swap this duel costs 0 Nerve." : "");
+      card.className = `hand-card hand-card-${def.type}${affordable ? "" : " disabled"}${usingFreeCost ? " hand-card-free" : ""}`;
+      if (freeReason) card.title = freeReason;
       card.innerHTML = buildCardHtml(def, costLabel);
       if (affordable) {
         card.onclick = () => onPlayCard(c.uid);
